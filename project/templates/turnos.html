@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KineSalud – Solicitar turno</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../static/css/pages/turnos.css" />
+</head>
+<body>
+
+  <!-- ═══ NAVBAR ═══════════════════════════════════════════ -->
+  <nav>
+    <a href="kinesalud.html" class="nav-logo">
+      <div class="nav-logo-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round">
+          <path d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z"/>
+          <circle cx="12" cy="9" r="2.5" fill="#fff" stroke="none"/>
+        </svg>
+      </div>
+      <span class="nav-logo-name">KineSalud</span>
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="index.html">Inicio</a></li>
+      <li><a href="kinesalud.html#servicios">Servicios</a></li>
+      <li><a href="kinesalud.html#profesionales">Profesionales</a></li>
+      <li class="active"><a href="turnos.html">Turnos</a></li>
+      <li><a href="kinesalud.html#contacto">Contacto</a></li>
+    </ul>
+
+    <a href="turnos.html" class="btn-primary">Reservar turno</a>
+
+    <!-- Hamburger (visible solo en mobile) -->
+    <button class="nav-hamburger" id="hamburger" aria-label="Menú" onclick="toggleMenu()">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </nav>
+
+  <!-- Menú mobile desplegable -->
+  <nav class="nav-mobile-menu" id="mobileMenu">
+    <ul style="list-style:none;display:flex;flex-direction:column;gap:16px;">
+      <li><a href="kinesalud.html" style="text-decoration:none;color:inherit;">Inicio</a></li>
+      <li><a href="kinesalud.html#servicios" style="text-decoration:none;color:inherit;">Servicios</a></li>
+      <li><a href="kinesalud.html#profesionales" style="text-decoration:none;color:inherit;">Profesionales</a></li>
+      <li class="active"><a href="turnos.html" style="text-decoration:none;color:inherit;">Turnos</a></li>
+      <li><a href="kinesalud.html#contacto" style="text-decoration:none;color:inherit;">Contacto</a></li>
+    </ul>
+    <a href="turnos.html" class="btn-primary" style="align-self:flex-start;margin-top:4px;text-decoration:none;">Reservar turno</a>
+  </nav>
+
+  <!-- ═══ PAGE HEADER ══════════════════════════════════════ -->
+  <div class="page-header">
+    <h1>Reservá tu turno</h1>
+    <p>Elegí la zona, el día y el horario que mejor se adapte a vos</p>
+  </div>
+
+  <!-- ═══ MAIN ══════════════════════════════════════════════ -->
+  <div class="main">
+
+    <!-- ── Columna izquierda ─────────────────────────────── -->
+    <div class="left-col">
+
+      <!-- Steps -->
+      <div class="steps">
+        <div class="step active" id="step1">
+          <div class="step-num">1</div>
+          <span>Zona</span>
+        </div>
+        <div class="step-sep"></div>
+        <div class="step" id="step2">
+          <div class="step-num">2</div>
+          <span>Día y horario</span>
+        </div>
+        <div class="step-sep"></div>
+        <div class="step" id="step3">
+          <div class="step-num">3</div>
+          <span>Tus datos</span>
+        </div>
+      </div>
+
+      <!-- PASO 1: Zona corporal -->
+      <div class="card" id="card-zona">
+        <div class="card-title">¿Qué zona querés trabajar?</div>
+        <div class="zona-grid">
+
+          <button class="zona-btn" data-zona="superior" onclick="selectZona(this)">
+            <div class="zona-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5A8A1A" stroke-width="1.8" stroke-linecap="round">
+                <circle cx="12" cy="5" r="2"/>
+                <path d="M12 7v5"/>
+                <path d="M7 10c1.5-.5 3-1 5-1s3.5.5 5 1"/>
+                <path d="M7 10l-2 5"/>
+                <path d="M17 10l2 5"/>
+              </svg>
+            </div>
+            <div>
+              <div class="zona-name">Tren superior</div>
+              <div class="zona-sub">Hombros, brazos, cuello y espalda alta</div>
+            </div>
+          </button>
+
+          <button class="zona-btn" data-zona="medio" onclick="selectZona(this)">
+            <div class="zona-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5A8A1A" stroke-width="1.8" stroke-linecap="round">
+                <path d="M7 10h10"/>
+                <path d="M7 14h10"/>
+                <path d="M9 7v10"/>
+                <path d="M15 7v10"/>
+              </svg>
+            </div>
+            <div>
+              <div class="zona-name">Tren medio</div>
+              <div class="zona-sub">Core, lumbar y zona abdominal</div>
+            </div>
+          </button>
+
+          <button class="zona-btn" data-zona="inferior" onclick="selectZona(this)">
+            <div class="zona-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5A8A1A" stroke-width="1.8" stroke-linecap="round">
+                <path d="M12 4v8"/>
+                <path d="M9 12l-3 8"/>
+                <path d="M15 12l3 8"/>
+                <path d="M8 16h8"/>
+              </svg>
+            </div>
+            <div>
+              <div class="zona-name">Tren inferior</div>
+              <div class="zona-sub">Caderas, rodillas, tobillos y pies</div>
+            </div>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- PASO 2: Día y horario -->
+      <div class="card" id="card-fecha">
+        <div class="card-title">Elegí el día</div>
+
+        <div class="week-nav">
+          <button class="week-arrow" id="btn-prev-week" onclick="changeWeek(-1)">&#8249;</button>
+          <span class="week-label" id="week-label"></span>
+          <button class="week-arrow" id="btn-next-week" onclick="changeWeek(1)">&#8250;</button>
+        </div>
+
+        <div class="days-row" id="days-row"></div>
+
+        <div class="card-title" style="margin-top:1.25rem;">Elegí el horario</div>
+        <div id="slots-container">
+          <div class="empty-state">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <p>Seleccioná un día para ver los turnos disponibles</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 3: Datos personales -->
+      <div class="card" id="card-datos">
+        <div class="card-title">Tus datos</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nombre</label>
+            <input type="text" id="inp-nombre" placeholder="Ej: María" oninput="updateSummary()" />
+          </div>
+          <div class="form-group">
+            <label>Apellido</label>
+            <input type="text" id="inp-apellido" placeholder="Ej: González" oninput="updateSummary()" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Teléfono</label>
+            <input type="tel" id="inp-tel" placeholder="Ej: 221-4567890" oninput="updateSummary()" />
+          </div>
+          <div class="form-group">
+            <label>Obra social</label>
+            <select id="inp-os" onchange="updateSummary()">
+              <option value="">— Seleccioná —</option>
+              <option>OSDE</option>
+              <option>Swiss Medical</option>
+              <option>IOMA</option>
+              <option>PAMI</option>
+              <option>Galeno</option>
+              <option>Particular</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="inp-email" placeholder="Ej: maria@email.com" oninput="updateSummary()" />
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /left-col -->
+
+    <!-- ── Sidebar: resumen ──────────────────────────────── -->
+    <div class="sidebar">
+      <div class="summary-card">
+        <div class="summary-header">
+          <h3>Resumen del turno</h3>
+          <p>Revisá los datos antes de confirmar</p>
+        </div>
+        <div class="summary-body">
+          <div class="summary-row">
+            <span class="summary-key">Zona</span>
+            <span class="summary-val empty" id="sum-zona">Sin seleccionar</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-key">Día</span>
+            <span class="summary-val empty" id="sum-dia">Sin seleccionar</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-key">Horario</span>
+            <span class="summary-val empty" id="sum-hora">Sin seleccionar</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-key">Duración</span>
+            <span class="summary-val"><span class="summary-badge">1 hora</span></span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-key">Paciente</span>
+            <span class="summary-val empty" id="sum-nombre">Sin completar</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-key">Obra social</span>
+            <span class="summary-val empty" id="sum-os">Sin completar</span>
+          </div>
+
+          <button class="btn-confirm" id="btn-confirm" disabled onclick="confirmarTurno()">
+            Confirmar turno
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+
+  <!-- ═══ TOAST ═════════════════════════════════════════════ -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ═══ SCRIPT ════════════════════════════════════════════ -->
+  <script>
+    function toggleMenu() {
+      const menu = document.getElementById('mobileMenu');
+      const btn  = document.getElementById('hamburger');
+      menu.classList.toggle('open');
+      btn.classList.toggle('open');
+    }
+
+    /* ── Estado de la app ────────────────────────────────── */
+    const state = {
+      zona:      null,
+      diaDate:   null,
+      slot:      null,
+      weekOffset: 0,
+    };
+
+    /* ── Cupos simulados (clave: "YYYY-MM-DD_HH:MM") ─────── */
+    // Precargamos algunos turnos con ocupación para demostración
+    const ocupados = {};
+    function seedOcupados() {
+      const hoy = new Date();
+      const dias = [-1, 0, 1, 2, 3];
+      const horas = ['09:00','10:00','11:00','14:00','15:00'];
+      dias.forEach(d => {
+        const fecha = new Date(hoy);
+        fecha.setDate(hoy.getDate() + d);
+        if (fecha.getDay() === 0 || fecha.getDay() === 6) return;
+        horas.forEach(h => {
+          const key = `${fmtDate(fecha)}_${h}`;
+          ocupados[key] = Math.floor(Math.random() * 5);
+        });
+      });
+    }
+    seedOcupados();
+
+    function getOcupados(fecha, hora) {
+      const key = `${fmtDate(fecha)}_${hora}`;
+      return ocupados[key] || 0;
+    }
+
+    /* ── Helpers de fecha ────────────────────────────────── */
+    const DIAS_ES   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const MESES_ES  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+    function fmtDate(d) {
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function fmtDiaLargo(d) {
+      return `${DIAS_ES[d.getDay()]} ${d.getDate()} de ${MESES_ES[d.getMonth()]}`;
+    }
+
+    function getMonday(d) {
+      const day = d.getDay();
+      const diff = (day === 0) ? -6 : 1 - day;
+      const mon = new Date(d);
+      mon.setDate(d.getDate() + diff);
+      return mon;
+    }
+
+    /* ── Horarios disponibles ─────────────────────────────── */
+    const HORARIOS = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00'];
+
+    /* ── Renderizar semana ───────────────────────────────── */
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    function renderWeek() {
+      const base = new Date(today);
+      base.setDate(today.getDate() + state.weekOffset * 7);
+      const monday = getMonday(base);
+
+      // Label de semana
+      const friday = new Date(monday);
+      friday.setDate(monday.getDate() + 4);
+      document.getElementById('week-label').textContent =
+        `${monday.getDate()} al ${friday.getDate()} de ${MESES_ES[friday.getMonth()]}`;
+
+      // Flecha atrás: deshabilitar si la semana ya pasó
+      const prevMonday = new Date(monday);
+      prevMonday.setDate(monday.getDate() - 7);
+      document.getElementById('btn-prev-week').disabled = prevMonday < today;
+
+      // Días
+      const row = document.getElementById('days-row');
+      row.innerHTML = '';
+      for (let i = 0; i < 5; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        const isPast = d < today;
+        const isToday = fmtDate(d) === fmtDate(today);
+        const isSelected = state.diaDate && fmtDate(d) === fmtDate(state.diaDate);
+
+        const btn = document.createElement('button');
+        btn.className = `day-btn${isToday ? ' today' : ''}${isSelected ? ' selected' : ''}${isPast ? ' past' : ''}`;
+        btn.disabled = isPast;
+        btn.style.opacity = isPast ? '0.35' : '1';
+        btn.style.cursor  = isPast ? 'not-allowed' : 'pointer';
+        btn.innerHTML = `
+          <div class="day-name">${DIAS_ES[d.getDay()]}</div>
+          <div class="day-num">${d.getDate()}</div>
+        `;
+        btn.onclick = () => selectDia(d);
+        row.appendChild(btn);
+      }
+    }
+
+    /* ── Renderizar horarios ─────────────────────────────── */
+    function renderSlots() {
+      const container = document.getElementById('slots-container');
+      if (!state.diaDate) {
+        container.innerHTML = `<div class="empty-state">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          <p>Seleccioná un día para ver los turnos disponibles</p>
+        </div>`;
+        return;
+      }
+
+      const grid = document.createElement('div');
+      grid.className = 'slots-grid';
+
+      HORARIOS.forEach(hora => {
+        const taken = getOcupados(state.diaDate, hora);
+        const isFull = taken >= 5;
+        const isSelected = state.slot === hora;
+
+        const btn = document.createElement('button');
+        btn.className = `slot-btn${isFull ? ' full' : ''}${isSelected ? ' selected' : ''}`;
+        btn.disabled = isFull;
+
+        // Dots de cupo
+        let dots = '';
+        for (let i = 0; i < 5; i++) {
+          dots += `<div class="slot-dot${i < taken ? ' taken' : ''}"></div>`;
+        }
+
+        btn.innerHTML = `
+          <span class="slot-time">${hora}</span>
+          <div class="slot-dots">${dots}</div>
+          <div class="slot-cupos" style="color:${isFull ? 'var(--gray-text)' : taken >= 4 ? 'var(--red)' : 'var(--green-dark)'}">
+            ${isFull ? 'Sin cupos' : `${5 - taken} lugar${5 - taken === 1 ? '' : 'es'}`}
+          </div>
+        `;
+        btn.onclick = () => selectSlot(hora);
+        grid.appendChild(btn);
+      });
+
+      container.innerHTML = '';
+      container.appendChild(grid);
+    }
+
+    /* ── Handlers de selección ───────────────────────────── */
+    function selectZona(el) {
+      document.querySelectorAll('.zona-btn').forEach(b => b.classList.remove('selected'));
+      el.classList.add('selected');
+      state.zona = el.dataset.zona;
+      updateSteps();
+      updateSummary();
+    }
+
+    function selectDia(d) {
+      state.diaDate = d;
+      state.slot = null;
+      renderWeek();
+      renderSlots();
+      updateSteps();
+      updateSummary();
+    }
+
+    function selectSlot(hora) {
+      state.slot = hora;
+      renderSlots();
+      updateSteps();
+      updateSummary();
+    }
+
+    function changeWeek(dir) {
+      state.weekOffset += dir;
+      renderWeek();
+      renderSlots();
+    }
+
+    /* ── Actualizar pasos visuales ───────────────────────── */
+    function updateSteps() {
+      const s1 = document.getElementById('step1');
+      const s2 = document.getElementById('step2');
+      const s3 = document.getElementById('step3');
+
+      s1.className = 'step' + (state.zona ? ' done' : ' active');
+      s2.className = 'step' + (!state.zona ? '' : state.slot ? ' done' : ' active');
+      s3.className = 'step' + (state.slot ? ' active' : '');
+    }
+
+    /* ── Actualizar resumen ──────────────────────────────── */
+    const ZONA_LABELS = {
+      superior: 'Tren superior',
+      medio:    'Tren medio',
+      inferior: 'Tren inferior',
+    };
+
+    function updateSummary() {
+      const nombre   = document.getElementById('inp-nombre').value.trim();
+      const apellido = document.getElementById('inp-apellido').value.trim();
+      const os       = document.getElementById('inp-os').value;
+
+      setVal('sum-zona',   state.zona    ? ZONA_LABELS[state.zona] : null);
+      setVal('sum-dia',    state.diaDate ? fmtDiaLargo(state.diaDate) : null);
+      setVal('sum-hora',   state.slot    ? `${state.slot} – ${nextHour(state.slot)}` : null);
+      setVal('sum-nombre', (nombre || apellido) ? `${nombre} ${apellido}`.trim() : null);
+      setVal('sum-os',     os || null);
+
+      // Habilitar botón si todo está completo
+      const email = document.getElementById('inp-email').value.trim();
+      const tel   = document.getElementById('inp-tel').value.trim();
+      const ok = state.zona && state.diaDate && state.slot && nombre && apellido && email && tel && os;
+      document.getElementById('btn-confirm').disabled = !ok;
+    }
+
+    function setVal(id, val) {
+      const el = document.getElementById(id);
+      if (val) {
+        el.textContent = val;
+        el.classList.remove('empty');
+      } else {
+        el.textContent = id === 'sum-zona'   ? 'Sin seleccionar' :
+                         id === 'sum-dia'    ? 'Sin seleccionar' :
+                         id === 'sum-hora'   ? 'Sin seleccionar' :
+                         id === 'sum-nombre' ? 'Sin completar'   : 'Sin completar';
+        el.classList.add('empty');
+      }
+    }
+
+    function nextHour(hora) {
+      const [h, m] = hora.split(':').map(Number);
+      return `${String(h + 1).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    }
+
+    /* ── Confirmar turno ─────────────────────────────────── */
+    function confirmarTurno() {
+      // Registrar la ocupación
+      const key = `${fmtDate(state.diaDate)}_${state.slot}`;
+      ocupados[key] = (ocupados[key] || 0) + 1;
+
+      // Toast
+      const nombre = document.getElementById('inp-nombre').value.trim();
+      showToast(`✓ Turno confirmado para ${nombre} el ${fmtDiaLargo(state.diaDate)} a las ${state.slot}`);
+
+      // Reset
+      setTimeout(() => {
+        state.zona = null;
+        state.diaDate = null;
+        state.slot = null;
+        document.querySelectorAll('.zona-btn').forEach(b => b.classList.remove('selected'));
+        document.getElementById('inp-nombre').value   = '';
+        document.getElementById('inp-apellido').value = '';
+        document.getElementById('inp-tel').value      = '';
+        document.getElementById('inp-email').value    = '';
+        document.getElementById('inp-os').value       = '';
+        renderWeek();
+        renderSlots();
+        updateSteps();
+        updateSummary();
+      }, 2800);
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
+    /* ── Init ─────────────────────────────────────────────── */
+    renderWeek();
+    renderSlots();
+    updateSteps();
+    updateSummary();
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KineSalud – Iniciar sesión</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../static/css/pages/login.css" />
+</head>
+<body>
+
+  <!-- ═══ NAVBAR ═══════════════════════════════════════════ -->
+  <nav>
+    <a href="../templates/index.html" class="nav-logo">
+      <div class="nav-logo-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round">
+          <path d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z"/>
+          <circle cx="12" cy="9" r="2.5" fill="#fff" stroke="none"/>
+        </svg>
+      </div>
+      <span class="nav-logo-name">KineSalud</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="../templates/index.html">Inicio</a></li>
+      <li><a href="../templates/">Servicios</a></li>
+      <li><a href="">Profesionales</a></li>
+      <li><a href="../templates/turnos.html">Turnos</a></li>
+      <li><a href="../templates/">Contacto</a></li>
+    </ul>
+    <div style="width:120px;"></div><!-- espaciador para centrar links -->
+  </nav>
+
+  <!-- ═══ LOGIN ═════════════════════════════════════════════ -->
+  <div class="login-page">
+    <div class="login-card" id="login-card">
+
+      <!-- Tabs de rol -->
+      <div class="role-tabs">
+        <button class="role-tab active-tab" id="tab-usuario" onclick="setRole('usuario')">
+          <div class="role-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#5A8A1A" stroke-width="2" stroke-linecap="round">
+              <circle cx="12" cy="8" r="4"/>
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+            </svg>
+          </div>
+          Paciente
+        </button>
+        <button class="role-tab admin-tab" id="tab-admin" onclick="setRole('admin')">
+          <div class="role-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7C3DBF" stroke-width="2" stroke-linecap="round">
+              <path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/>
+            </svg>
+          </div>
+          Administrador
+        </button>
+      </div>
+
+      <!-- Cuerpo del formulario -->
+      <div class="login-body" id="login-body">
+
+        <div class="login-greeting">
+          <h2 id="greeting-title">Bienvenido/a</h2>
+          <p id="greeting-sub">Ingresá con tu cuenta de paciente</p>
+        </div>
+
+        <div class="error-msg" id="error-msg">Usuario o contraseña incorrectos.</div>
+
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="inp-email" placeholder="tu@email.com" autocomplete="email" />
+        </div>
+
+        <div class="form-group">
+          <label>Contraseña</label>
+          <input type="password" id="inp-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') doLogin()" />
+        </div>
+
+        <a class="forgot" href="#">¿Olvidaste tu contraseña?</a>
+
+        <button class="btn-login" onclick="doLogin()">Ingresar</button>
+
+        <!-- Hint de credenciales demo -->
+        <div class="demo-hint" id="demo-hint">
+          <strong>Demo — Paciente:</strong><br>
+          Email: <strong>paciente@kinesalud.com</strong><br>
+          Contraseña: <strong>paciente123</strong>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ── Credenciales demo ─────────────────────────────── */
+    const USUARIOS = {
+      'paciente@kinesalud.com': { pass: 'paciente123', role: 'usuario', nombre: 'María González' },
+      'admin@kinesalud.com':    { pass: 'admin123',    role: 'admin',   nombre: 'Dr. Ramírez'    },
+    };
+
+    let currentRole = 'usuario';
+
+    /* ── Cambiar tab ─────────────────────────────────── */
+    function setRole(role) {
+      currentRole = role;
+      const body  = document.getElementById('login-body');
+      const card  = document.getElementById('login-card');
+      const tabU  = document.getElementById('tab-usuario');
+      const tabA  = document.getElementById('tab-admin');
+      const hint  = document.getElementById('demo-hint');
+      const title = document.getElementById('greeting-title');
+      const sub   = document.getElementById('greeting-sub');
+
+      document.getElementById('error-msg').classList.remove('show');
+
+      if (role === 'admin') {
+        tabA.classList.add('active-tab');
+        tabU.classList.remove('active-tab');
+        body.classList.add('admin-mode');
+        title.textContent = 'Panel de administración';
+        sub.textContent   = 'Acceso restringido al equipo de KineSalud';
+        hint.innerHTML    = '<strong>Demo — Administrador:</strong><br>Email: <strong>admin@kinesalud.com</strong><br>Contraseña: <strong>admin123</strong>';
+      } else {
+        tabU.classList.add('active-tab');
+        tabA.classList.remove('active-tab');
+        body.classList.remove('admin-mode');
+        title.textContent = 'Bienvenido/a';
+        sub.textContent   = 'Ingresá con tu cuenta de paciente';
+        hint.innerHTML    = '<strong>Demo — Paciente:</strong><br>Email: <strong>paciente@kinesalud.com</strong><br>Contraseña: <strong>paciente123</strong>';
+      }
+
+      document.getElementById('inp-email').value = '';
+      document.getElementById('inp-pass').value  = '';
+    }
+
+    /* ── Login ───────────────────────────────────────── */
+    function doLogin() {
+      const email = document.getElementById('inp-email').value.trim().toLowerCase();
+      const pass  = document.getElementById('inp-pass').value;
+      const error = document.getElementById('error-msg');
+
+      const user = USUARIOS[email];
+
+      if (!user || user.pass !== pass || user.role !== currentRole) {
+        error.classList.add('show');
+        document.getElementById('inp-pass').value = '';
+        return;
+      }
+
+      error.classList.remove('show');
+
+      // Guardar sesión en sessionStorage
+      sessionStorage.setItem('ks_user', JSON.stringify({ email, role: user.role, nombre: user.nombre }));
+
+      // Redirigir según rol
+      if (user.role === 'admin') {
+        window.location.href = '../templates/admin.html';
+      } else {
+        window.location.href = 'turnos.html';
+      }
+    }
+  </script>
+
+</body>
+</html>
