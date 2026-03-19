@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────
-   KineSalud – Turnos
+   Empresa – Turnos
    ───────────────────────────────────────────────────────── */
 
 *, *::before, *::after {
@@ -684,7 +684,7 @@ nav {
   }
 }
 
-/* ─── Nav links (compartidos con kinesalud.css) ──────────── */
+/* ─── Nav links (compartidos con Empresa.css) ──────────── */
 .nav-links {
   display: flex;
   gap: 24px;
