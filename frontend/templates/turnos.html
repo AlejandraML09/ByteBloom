@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KineSalud – Solicitar turno</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/pages/navbar.css" />
+  <link rel="stylesheet" href="../css/pages/turnos.css" />
+  <script src="../js/navbar.js" defer></script>
+</head>
+<body>
+
+  <nav class="main-nav">
+    <a href="index.html" class="nav-logo">
+      <div class="nav-logo-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round">
+          <path d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z"/>
+          <circle cx="12" cy="9" r="2.5" fill="#fff" stroke="none"/>
+        </svg>
+      </div>
+      <span class="nav-logo-name">KineSalud</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">Inicio</a></li>
+      <li><a href="servicios.html">Servicios</a></li>
+      <li><a href="profesionales.html">Profesionales</a></li>
+      <li class="active"><a href="turnos.html">Turnos</a></li>
+      <li><a href="index.html#contacto">Contacto</a></li>
+    </ul>
+    <a href="login.html" class="btn-login-nav">Iniciar sesión</a>
+    <button class="nav-hamburger" id="hamburger" aria-label="Menú">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+  <nav class="mobile-menu" id="mobileMenu">
+    <ul>
+      <li><a href="index.html">Inicio</a></li>
+      <li><a href="servicios.html">Servicios</a></li>
+      <li><a href="profesionales.html">Profesionales</a></li>
+      <li class="active"><a href="turnos.html">Turnos</a></li>
+      <li><a href="index.html#contacto">Contacto</a></li>
+    </ul>
+    <a href="login.html" class="btn-login-nav" style="align-self:flex-start;">Iniciar sesión</a>
+  </nav>
+
+  <!-- ═══ PAGE HEADER ══════════════════════════════════════ -->
+  <div class="page-header">
+    <h1>Reservá tu turno</h1>
+    <p>Elegí la zona, el día y el horario que mejor se adapte a vos</p>
+  </div>
+
+  <!-- ═══ MAIN ══════════════════════════════════════════════ -->
+  <div class="main">
+
+    <!-- ── Columna izquierda ─────────────────────────────── -->
+    <div class="left-col">
+
+      <!-- Steps -->
+      <div class="steps">
+        <div class="step active" id="step1">
+          <div class="step-num">1</div>
+          <span>Zona</span>
+        </div>
+        <div class="step-sep"></div>
+        <div class="step" id="step2">
+          <div class="step-num">2</div>
+          <span>Día y horario</span>
+        </div>
+        <div class="step-sep"></div>
+        <div class="step" id="step3">
+          <div class="step-num">3</div>
+          <span>Tus datos</span>
+        </div>
+      </div>
+
+      <!-- PASO 1: Zona corporal -->
+      <div class="card" id="card-zona">
+        <div class="card-title">¿Qué zona querés trabajar?</div>
+        <div class="zona-grid">
+
+          <button class="zona-btn" data-zona="superior" onclick="selectZona(this)">
+            <div class="zona-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5A8A1A" stroke-width="1.8" stroke-linecap="round">
+                <circle cx="12" cy="5" r="2"/>
+                <path d="M12 7v5"/>
+                <path d="M7 10c1.5-.5 3-1 5-1s3.5.5 5 1"/>
+                <path d="M7 10l-2 5"/>
+                <path d="M17 10l2 5"/>
+              </svg>
+            </div>
+            <div>
+              <div class="zona-name">Tren superior</div>
+              <div class="zona-sub">Hombros, brazos, cuello y espalda alta</div>
+            </div>
+          </button>
+
+          <button class="zona-btn" data-zona="medio" onclick="selectZona(this)">
+            <div class="zona-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5A8A1A" stroke-width="1.8" stroke-linecap="round">
+                <path d="M7 10h10"/>
+                <path d="M7 14h10"/>
+                <path d="M9 7v10"/>
+                <path d="M15 7v10"/>
+              </svg>
+            </div>
+            <div>
+              <div class="zona-name">Tren medio</div>
+              <div class="zona-sub">Core, lumbar y zona abdominal</div>
+            </div>
+          </button>
+
+          <button class="zona-btn" data-zona="inferior" onclick="selectZona(this)">
+            <div class="zona-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5A8A1A" stroke-width="1.8" stroke-linecap="round">
+                <path d="M12 4v8"/>
+                <path d="M9 12l-3 8"/>
+                <path d="M15 12l3 8"/>
+                <path d="M8 16h8"/>
+              </svg>
+            </div>
+            <div>
+              <div class="zona-name">Tren inferior</div>
+              <div class="zona-sub">Caderas, rodillas, tobillos y pies</div>
+            </div>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- PASO 2: Día y horario -->
+      <div class="card" id="card-fecha">
+        <div class="card-title">Elegí el día</div>
+
+        <div class="week-nav">
+          <button class="week-arrow" id="btn-prev-week" onclick="changeWeek(-1)">&#8249;</button>
+          <span class="week-label" id="week-label"></span>
+          <button class="week-arrow" id="btn-next-week" onclick="changeWeek(1)">&#8250;</button>
+        </div>
+
+        <div class="days-row" id="days-row"></div>
+
+        <div class="card-title" style="margin-top:1.25rem;">Elegí el horario</div>
+        <div id="slots-container">
+          <div class="empty-state">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <p>Seleccioná un día para ver los turnos disponibles</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 3: Datos personales -->
+      <div class="card" id="card-datos">
+        <div class="card-title">Tus datos</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nombre</label>
+            <input type="text" id="inp-nombre" placeholder="Ej: María" oninput="updateSummary()" />
+          </div>
+          <div class="form-group">
+            <label>Apellido</label>
+            <input type="text" id="inp-apellido" placeholder="Ej: González" oninput="updateSummary()" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Teléfono</label>
+            <input type="tel" id="inp-tel" placeholder="Ej: 221-4567890" oninput="updateSummary()" />
+          </div>
+          <div class="form-group">
+            <label>Obra social</label>
+            <select id="inp-os" onchange="updateSummary()">
+              <option value="">— Seleccioná —</option>
+              <option>OSDE</option>
+              <option>Swiss Medical</option>
+              <option>IOMA</option>
+              <option>PAMI</option>
+              <option>Galeno</option>
+              <option>Particular</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="inp-email" placeholder="Ej: maria@email.com" oninput="updateSummary()" />
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /left-col -->
+
+    <!-- ── Sidebar: resumen ──────────────────────────────── -->
+    <div class="sidebar">
+      <div class="summary-card">
+        <div class="summary-header">
+          <h3>Resumen del turno</h3>
+          <p>Revisá los datos antes de confirmar</p>
+        </div>
+        <div class="summary-body">
+          <div class="summary-row">
+            <span class="summary-key">Zona</span>
+            <span class="summary-val empty" id="sum-zona">Sin seleccionar</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-key">Día</span>
+            <span class="summary-val empty" id="sum-dia">Sin seleccionar</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-key">Horario</span>
+            <span class="summary-val empty" id="sum-hora">Sin seleccionar</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-key">Duración</span>
+            <span class="summary-val"><span class="summary-badge">1 hora</span></span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-key">Paciente</span>
+            <span class="summary-val empty" id="sum-nombre">Sin completar</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-key">Obra social</span>
+            <span class="summary-val empty" id="sum-os">Sin completar</span>
+          </div>
+
+          <button class="btn-confirm" id="btn-confirm" disabled onclick="confirmarTurno()">
+            Confirmar turno
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+
+  <!-- ═══ TOAST ═════════════════════════════════════════════ -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ═══ SCRIPT ════════════════════════════════════════════ -->
+  <script src="../js/turnos.js"></script>
+
+</body>
+</html>

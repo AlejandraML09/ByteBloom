@@ -121,7 +121,21 @@ nav {
   list-style: none;
 }
 
-.nav-links .active {
+.nav-links li {
+  cursor: pointer;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: var(--apple-dark);
+  transition: color 0.15s;
+}
+
+.nav-links a:hover {
+  color: var(--apple-deep);
+}
+
+.nav-links .active a {
   color: var(--apple-deep);
   font-weight: 500;
   border-bottom: 2px solid var(--apple-green);
@@ -569,4 +583,25 @@ footer {
   .footer-address {
     font-size: 11px;
   }
+}
+
+/* ─── Botón login en navbar ──────────────────────────────── */
+.btn-login-nav {
+  background: transparent;
+  color: var(--apple-deep);
+  border: 1.5px solid var(--apple-green);
+  border-radius: 20px;
+  padding: 7px 18px;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-login-nav:hover {
+  background: var(--apple-green);
+  color: var(--white);
 }
