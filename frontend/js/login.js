@@ -1,6 +1,6 @@
 const USUARIOS = {
-  'paciente@kinesalud.com': { pass: 'paciente123', role: 'usuario', nombre: 'Maria Gonzalez' },
-  'admin@kinesalud.com':    { pass: 'admin123',    role: 'admin',   nombre: 'Dr. Ramirez'   },
+  'paciente@Empresa.com': { pass: 'paciente123', role: 'usuario', nombre: 'Maria Gonzalez' },
+  'admin@Empresa.com':    { pass: 'admin123',    role: 'admin',   nombre: 'Dr. Ramirez'   },
 };
 
 let currentRole = 'usuario';
@@ -21,15 +21,15 @@ function setRole(role) {
     tabU.classList.remove('active-tab');
     body.classList.add('admin-mode');
     title.textContent = 'Panel de administracion';
-    sub.textContent   = 'Acceso restringido al equipo de KineSalud';
-    hint.innerHTML    = '<strong>Demo Admin:</strong><br>Email: <strong>admin@kinesalud.com</strong><br>Contrasena: <strong>admin123</strong>';
+    sub.textContent   = 'Acceso restringido al equipo de Empresa';
+    hint.innerHTML    = '<strong>Demo Admin:</strong><br>Email: <strong>admin@Empresa.com</strong><br>Contrasena: <strong>admin123</strong>';
   } else {
     tabU.classList.add('active-tab');
     tabA.classList.remove('active-tab');
     body.classList.remove('admin-mode');
     title.textContent = 'Bienvenido/a';
     sub.textContent   = 'Ingresa con tu cuenta de paciente';
-    hint.innerHTML    = '<strong>Demo Paciente:</strong><br>Email: <strong>paciente@kinesalud.com</strong><br>Contrasena: <strong>paciente123</strong>';
+    hint.innerHTML    = '<strong>Demo Paciente:</strong><br>Email: <strong>paciente@Empresa.com</strong><br>Contrasena: <strong>paciente123</strong>';
   }
 
   document.getElementById('inp-email').value = '';
