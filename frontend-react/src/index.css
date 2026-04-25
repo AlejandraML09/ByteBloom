@@ -1,21 +1,9 @@
+@import './css/vars.css';
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-}
-
-:root {
-  --green:       #8DC63F;
-  --green-mid:   #C8E48A;
-  --green-light: #EDF5D6;
-  --green-dark:  #5A8A1A;
-  --green-deep:  #3A5C0E;
-  --text-dark:   #1C2B08;
-  --white:       #ffffff;
-  --off:         #F7FAF0;
-  --gray:        #E8EDE0;
-  --gray-text:   #8A9A78;
-  --red:         #E84040;
 }
 
 body {
