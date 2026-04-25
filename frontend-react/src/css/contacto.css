@@ -239,3 +239,5 @@ footer {
   .form-row { grid-template-columns: 1fr; }
   footer { flex-direction: column; gap: 6px; text-align: center; }
 }
+
+.map-wrap { margin-top: 1.5rem; }

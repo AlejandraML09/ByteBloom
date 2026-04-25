@@ -268,3 +268,51 @@ footer {
   footer { padding: 18px 1.25rem; }
   .footer-address { font-size: 11px; }
 }
+
+.service-detail {
+  font-size: 13px;
+  color: var(--green-light);
+  line-height: 1.65;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.4s ease, opacity 0.35s ease, margin-top 0.3s ease;
+  margin-top: 0;
+}
+
+.service-detail.visible {
+  max-height: 120px;
+  opacity: 1;
+  margin-top: 10px;
+}
+
+/* Los cards necesitan position relative para la barrita */
+.service-card {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Dots de navegación */
+.service-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 1.5rem;
+}
+
+.service-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: var(--gray);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.service-dot.active {
+  background: var(--green);
+  transform: scale(1.3);
+}
+```

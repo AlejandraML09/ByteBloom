@@ -1,6 +1,6 @@
 const ZONE_TABS = [
   { id: 'superior', label: 'Tren superior' },
-  { id: 'medio',    label: 'Tren medio' },
+  { id: 'medio',    label: 'Zona media' },
   { id: 'inferior', label: 'Tren inferior' },
 ]
 

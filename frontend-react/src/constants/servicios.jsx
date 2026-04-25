@@ -48,8 +48,8 @@ export const zonesData = [
   {
     id: 'medio',
     zoneNum: 'Zona 02',
-    title: 'Tren medio',
-    desc: 'El tren medio o "core" es el centro biomecánico del cuerpo. Incluye la columna lumbar, la pelvis, el diafragma y toda la musculatura profunda que sostiene la postura y transfiere fuerzas entre la parte superior e inferior del cuerpo.',
+    title: 'Zona media',
+    desc: 'Zona media o "core" es el centro biomecánico del cuerpo. Incluye la columna lumbar, la pelvis, el diafragma y toda la musculatura profunda que sostiene la postura y transfiere fuerzas entre la parte superior e inferior del cuerpo.',
     icon: (
       <>
         <path d="M6 10h12M6 14h12"/><path d="M9 6v12M15 6v12"/>
