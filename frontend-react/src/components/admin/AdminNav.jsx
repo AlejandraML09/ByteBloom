@@ -11,7 +11,7 @@ export function AdminNav({ user, onLogout }) {
             <circle cx="12" cy="9" r="2.5" fill="#fff" stroke="none"/>
           </svg>
         </div>
-        <span className="admin-nav-logo-name">Empresa</span>
+        <span className="admin-nav-logo-name">Endereza2</span>
       </Link>
       <span className="nav-badge">Panel Admin</span>
       <div className="nav-right">

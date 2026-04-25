@@ -44,7 +44,7 @@ export function InfoGrid() {
         </div>
         <div>
           <div className="info-title">Email general</div>
-          <div className="info-value"><a href="mailto:info@Empresa.com.ar">info@Empresa.com.ar</a></div>
+          <div className="info-value"><a href="mailto:info@endereza2.com.ar">info@Endereza2.com.ar</a></div>
         </div>
       </div>
     </div>
