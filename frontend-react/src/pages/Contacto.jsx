@@ -15,8 +15,6 @@ export default function Contacto() {
   return (
     <>
       <Navbar />
-
-      {/* PageHero */}
       <div className="page-hero">
         <div className="page-hero-badge">Contacto</div>
         <h1>¿Cómo podemos <span>ayudarte</span>?</h1>
