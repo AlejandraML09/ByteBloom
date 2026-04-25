@@ -16,8 +16,8 @@ export const personas = [
     initial: 'L',
     name: 'Laura',
     role: 'Rol',
-    email: 'laura@Empresa.com.ar',
-    emailHref: 'mailto:laura@Empresa.com.ar',
+    email: 'laura@endereza2.com.ar',
+    emailHref: 'mailto:laura@endereza2.com.ar',
     phone: '221 456-1002',
     phoneHref: 'tel:+542214561002',
     whatsappHref: 'https://wa.me/5492214561002',
@@ -49,7 +49,7 @@ export const infoCards = [
   {
     id: 'email',
     title: 'Email general',
-    value: 'info@Empresa.com.ar',
-    href: 'mailto:info@Empresa.com.ar',
+    value: 'info@endereza2.com.ar',
+    href: 'mailto:info@endereza2.com.ar',
   },
 ]

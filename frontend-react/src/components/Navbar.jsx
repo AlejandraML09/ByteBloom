@@ -22,7 +22,7 @@ export default function Navbar() {
               <circle cx="12" cy="9" r="2.5" fill="#fff" stroke="none"/>
             </svg>
           </div>
-          <span className="nav-logo-name">Empresa</span>
+          <span className="nav-logo-name">Endereza2</span>
         </Link>
 
         <ul className="nav-links">

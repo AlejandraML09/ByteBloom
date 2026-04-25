@@ -1,7 +1,7 @@
 export { HORARIOS } from './turnos'
 
 export const PACIENTES = [
-  { id: 1, nombre: 'María González',  email: 'paciente@Empresa.com', tel: '221-4561234', os: 'IOMA',          zona: 'superior', asistencias: 12 },
+  { id: 1, nombre: 'María González',  email: 'paciente@endereza2.com', tel: '221-4561234', os: 'IOMA',          zona: 'superior', asistencias: 12 },
   { id: 2, nombre: 'Carlos Pérez',    email: 'cperez@mail.com',      tel: '221-7893456', os: 'OSDE',          zona: 'inferior', asistencias: 8  },
   { id: 3, nombre: 'Ana Rodríguez',   email: 'ana.r@mail.com',       tel: '221-5554321', os: 'Swiss Medical', zona: 'medio',    asistencias: 15 },
   { id: 4, nombre: 'Luis Martínez',   email: 'luism@mail.com',       tel: '221-3217654', os: 'PAMI',          zona: 'inferior', asistencias: 5  },

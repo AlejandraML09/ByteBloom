@@ -5,8 +5,8 @@ import Footer from '../components/Footer'
 import '../css/login.css'
 
 const USUARIOS = {
-  'paciente@empresa.com': { pass: 'paciente123', role: 'usuario', nombre: 'Maria Gonzalez' },
-  'admin@empresa.com':    { pass: 'admin123',    role: 'admin',   nombre: 'Dr. Ramirez'   },
+  'paciente@endereza2.com': { pass: 'paciente123', role: 'usuario', nombre: 'Maria Gonzalez' },
+  'admin@endereza2.com':    { pass: 'admin123',    role: 'admin',   nombre: 'Dr. Ramirez'   },
 }
 
 export default function Login() {
@@ -71,7 +71,7 @@ export default function Login() {
           <div className={`login-body${isAdmin ? ' admin-mode' : ''}`}>
             <div className="login-greeting">
               <h2>{isAdmin ? 'Panel de administracion' : 'Bienvenido/a'}</h2>
-              <p>{isAdmin ? 'Acceso restringido al equipo de Empresa' : 'Ingresá con tu cuenta de paciente'}</p>
+              <p>{isAdmin ? 'Acceso restringido al equipo de Endereza2' : 'Ingresá con tu cuenta de paciente'}</p>
             </div>
 
             {error && <div className="error-msg show">Usuario o contraseña incorrectos.</div>}
@@ -103,9 +103,9 @@ export default function Login() {
 
             <div className="demo-hint">
               {isAdmin ? (
-                <><strong>Demo Admin:</strong><br />Email: <strong>admin@empresa.com</strong><br />Contraseña: <strong>admin123</strong></>
+                <><strong>Demo Admin:</strong><br />Email: <strong>admin@endereza2.com</strong><br />Contraseña: <strong>admin123</strong></>
               ) : (
-                <><strong>Demo — Paciente:</strong><br />Email: <strong>paciente@empresa.com</strong><br />Contraseña: <strong>paciente123</strong></>
+                <><strong>Demo — Paciente:</strong><br />Email: <strong>paciente@endereza2.com</strong><br />Contraseña: <strong>paciente123</strong></>
               )}
             </div>
           </div>
