@@ -1,0 +1,139 @@
+nav.main-nav {
+  background: var(--white);
+  border-bottom: 1px solid var(--green-mid);
+  padding: 0 2rem;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.nav-logo-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-logo-name {
+  font-family: 'DM Serif Display', serif;
+  font-size: 17px;
+  color: var(--green-deep);
+  letter-spacing: -0.3px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 24px;
+  font-size: 13px;
+  list-style: none;
+}
+
+.nav-links li { cursor: pointer; }
+
+.nav-links a {
+  text-decoration: none;
+  color: var(--green-dark);
+  transition: color 0.15s;
+}
+
+.nav-links a:hover { color: var(--green-deep); }
+
+.nav-links .active a {
+  color: var(--green-deep);
+  font-weight: 500;
+  border-bottom: 2px solid var(--green);
+  padding-bottom: 2px;
+}
+
+.btn-login-nav {
+  background: transparent;
+  color: var(--green-deep);
+  border: 1.5px solid var(--green);
+  border-radius: 20px;
+  padding: 7px 18px;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.btn-login-nav:hover {
+  background: var(--green);
+  color: var(--white);
+}
+
+.nav-hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.nav-hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--green-deep);
+  border-radius: 2px;
+  transition: transform 0.25s, opacity 0.25s;
+}
+
+.nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.nav-hamburger.open span:nth-child(2) { opacity: 0; }
+.nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+nav.mobile-menu {
+  display: none;
+  flex-direction: column;
+  background: var(--white);
+  border-bottom: 1px solid var(--green-mid);
+  padding: 1rem 2rem 1.5rem;
+  gap: 16px;
+}
+
+nav.mobile-menu.open { display: flex; }
+
+nav.mobile-menu ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+nav.mobile-menu li {
+  font-size: 15px;
+  color: var(--green-dark);
+}
+
+nav.mobile-menu li.active { color: var(--green-deep); font-weight: 500; }
+
+@media (max-width: 900px) {
+  .nav-links, nav.main-nav > .btn-login-nav { display: none; }
+  .nav-hamburger { display: flex; }
+}
+
+@media (max-width: 560px) {
+  nav.main-nav { padding: 0 1.25rem; height: 56px; }
+}

@@ -1,0 +1,162 @@
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+.login-page {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.login-card {
+  background: var(--white);
+  border: 1px solid var(--gray);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 440px;
+  overflow: hidden;
+  animation: slideUp 0.35s cubic-bezier(.34,1.4,.64,1) both;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.role-tabs { display: grid; grid-template-columns: 1fr 1fr; }
+
+.role-tab {
+  padding: 18px 12px;
+  border: none;
+  background: var(--gray);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.2s, color 0.2s;
+  border-bottom: 2.5px solid transparent;
+}
+
+.role-tab:first-child { border-right: 1px solid var(--green-mid); }
+
+.role-tab.active-tab { background: var(--white); color: var(--green-deep); border-bottom-color: var(--green); }
+.role-tab.active-tab.admin-tab { color: #5B2D8E; border-bottom-color: #9B6DD6; }
+
+.role-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--green-light);
+}
+
+.role-tab.active-tab .role-icon { background: var(--green-light); }
+.role-tab.active-tab.admin-tab .role-icon { background: #EDE5F8; }
+
+.login-body { padding: 2rem; }
+
+.login-greeting { margin-bottom: 1.5rem; }
+
+.login-greeting h2 { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--text-dark); margin-bottom: 4px; }
+.login-greeting p { font-size: 13px; color: var(--gray-text); }
+
+.form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+
+.form-group label { font-size: 11px; font-weight: 500; color: var(--green-deep); text-transform: uppercase; letter-spacing: 0.6px; }
+
+.form-group input {
+  border: 1.5px solid var(--gray);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text-dark);
+  background: var(--white);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.form-group input:focus { border-color: var(--green); }
+.form-group input::placeholder { color: var(--gray-text); }
+
+.admin-mode .form-group input:focus { border-color: #9B6DD6; }
+.admin-mode .btn-login { background: #7C3DBF; }
+.admin-mode .btn-login:hover { background: #5B2D8E; }
+.admin-mode .form-group label { color: #5B2D8E; }
+
+.forgot { font-size: 12px; color: var(--green-dark); text-align: right; display: block; margin-top: -8px; margin-bottom: 14px; cursor: pointer; text-decoration: none; }
+.admin-mode .forgot { color: #7C3DBF; }
+
+.btn-login {
+  width: 100%;
+  background: var(--green);
+  color: var(--white);
+  border: none;
+  border-radius: 12px;
+  padding: 13px;
+  font-size: 15px;
+  font-family: 'DM Serif Display', serif;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  letter-spacing: 0.2px;
+  margin-top: 4px;
+}
+
+.btn-login:hover { background: var(--green-dark); }
+.btn-login:active { transform: scale(0.98); }
+
+.demo-hint {
+  margin-top: 1.25rem;
+  background: var(--off);
+  border: 1px dashed var(--green-mid);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--gray-text);
+  line-height: 1.7;
+}
+
+.admin-mode .demo-hint { border-color: #C9A8F0; background: #F7F0FD; }
+.demo-hint strong { color: var(--text-dark); }
+.admin-mode .demo-hint strong { color: #5B2D8E; }
+
+.error-msg {
+  background: #FEE8E8;
+  border: 1px solid #F5BBBB;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #B03030;
+  margin-bottom: 14px;
+  display: none;
+}
+
+.error-msg.show { display: block; }
+
+footer {
+  border-top: 1px solid var(--green-mid);
+  background: var(--white);
+  padding: 16px 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footer-logo { font-family: 'DM Serif Display', serif; font-size: 14px; color: var(--green-deep); }
+.footer-address { font-size: 12px; color: var(--green-dark); }
+.footer-copy { font-size: 11px; color: var(--gray-text); }
+
+@media (max-width: 560px) {
+  .login-body { padding: 1.5rem; }
+  footer { flex-direction: column; gap: 6px; text-align: center; }
+}
