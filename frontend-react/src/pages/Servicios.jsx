@@ -100,7 +100,6 @@ export default function Servicios() {
         ))}
       </div>
 
-      {/* CtaSection */}
       <div className="cta-section">
         <h2>¿No sabés por dónde empezar?</h2>
         <p>Pedí una evaluación inicial y nuestro equipo te guía hacia el tratamiento indicado</p>

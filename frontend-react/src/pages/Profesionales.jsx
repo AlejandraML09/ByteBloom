@@ -10,7 +10,6 @@ export default function Profesionales() {
     <>
       <Navbar />
 
-      {/* PageHero */}
       <div className="page-hero">
         <div className="page-hero-badge">Nuestro equipo</div>
         <h1>Profesionales <span>especializados</span><br />a tu servicio</h1>
@@ -18,7 +17,7 @@ export default function Profesionales() {
       </div>
 
       <StatsStrip />
-      
+
       {/* Grilla de profesionales */}
       <div className="section-wrap">
         <div className="section-label">Conocé al equipo</div>
