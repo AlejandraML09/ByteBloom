@@ -1,14 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { NAV_LINKS } from '../constants/nav'
 import '../css/navbar.css'
-
-const LINKS = [
-  { to: '/', label: 'Inicio' },
-  { to: '/servicios', label: 'Servicios' },
-  { to: '/profesionales', label: 'Profesionales' },
-  { to: '/turnos', label: 'Turnos' },
-  { to: '/contacto', label: 'Contacto' },
-]
 
 export default function Navbar() {
   const [open, setOpen] = useState(false)
@@ -33,7 +26,7 @@ export default function Navbar() {
         </Link>
 
         <ul className="nav-links">
-          {LINKS.map(({ to, label }) => (
+          {NAV_LINKS.map(({ to, label }) => (
             <li key={to} className={isActive(to) ? 'active' : ''}>
               <Link to={to}>{label}</Link>
             </li>
@@ -53,7 +46,7 @@ export default function Navbar() {
 
       <nav className={`mobile-menu${open ? ' open' : ''}`}>
         <ul>
-          {LINKS.map(({ to, label }) => (
+          {NAV_LINKS.map(({ to, label }) => (
             <li key={to} className={isActive(to) ? 'active' : ''}>
               <Link to={to} onClick={() => setOpen(false)}>{label}</Link>
             </li>
