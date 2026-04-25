@@ -2,7 +2,7 @@ export const HORARIOS = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '
 
 export const ZONA_LABELS = {
   superior: 'Tren superior',
-  medio: 'Tren medio',
+  medio: 'Zona media',
   inferior: 'Tren inferior',
 }
 
@@ -23,7 +23,7 @@ export const zonasInfo = [
   },
   {
     id: 'medio',
-    name: 'Tren medio',
+    name: 'Zona media',
     sub: 'Core, lumbar y zona abdominal',
     icon: (
       <>

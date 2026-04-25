@@ -6,14 +6,12 @@ export function ContactForm({ onSubmit }) {
   const [nombre, setNombre]   = useState('')
   const [apellido, setApellido] = useState('')
   const [email, setEmail]     = useState('')
-  const [tel, setTel]         = useState('')
-  const [destino, setDestino] = useState('')
   const [asunto, setAsunto]   = useState('')
   const [mensaje, setMensaje] = useState('')
   const [formError, setFormError] = useState('')
 
   function handleSubmit() {
-    if (!nombre || !email || !destino || !mensaje) {
+    if (!nombre || !email || !mensaje) {
       setFormError('Por favor completá los campos obligatorios.')
       return
     }
@@ -22,8 +20,8 @@ export function ContactForm({ onSubmit }) {
       return
     }
     setFormError('')
-    onSubmit({ nombre, apellido, email, tel, destino, asunto, mensaje })
-    setNombre(''); setApellido(''); setEmail(''); setTel(''); setDestino(''); setAsunto(''); setMensaje('')
+    onSubmit({ nombre, apellido, email, asunto, mensaje })
+    setNombre(''); setApellido(''); setEmail(''); setAsunto(''); setMensaje('')
   }
 
   return (
@@ -34,7 +32,7 @@ export function ContactForm({ onSubmit }) {
       </div>
       <div className="form-body">
         {formError && (
-          <div style={{ display: 'block', background: '#FEE8E8', border: '1px solid #F5BBBB', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', color: '#B03030', marginBottom: '14px' }}>
+          <div style={{ background: '#FEE8E8', border: '1px solid #F5BBBB', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', color: '#B03030', marginBottom: '14px' }}>
             {formError}
           </div>
         )}
@@ -51,18 +49,6 @@ export function ContactForm({ onSubmit }) {
         <div className="form-group">
           <label>Email <span style={{ color: '#E84040' }}>*</span></label>
           <input type="email" placeholder="tu@email.com" value={email} onChange={e => setEmail(e.target.value)} />
-        </div>
-        <div className="form-group">
-          <label>Teléfono</label>
-          <input type="tel" placeholder="Ej: 221-4567890" value={tel} onChange={e => setTel(e.target.value)} />
-        </div>
-        <div className="form-group">
-          <label>Dirigido a <span style={{ color: '#E84040' }}>*</span></label>
-          <select value={destino} onChange={e => setDestino(e.target.value)}>
-            <option value="">— Seleccioná —</option>
-            <option value="jose">José Martínez – Turnos y atención</option>
-            <option value="laura">Laura Vidal – Administración y obras sociales</option>
-          </select>
         </div>
         <div className="form-group">
           <label>Asunto</label>

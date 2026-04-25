@@ -27,7 +27,7 @@ export const profesionales = [
     initials: 'AS',
     name: 'Lic. Andrea Salinas',
     title: 'Kinesióloga · Terapia manual',
-    tags: ['Tren medio', 'Osteopatía'],
+    tags: ['Zona media', 'Osteopatía'],
     bio: 'Especialista en terapia manual ortopédica y osteopatía, certificada por la Asociación Argentina de Kinesiología. Trabaja patologías de columna lumbar, core y zona abdominal profunda con técnicas manuales avanzadas.',
     stars: '★★★★★',
     reviews: [
@@ -39,7 +39,7 @@ export const profesionales = [
     initials: 'LB',
     name: 'Lic. Lucas Bertoldi',
     title: 'Kinesiólogo · Pilates clínico',
-    tags: ['Tren medio', 'Pilates'],
+    tags: ['Zona media', 'Pilates'],
     bio: 'Certificado en Pilates clínico y rehabilitación postural por el Instituto Stott Pilates. Combina ejercicio terapéutico con control motor para tratar síndromes posturales, dolor crónico de espalda y pre/posquirúrgicos.',
     stars: '★★★★☆',
     reviews: [
