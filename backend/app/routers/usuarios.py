@@ -6,10 +6,12 @@ from app import models
 
 router = APIRouter()
 
-class LoginRequest(BaseModel):
+# 📦 Schema para recibir datos en JSON
+class UsuarioRequest(BaseModel):
     email: str
     password: str
 
+# 📦 Dependencia DB
 def get_db():
     db = SessionLocal()
     try:
@@ -17,23 +19,33 @@ def get_db():
     finally:
         db.close()
 
+# 📝 Registro de usuario
 @router.post("/registro/")
-def registrar(email: str, password: str, db: Session = Depends(get_db)):
-    existe = db.query(models.Usuario).filter(models.Usuario.email == email).first()
+def registrar(data: UsuarioRequest, db: Session = Depends(get_db)):
+    existe = db.query(models.Usuario).filter(
+        models.Usuario.email == data.email
+    ).first()
 
     if existe:
         raise HTTPException(status_code=400, detail="Email ya registrado")
 
-    nuevo = models.Usuario(email=email, password=password)
+    nuevo = models.Usuario(
+        email=data.email,
+        password=data.password
+    )
+
     db.add(nuevo)
     db.commit()
     db.refresh(nuevo)
 
-    return nuevo
+    return {
+        "id": nuevo.id,
+        "email": nuevo.email
+    }
 
+# 🔐 Login
 @router.post("/login")
-def login(data: LoginRequest, db: Session = Depends(get_db)):
-
+def login(data: UsuarioRequest, db: Session = Depends(get_db)):
     user = db.query(models.Usuario).filter(
         models.Usuario.email == data.email
     ).first()
