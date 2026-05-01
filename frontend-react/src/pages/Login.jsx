@@ -7,6 +7,8 @@ import '../css/login.css'
 export default function Login() {
   const navigate = useNavigate()
 
+  const API_URL = import.meta.env.VITE_API_URL
+
   const [role, setRole] = useState('usuario')
   const [email, setEmail] = useState('')
   const [pass, setPass] = useState('')
@@ -25,7 +27,7 @@ export default function Login() {
     try {
       setError(false)
 
-      const res = await fetch("http://127.0.0.1:8000/login", {
+      const res = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
