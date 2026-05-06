@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import '../css/login.css'
@@ -123,7 +123,11 @@ export default function Login() {
             <button className="btn-login" onClick={doLogin}>
               Ingresar
             </button>
-
+            {!isAdmin && (
+              <div className="register-hint">
+                <Link to="/registro">¿No tenés cuenta? Registrate</Link>
+              </div>
+            )}
           </div>
         </div>
       </div>
