@@ -29,11 +29,8 @@ def registrar(data: UsuarioRequest, db: Session = Depends(get_db)):
     if existe:
         raise HTTPException(status_code=400, detail="Email ya registrado")
 
-    nuevo = models.Usuario(
-        email=data.email,
-        password=data.password
-    )
-
+    nuevo = models.Usuario(email=data.email)
+    nuevo.set_password(data.password)  # Hash the password
     db.add(nuevo)
     db.commit()
     db.refresh(nuevo)
@@ -53,7 +50,7 @@ def login(data: UsuarioRequest, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-    if user.password != data.password:
+    if not user.check_password(data.password):  # Use hash verification
         raise HTTPException(status_code=401, detail="Contraseña incorrecta")
 
     return {
