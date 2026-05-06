@@ -160,3 +160,18 @@ footer {
   .login-body { padding: 1.5rem; }
   footer { flex-direction: column; gap: 6px; text-align: center; }
 }
+.register-hint {
+  text-align: center;
+  margin-top: 8px;
+}
+
+.register-hint a {
+  font-size: 0.82rem;
+  color: #9ca3af;       /* gris neutro */
+  text-decoration: none;
+}
+
+.register-hint a:hover {
+  color: #6b7280;       /* gris un poco más oscuro al hover */
+  text-decoration: underline;
+}
