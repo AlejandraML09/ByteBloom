@@ -6,6 +6,7 @@ import { TurnosTab } from '../components/admin/TurnosTab'
 import { PacientesTab } from '../components/admin/PacientesTab'
 import { CuposTab } from '../components/admin/CuposTab'
 import { AsistenciaTab } from '../components/admin/AsistenciaTab'
+import { PriceTab } from '../components/admin/PriceTab'
 import { HORARIOS, PACIENTES, DIST } from '../constants/admin'
 import { fmtDate, fmtLargo } from '../utils/dates'
 import '../css/admin.css'
@@ -25,6 +26,7 @@ const TABS = [
   { id: 'pacientes', label: 'Pacientes' },
   { id: 'cupos',     label: 'Gestionar cupos' },
   { id: 'asistencia', label: 'Asistencia' },
+  { id: 'precios', label: 'Modificar precio' },
 ]
 
 export default function Admin() {
@@ -47,6 +49,14 @@ export default function Admin() {
   const [toastMsg, setToastMsg] = useState('')
   const [toastVisible, setToastVisible] = useState(false)
   const [presentes, setPresentes] = useState(0)
+  const [prices, setPrices] = useState({ superior: 1800, medio: 1600, inferior: 1400 })
+  const [selectedZona, setSelectedZona] = useState('superior')
+  const [priceInput, setPriceInput] = useState('')
+  const [upcomingClasses, setUpcomingClasses] = useState([
+    { id: 1, zona: 'superior', fecha: '2026-05-09', hora: '09:00', precio: 1800, inscritos: 0 },
+    { id: 2, zona: 'medio', fecha: '2026-05-10', hora: '10:00', precio: 1600, inscritos: 0 },
+    { id: 3, zona: 'inferior', fecha: '2026-05-11', hora: '11:00', precio: 1400, inscritos: 0 },
+  ])
 
   function showToast(msg) {
     setToastMsg(msg)
@@ -84,6 +94,23 @@ export default function Admin() {
     const total = Object.values(asistencia).filter(Boolean).length
     setPresentes(total)
     showToast('Asistencia guardada correctamente')
+  }
+
+  function modificarPrecio() {
+    const precio = parseInt(priceInput, 10)
+    if (!precio || precio <= 0) {
+      showToast('Ingresá un precio válido')
+      return
+    }
+
+    setPrices(prev => ({ ...prev, [selectedZona]: precio }))
+    setUpcomingClasses(prev => prev.map(clase => (
+      clase.zona === selectedZona && clase.inscriptos === 0
+        ? { ...clase, precio }
+        : clase
+    )))
+    setPriceInput('')
+    showToast('Modificación exitosa')
   }
 
   function logout() {
@@ -151,6 +178,18 @@ export default function Admin() {
             asistencia={asistencia}
             onAsistChange={(key, val) => setAsistencia(prev => ({ ...prev, [key]: val }))}
             onSave={guardarAsistencia}
+          />
+        )}
+
+        {activeTab === 'precios' && (
+          <PriceTab
+            classes={upcomingClasses}
+            selectedZona={selectedZona}
+            priceValue={priceInput}
+            onSelectZona={setSelectedZona}
+            onPriceChange={setPriceInput}
+            onModifyPrice={modificarPrecio}
+            currentPrices={prices}
           />
         )}
       </div>
