@@ -49,7 +49,7 @@ export default function Servicios() {
           <div className="zone-section" id={`zona-${id}`} ref={sectionRefs[id]} key={id}>
             <div className="zone-header">
               <div className="zone-icon-big">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#5A8A1A" strokeWidth="1.6" strokeLinecap="round">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#1F1F1D" strokeWidth="1.6" strokeLinecap="round">
                   {icon}
                 </svg>
               </div>
@@ -78,7 +78,7 @@ export default function Servicios() {
               {technologies.map(({ name, desc: techDesc, icon: techIcon }) => (
                 <div className="tech-card" key={name}>
                   <div className="tech-icon">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5A8A1A" strokeWidth="1.7" strokeLinecap="round">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1F1F1D" strokeWidth="1.7" strokeLinecap="round">
                       {techIcon || <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>}
                     </svg>
                   </div>

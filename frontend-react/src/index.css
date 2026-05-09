@@ -25,7 +25,7 @@ a {
   bottom: 2rem;
   left: 50%;
   transform: translateX(-50%) translateY(100px);
-  background: var(--green-deep);
+  background: var(--wine-deep);
   color: var(--white);
   padding: 13px 26px;
   border-radius: 12px;

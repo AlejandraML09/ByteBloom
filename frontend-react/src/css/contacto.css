@@ -1,5 +1,5 @@
 .page-hero {
-  background: linear-gradient(135deg, var(--green-light) 0%, var(--green-mid) 100%);
+  background: linear-gradient(135deg, var(--wine-light) 0%, var(--wine-mid) 100%);
   padding: 3rem 2rem 2.5rem;
   text-align: center;
 }
@@ -7,7 +7,7 @@
 .page-hero-badge {
   display: inline-block;
   background: #8DC63F22;
-  color: var(--green-deep);
+  color: var(--wine-deep);
   font-size: 11px;
   font-weight: 500;
   padding: 4px 14px;
@@ -25,11 +25,11 @@
   margin-bottom: 12px;
 }
 
-.page-hero h1 span { color: var(--green-dark); }
+.page-hero h1 span { color: var(--wine-dark); }
 
 .page-hero p {
   font-size: 15px;
-  color: var(--green-deep);
+  color: var(--wine-deep);
   max-width: 500px;
   margin: 0 auto;
   line-height: 1.7;
@@ -50,7 +50,7 @@
 .section-label {
   font-size: 11px;
   font-weight: 500;
-  color: var(--green-dark);
+  color: var(--wine-dark);
   letter-spacing: 0.9px;
   text-transform: uppercase;
   margin-bottom: 14px;
@@ -80,19 +80,19 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--green-light), var(--green-mid));
+  background: linear-gradient(135deg, var(--wine-light), var(--wine-mid));
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'DM Serif Display', serif;
   font-size: 20px;
-  color: var(--green-deep);
+  color: var(--wine-deep);
   margin-bottom: 14px;
-  border: 2px solid var(--green-mid);
+  border: 2px solid var(--wine-mid);
 }
 
 .person-name { font-family: 'DM Serif Display', serif; font-size: 19px; color: var(--text-dark); margin-bottom: 3px; }
-.person-role { font-size: 12px; color: var(--green-dark); font-weight: 500; margin-bottom: 14px; }
+.person-role { font-size: 12px; color: var(--wine-dark); font-weight: 500; margin-bottom: 14px; }
 .person-contacts { display: flex; flex-direction: column; gap: 8px; }
 
 .person-contact-row {
@@ -107,20 +107,20 @@
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  background: var(--green-light);
+  background: var(--wine-light);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.person-contact-row a { color: var(--green-dark); text-decoration: none; transition: color 0.15s; }
-.person-contact-row a:hover { color: var(--green-deep); }
+.person-contact-row a { color: var(--wine-dark); text-decoration: none; transition: color 0.15s; }
+.person-contact-row a:hover { color: var(--wine-deep); }
 
 .availability { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--gray); }
 .avail-label { font-size: 10px; font-weight: 500; color: var(--gray-text); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
 .avail-days { display: flex; gap: 5px; flex-wrap: wrap; }
-.avail-day { background: var(--green-light); color: var(--green-deep); font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 20px; }
+.avail-day { background: var(--wine-light); color: var(--wine-deep); font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 20px; }
 
 .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 2rem; }
 
@@ -138,7 +138,7 @@
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  background: var(--green-light);
+  background: var(--wine-light);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -147,7 +147,7 @@
 
 .info-title { font-size: 11px; font-weight: 500; color: var(--gray-text); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
 .info-value { font-size: 13px; color: var(--text-dark); line-height: 1.5; font-weight: 500; }
-.info-value a { color: var(--green-dark); }
+.info-value a { color: var(--wine-dark); }
 
 .form-card {
   background: var(--white);
@@ -158,16 +158,16 @@
   top: 80px;
 }
 
-.form-header { background: var(--green); padding: 1.25rem 1.5rem; }
+.form-header { background: var(--wine); padding: 1.25rem 1.5rem; }
 
 .form-header h3 { font-family: 'DM Serif Display', serif; font-size: 18px; color: var(--white); margin-bottom: 3px; }
-.form-header p { font-size: 12px; color: var(--green-light); }
+.form-header p { font-size: 12px; color: var(--wine-light); }
 
 .form-body { padding: 1.5rem; }
 
 .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
 
-.form-group label { font-size: 11px; font-weight: 500; color: var(--green-deep); text-transform: uppercase; letter-spacing: 0.6px; }
+.form-group label { font-size: 11px; font-weight: 500; color: var(--wine-deep); text-transform: uppercase; letter-spacing: 0.6px; }
 
 .form-group input,
 .form-group select,
@@ -186,7 +186,7 @@
 
 .form-group input:focus,
 .form-group select:focus,
-.form-group textarea:focus { border-color: var(--green); }
+.form-group textarea:focus { border-color: var(--wine); }
 
 .form-group input::placeholder,
 .form-group textarea::placeholder { color: var(--gray-text); }
@@ -195,7 +195,7 @@
 
 .btn-send {
   width: 100%;
-  background: var(--green);
+  background: var(--wine);
   color: var(--white);
   border: none;
   border-radius: 12px;
@@ -208,11 +208,11 @@
   margin-top: 4px;
 }
 
-.btn-send:hover { background: var(--green-dark); }
+.btn-send:hover { background: var(--wine-dark); }
 .btn-send:active { transform: scale(0.98); }
 
 footer {
-  border-top: 1px solid var(--green-mid);
+  border-top: 1px solid var(--wine-mid);
   background: var(--white);
   padding: 16px 2rem;
   display: flex;
@@ -220,8 +220,8 @@ footer {
   justify-content: space-between;
 }
 
-.footer-logo { font-family: 'DM Serif Display', serif; font-size: 14px; color: var(--green-deep); }
-.footer-address { font-size: 12px; color: var(--green-dark); }
+.footer-logo { font-family: 'DM Serif Display', serif; font-size: 14px; color: var(--wine-deep); }
+.footer-address { font-size: 12px; color: var(--wine-dark); }
 .footer-copy { font-size: 11px; color: var(--gray-text); }
 
 @media (max-width: 860px) {

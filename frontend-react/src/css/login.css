@@ -45,9 +45,9 @@ body {
   border-bottom: 2.5px solid transparent;
 }
 
-.role-tab:first-child { border-right: 1px solid var(--green-mid); }
+.role-tab:first-child { border-right: 1px solid var(--wine-mid); }
 
-.role-tab.active-tab { background: var(--white); color: var(--green-deep); border-bottom-color: var(--green); }
+.role-tab.active-tab { background: var(--white); color: var(--wine-deep); border-bottom-color: var(--wine); }
 .role-tab.active-tab.admin-tab { color: #5B2D8E; border-bottom-color: #9B6DD6; }
 
 .role-icon {
@@ -57,10 +57,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--green-light);
+  background: var(--wine-light);
 }
 
-.role-tab.active-tab .role-icon { background: var(--green-light); }
+.role-tab.active-tab .role-icon { background: var(--wine-light); }
 .role-tab.active-tab.admin-tab .role-icon { background: #EDE5F8; }
 
 .login-body { padding: 2rem; }
@@ -72,7 +72,7 @@ body {
 
 .form-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
 
-.form-group label { font-size: 11px; font-weight: 500; color: var(--green-deep); text-transform: uppercase; letter-spacing: 0.6px; }
+.form-group label { font-size: 11px; font-weight: 500; color: var(--wine-deep); text-transform: uppercase; letter-spacing: 0.6px; }
 
 .form-group input {
   border: 1.5px solid var(--gray);
@@ -86,7 +86,7 @@ body {
   transition: border-color 0.15s;
 }
 
-.form-group input:focus { border-color: var(--green); }
+.form-group input:focus { border-color: var(--wine); }
 .form-group input::placeholder { color: var(--gray-text); }
 
 .admin-mode .form-group input:focus { border-color: #9B6DD6; }
@@ -94,12 +94,12 @@ body {
 .admin-mode .btn-login:hover { background: #5B2D8E; }
 .admin-mode .form-group label { color: #5B2D8E; }
 
-.forgot { font-size: 12px; color: var(--green-dark); text-align: right; display: block; margin-top: -8px; margin-bottom: 14px; cursor: pointer; text-decoration: none; }
+.forgot { font-size: 12px; color: var(--wine-dark); text-align: right; display: block; margin-top: -8px; margin-bottom: 14px; cursor: pointer; text-decoration: none; }
 .admin-mode .forgot { color: #7C3DBF; }
 
 .btn-login {
   width: 100%;
-  background: var(--green);
+  background: var(--wine);
   color: var(--white);
   border: none;
   border-radius: 12px;
@@ -112,13 +112,13 @@ body {
   margin-top: 4px;
 }
 
-.btn-login:hover { background: var(--green-dark); }
+.btn-login:hover { background: var(--wine-dark); }
 .btn-login:active { transform: scale(0.98); }
 
 .demo-hint {
   margin-top: 1.25rem;
   background: var(--off);
-  border: 1px dashed var(--green-mid);
+  border: 1px dashed var(--wine-mid);
   border-radius: 10px;
   padding: 10px 14px;
   font-size: 12px;
@@ -144,7 +144,7 @@ body {
 .error-msg.show { display: block; }
 
 footer {
-  border-top: 1px solid var(--green-mid);
+  border-top: 1px solid var(--wine-mid);
   background: var(--white);
   padding: 16px 2rem;
   display: flex;
@@ -152,8 +152,8 @@ footer {
   justify-content: space-between;
 }
 
-.footer-logo { font-family: 'DM Serif Display', serif; font-size: 14px; color: var(--green-deep); }
-.footer-address { font-size: 12px; color: var(--green-dark); }
+.footer-logo { font-family: 'DM Serif Display', serif; font-size: 14px; color: var(--wine-deep); }
+.footer-address { font-size: 12px; color: var(--wine-dark); }
 .footer-copy { font-size: 11px; color: var(--gray-text); }
 
 @media (max-width: 560px) {

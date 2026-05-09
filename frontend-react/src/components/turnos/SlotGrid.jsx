@@ -31,7 +31,7 @@ export function SlotGrid({ selectedDay, selectedSlot, onSlotSelect, getOcupados 
                 <div key={i} className={`slot-dot${i < taken ? ' taken' : ''}`} />
               ))}
             </div>
-            <div className="slot-cupos" style={{ color: isFull ? 'var(--gray-text)' : taken >= 4 ? 'var(--red)' : 'var(--green-dark)' }}>
+            <div className="slot-cupos" style={{ color: isFull ? 'var(--gray-text)' : taken >= 4 ? 'var(--red)' : 'var(--wine-dark)' }}>
               {isFull ? 'Sin cupos' : `${5 - taken} lugar${5 - taken === 1 ? '' : 'es'}`}
             </div>
           </button>

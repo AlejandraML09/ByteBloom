@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { NAV_LINKS } from '../constants/nav'
 import '../css/navbar.css'
+import logo from '../assets/fulllogo_slogan_sinfondo.png'
 
 export default function Navbar() {
   const [open, setOpen] = useState(false)
@@ -17,12 +18,16 @@ export default function Navbar() {
       <nav className="main-nav">
         <Link to="/" className="nav-logo">
           <div className="nav-logo-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round">
+            {/* <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round">
               <path d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z"/>
               <circle cx="12" cy="9" r="2.5" fill="#fff" stroke="none"/>
-            </svg>
+            </svg> */}
+            <img 
+            src={logo}
+            alt="Logo"
+            className="w-[18px] h-[18px] object-contain"
+          />
           </div>
-          <span className="nav-logo-name">Endereza2</span>
         </Link>
 
         <ul className="nav-links">
