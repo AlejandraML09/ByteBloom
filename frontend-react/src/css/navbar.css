@@ -1,6 +1,6 @@
 nav.main-nav {
   background: var(--white);
-  border-bottom: 1px solid var(--wine-mid);
+  border-bottom: 1px solid var(--primary-mid);
   padding: 0 2rem;
   height: 60px;
   display: flex;
@@ -20,7 +20,6 @@ nav.main-nav {
 }
 
 .nav-logo-icon {
-
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -35,7 +34,7 @@ nav.main-nav {
 .nav-logo-name {
   font-family: 'DM Serif Display', serif;
   font-size: 17px;
-  color: var(--wine-deep);
+  color: var(--primary-deep);
   letter-spacing: -0.3px;
 }
 
@@ -50,23 +49,23 @@ nav.main-nav {
 
 .nav-links a {
   text-decoration: none;
-  color: var(--wine-dark);
+  color: var(--primary-dark);
   transition: color 0.15s;
 }
 
-.nav-links a:hover { color: var(--wine-deep); }
+.nav-links a:hover { color: var(--primary-deep); }
 
 .nav-links .active a {
-  color: var(--wine-deep);
+  color: var(--primary-deep);
   font-weight: 500;
-  border-bottom: 2px solid var(--wine);
+  border-bottom: 2px solid var(--primary);
   padding-bottom: 2px;
 }
 
 .btn-login-nav {
   background: transparent;
-  color: var(--wine-deep);
-  border: 1.5px solid var(--wine);
+  color: var(--primary-deep);
+  border: 1.5px solid var(--primary);
   border-radius: 20px;
   padding: 7px 18px;
   font-size: 13px;
@@ -80,7 +79,7 @@ nav.main-nav {
 }
 
 .btn-login-nav:hover {
-  background: var(--wine);
+  background: var(--primary);
   color: var(--white);
 }
 
@@ -98,7 +97,7 @@ nav.main-nav {
   display: block;
   width: 22px;
   height: 2px;
-  background: var(--wine-deep);
+  background: var(--primary-deep);
   border-radius: 2px;
   transition: transform 0.25s, opacity 0.25s;
 }
@@ -111,7 +110,7 @@ nav.mobile-menu {
   display: none;
   flex-direction: column;
   background: var(--white);
-  border-bottom: 1px solid var(--wine-mid);
+  border-bottom: 1px solid var(--primary-mid);
   padding: 1rem 2rem 1.5rem;
   gap: 16px;
 }
@@ -127,10 +126,10 @@ nav.mobile-menu ul {
 
 nav.mobile-menu li {
   font-size: 15px;
-  color: var(--wine-dark);
+  color: var(--primary-dark);
 }
 
-nav.mobile-menu li.active { color: var(--wine-deep); font-weight: 500; }
+nav.mobile-menu li.active { color: var(--primary-deep); font-weight: 500; }
 
 @media (max-width: 900px) {
   .nav-links, nav.main-nav > .btn-login-nav { display: none; }
