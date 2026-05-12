@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AdminNav } from '../components/admin/AdminNav'
 import { AdminStatsRow } from '../components/admin/AdminStatsRow'
@@ -10,6 +10,8 @@ import { PriceTab } from '../components/admin/PriceTab'
 import { HORARIOS, PACIENTES, DIST } from '../constants/admin'
 import { fmtDate, fmtLargo } from '../utils/dates'
 import '../css/admin.css'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 function buildTurnos() {
   return DIST.map((t, i) => ({ ...t, paciente: PACIENTES[t.pac], id: i }))
@@ -64,6 +66,38 @@ export default function Admin() {
     setTimeout(() => setToastVisible(false), 3000)
   }
 
+  // Cargar clases del backend
+  useEffect(() => {
+    const cargarClases = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/clases`)
+        if (res.ok) {
+          const data = await res.json()
+          setUpcomingClasses(data.length > 0 ? data : upcomingClasses)
+        }
+      } catch (err) {
+        console.log('Backend no disponible, usando datos de demostración')
+      }
+    }
+    cargarClases()
+  }, [])
+
+  // Cargar precios actuales del backend
+  useEffect(() => {
+    const cargarPrecios = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/precios`)
+        if (res.ok) {
+          const data = await res.json()
+          setPrices(data)
+        }
+      } catch (err) {
+        console.log('Usando precios de demostración')
+      }
+    }
+    cargarPrecios()
+  }, [])
+
   const turnos = useMemo(() => buildTurnos(), [])
 
   const turnosFiltrados = turnos.map(t => ({
@@ -103,6 +137,7 @@ export default function Admin() {
       return
     }
 
+    // Actualizamos localmente primero para que el UI responda inmediatamente.
     setPrices(prev => ({ ...prev, [selectedZona]: precio }))
     setUpcomingClasses(prev => prev.map(clase => (
       clase.zona === selectedZona && clase.inscriptos === 0
@@ -110,7 +145,24 @@ export default function Admin() {
         : clase
     )))
     setPriceInput('')
-    showToast('Modificación exitosa')
+
+    fetch(`${API_URL}/api/precios`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ zona: selectedZona, nuevo_precio: precio })
+    })
+      .then(async res => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          const detail = body.detail || 'Error al guardar en backend'
+          showToast(`Guardado local, pero fallo backend: ${detail}`)
+          return
+        }
+        showToast('Modificación exitosa')
+      })
+      .catch(() => {
+        showToast('Guardado local, backend no disponible')
+      })
   }
 
   function logout() {
