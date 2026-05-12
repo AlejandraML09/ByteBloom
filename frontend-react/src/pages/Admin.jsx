@@ -40,12 +40,13 @@ export default function Admin() {
 
   const [activeTab, setActiveTab] = useState('turnos')
   const [filterDate, setFilterDate] = useState(today)
-  const [filterCuposDate, setFilterCuposDate] = useState(today)
+  const [filterCuposDate, setFilterCuposDate] = useState('')
   const [filterAsistDate, setFilterAsistDate] = useState(today)
   const [filterAsistHora, setFilterAsistHora] = useState(HORARIOS[0])
   const [cuposMax, setCuposMax] = useState(() => Object.fromEntries(HORARIOS.map(h => [h, 5])))
-  const [cuposInput, setCuposInput] = useState(() => Object.fromEntries(HORARIOS.map(h => [h, 5])))
+  const [cuposInput, setCuposInput] = useState({})
   const [ocupados] = useState(() => initOcupados())
+  const [cuposClasses, setCuposClasses] = useState([])
   const [asistencia, setAsistencia] = useState({})
   const [cancelados, setCancelados] = useState({})
   const [toastMsg, setToastMsg] = useState('')
@@ -80,6 +81,22 @@ export default function Admin() {
       }
     }
     cargarClases()
+  }, [])
+
+  useEffect(() => {
+    const cargarCupos = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/cupos`)
+        if (res.ok) {
+          const data = await res.json()
+          setCuposClasses(data)
+          setCuposInput(Object.fromEntries(data.map(clase => [clase.id, clase.cupo_max])))
+        }
+      } catch (err) {
+        console.log('No se pudieron cargar los cupos desde el backend')
+      }
+    }
+    cargarCupos()
   }, [])
 
   // Cargar precios actuales del backend
@@ -128,6 +145,44 @@ export default function Admin() {
     const total = Object.values(asistencia).filter(Boolean).length
     setPresentes(total)
     showToast('Asistencia guardada correctamente')
+  }
+
+  async function modificarCupo(claseId) {
+    const clase = cuposClasses.find(c => c.id === claseId)
+    if (!clase) return
+
+    const nuevoCupo = parseInt(cuposInput[claseId], 10)
+    if (!nuevoCupo || nuevoCupo <= 0) {
+      showToast('Ingresá un cupo válido')
+      return
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/api/cupos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          zona: clase.zona,
+          fecha: clase.fecha,
+          hora: clase.hora,
+          nuevo_cupo: nuevoCupo,
+        }),
+      })
+
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        showToast(body.detail || 'Error al modificar cupo')
+        return
+      }
+
+      setCuposClasses(prev => prev.map(c => (
+        c.id === claseId ? { ...c, cupo_max: nuevoCupo } : c
+      )))
+      setCuposInput(prev => ({ ...prev, [claseId]: nuevoCupo }))
+      showToast('Modificación exitosa')
+    } catch (err) {
+      showToast('Error al modificar cupo en backend')
+    }
   }
 
   function modificarPrecio() {
@@ -210,11 +265,10 @@ export default function Admin() {
 
         {activeTab === 'cupos' && (
           <CuposTab
-            ocupados={ocupados}
-            cuposMax={cuposMax}
+            classes={cuposClasses}
             cuposInput={cuposInput}
-            onInputChange={(hora, val) => setCuposInput(prev => ({ ...prev, [hora]: val }))}
-            onSave={guardarCupo}
+            onInputChange={(id, val) => setCuposInput(prev => ({ ...prev, [id]: val }))}
+            onModifyCupo={modificarCupo}
             filterDate={filterCuposDate}
             onFilterChange={setFilterCuposDate}
           />
