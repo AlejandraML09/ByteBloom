@@ -2,6 +2,7 @@ from datetime import date, timedelta
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from app.database import engine, Base, SessionLocal
 from app.models import Usuario, Clase, ZonaEnum
 from app.routers import usuarios, servicios
@@ -19,6 +20,16 @@ app.add_middleware(
 Base.metadata.create_all(bind=engine)
 
 
+def ensure_cupo_max_column():
+    with engine.begin() as conn:
+        conn.exec_driver_sql(
+            "ALTER TABLE clases ADD COLUMN IF NOT EXISTS cupo_max INTEGER DEFAULT 5 NOT NULL"
+        )
+
+
+ensure_cupo_max_column()
+
+
 def seed_initial_data():
     db = SessionLocal()
     try:
@@ -28,10 +39,11 @@ def seed_initial_data():
         if db.query(Clase).count() == 0:
             today = date.today()
             sample_clases = [
-                Clase(zona=ZonaEnum.superior, fecha=today + timedelta(days=1), hora='09:00', precio=1800, inscritos=0),
-                Clase(zona=ZonaEnum.medio, fecha=today + timedelta(days=2), hora='10:00', precio=1600, inscritos=0),
-                Clase(zona=ZonaEnum.inferior, fecha=today + timedelta(days=3), hora='11:00', precio=1400, inscritos=0),
-                Clase(zona=ZonaEnum.superior, fecha=today + timedelta(days=4), hora='12:00', precio=1800, inscritos=2),
+                Clase(zona=ZonaEnum.superior, fecha=today + timedelta(days=1), hora='09:00', precio=1800, cupo_max=30, inscritos=0),
+                Clase(zona=ZonaEnum.medio, fecha=today + timedelta(days=2), hora='10:00', precio=1600, cupo_max=25, inscritos=0),
+                Clase(zona=ZonaEnum.inferior, fecha=today + timedelta(days=3), hora='11:00', precio=1400, cupo_max=20, inscritos=0),
+                Clase(zona=ZonaEnum.inferior, fecha=date(2026, 5, 10), hora='09:00', precio=1400, cupo_max=40, inscritos=0),
+                Clase(zona=ZonaEnum.superior, fecha=today + timedelta(days=4), hora='12:00', precio=1800, cupo_max=30, inscritos=2),
             ]
             db.add_all(sample_clases)
 
