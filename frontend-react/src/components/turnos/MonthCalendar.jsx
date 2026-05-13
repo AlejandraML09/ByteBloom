@@ -1,16 +1,21 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { fmtDate, MESES_ES } from '../../utils/dates'
 import { HORARIOS } from '../../constants/turnos'
 
 const DIAS_HEADER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 const MAX_PER_SLOT = 5
 
-export function MonthCalendar({ selectedDay, onDaySelect, today, getOcupados, bookedDays }) {
+export function MonthCalendar({ selectedDay, onDaySelect, today, getOcupados, bookedDays, onMonthChange }) {
   const [monthOffset, setMonthOffset] = useState(0)
 
   const displayDate = useMemo(() => {
     return new Date(today.getFullYear(), today.getMonth() + monthOffset, 1)
   }, [today, monthOffset])
+
+  // Notify parent whenever the displayed month changes
+  useEffect(() => {
+    onMonthChange?.(displayDate)
+  }, [displayDate])
 
   const prevDisabled = useMemo(() => {
     return monthOffset <= 0

@@ -10,7 +10,7 @@ const PAYMENT_LABELS = {
 
 const fmt = n => `$${n.toLocaleString('es-AR')}`
 
-export function SummaryPanel({ zona, shifts, medioPago, onConfirm }) {
+export function SummaryPanel({ zona, shifts, medioPago, onConfirm, confirmando }) {
   const subtotal    = shifts.length * PRICE_PER_SHIFT
   const discountPct = shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
   const discount    = Math.round(subtotal * discountPct / 100)
@@ -88,8 +88,8 @@ export function SummaryPanel({ zona, shifts, medioPago, onConfirm }) {
             </span>
           </div>
 
-          <button className="btn-confirm" disabled={!allFilled} onClick={onConfirm}>
-            Confirmar turno
+          <button className="btn-confirm" disabled={!allFilled || confirmando} onClick={onConfirm}>
+            {confirmando ? 'Confirmando…' : 'Confirmar turno'}
           </button>
         </div>
       </div>

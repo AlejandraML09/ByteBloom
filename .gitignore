@@ -40,3 +40,4 @@ lerna-debug.log*
 /httpRequests/
 /dataSources/
 /dataSources.local.xml
+.playwright-mcp

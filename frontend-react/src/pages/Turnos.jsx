@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import Toast, { useToast } from '../components/Toast'
@@ -8,45 +8,55 @@ import { MonthCalendar } from '../components/turnos/MonthCalendar'
 import { SlotGrid } from '../components/turnos/SlotGrid'
 import { PaymentSelector } from '../components/turnos/PaymentSelector'
 import { SummaryPanel } from '../components/turnos/SummaryPanel'
-import { HORARIOS } from '../constants/turnos'
+import { getDisponibilidad, reservarTurnos } from '../api/turnos'
 import { fmtDate, fmtDiaLargo, nextHour } from '../utils/dates'
 import '../css/turnos.css'
 
 const MAX_SHIFTS = 3
 
-function seedOcupados() {
-  const ocupados = {}
-  const hoy = new Date()
-  ;[-1, 0, 1, 2, 3].forEach(d => {
-    const fecha = new Date(hoy)
-    fecha.setDate(hoy.getDate() + d)
-    if (fecha.getDay() === 0 || fecha.getDay() === 6) return
-    HORARIOS.forEach(h => {
-      ocupados[`${fmtDate(fecha)}_${h}`] = Math.floor(Math.random() * 5)
-    })
-  })
-  return ocupados
+function toMes(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
 }
 
 export default function Turnos() {
-  const [zona,      setZona]      = useState(null)
-  const [diaDate,   setDiaDate]   = useState(null)
-  const [slot,      setSlot]      = useState(null)
-  const [shifts,    setShifts]    = useState([])
-  const [medioPago, setMedioPago] = useState(null)
-  const [ocupados,  setOcupados]  = useState(() => seedOcupados())
+  const [zona,            setZona]            = useState(null)
+  const [diaDate,         setDiaDate]         = useState(null)
+  const [slot,            setSlot]            = useState(null)
+  const [shifts,          setShifts]          = useState([])
+  const [medioPago,       setMedioPago]       = useState(null)
+  const [disponibilidad,  setDisponibilidad]  = useState({})
+  const [loadingSlots,    setLoadingSlots]    = useState(false)
+  const [confirmando,     setConfirmando]     = useState(false)
   const { msg, visible, showToast } = useToast()
 
   const today = useMemo(() => {
     const d = new Date(); d.setHours(0, 0, 0, 0); return d
   }, [])
 
+  // Fetch availability whenever the displayed month changes
+  const fetchDisponibilidad = useCallback(async (displayDate) => {
+    const mes = toMes(displayDate)
+    setLoadingSlots(true)
+    try {
+      const data = await getDisponibilidad(mes)
+      setDisponibilidad(prev => ({ ...prev, ...data }))
+    } catch (err) {
+      console.error('Error fetching disponibilidad:', err)
+    } finally {
+      setLoadingSlots(false)
+    }
+  }, [])
+
+  // Returns how many spots are taken for a given day + hour
   function getOcupados(fecha, hora) {
-    return ocupados[`${fmtDate(fecha)}_${hora}`] || 0
+    return disponibilidad[`${fmtDate(fecha)}_${hora}`] || 0
   }
 
-  // days that already have a confirmed shift
-  const bookedDays = useMemo(() => new Set(shifts.map(s => fmtDate(s.diaDate))), [shifts])
+  // Days already booked in this session
+  const bookedDays = useMemo(
+    () => new Set(shifts.map(s => fmtDate(s.diaDate))),
+    [shifts]
+  )
 
   function handleZonaSelect(id) {
     setZona(id); setDiaDate(null); setSlot(null); setShifts([]); setMedioPago(null)
@@ -54,10 +64,6 @@ export default function Turnos() {
 
   function handleDaySelect(d) {
     setDiaDate(d); setSlot(null)
-  }
-
-  function handleSlotSelect(s) {
-    setSlot(s)
   }
 
   function addShift() {
@@ -73,19 +79,35 @@ export default function Turnos() {
     setMedioPago(null)
   }
 
-  function confirmarTurno() {
-    setOcupados(prev => {
-      const next = { ...prev }
-      shifts.forEach(({ diaDate: d, slot: h }) => {
-        const key = `${fmtDate(d)}_${h}`
-        next[key] = (next[key] || 0) + 1
+  async function confirmarTurno() {
+    setConfirmando(true)
+    try {
+      await reservarTurnos({
+        zona,
+        turnos: shifts.map(s => ({ fecha: fmtDate(s.diaDate), hora: s.slot })),
+        medioPago,
       })
-      return next
-    })
-    showToast(`✓ ${shifts.length} turno${shifts.length > 1 ? 's' : ''} confirmado${shifts.length > 1 ? 's' : ''}`)
-    setTimeout(() => {
-      setZona(null); setDiaDate(null); setSlot(null); setShifts([]); setMedioPago(null)
-    }, 2800)
+      // Refresh all months that were affected
+      const affectedMonths = [...new Set(shifts.map(s => toMes(s.diaDate)))]
+      const refreshed = {}
+      await Promise.all(
+        affectedMonths.map(async mes => {
+          const data = await getDisponibilidad(mes)
+          Object.assign(refreshed, data)
+        })
+      )
+      setDisponibilidad(prev => ({ ...prev, ...refreshed }))
+
+      showToast(`✓ ${shifts.length} turno${shifts.length > 1 ? 's' : ''} confirmado${shifts.length > 1 ? 's' : ''}`)
+      setTimeout(() => {
+        setZona(null); setDiaDate(null); setSlot(null); setShifts([]); setMedioPago(null)
+      }, 2800)
+    } catch (err) {
+      const detail = err?.response?.data?.detail
+      showToast(detail || 'Error al confirmar el turno. Intentá de nuevo.')
+    } finally {
+      setConfirmando(false)
+    }
   }
 
   const discountPct = shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
@@ -106,19 +128,23 @@ export default function Turnos() {
           <ZonaSelector selected={zona} onSelect={handleZonaSelect} />
 
           <div className="card">
-            <div className="card-title">Elegí el día</div>
+            <div className="card-title">
+              Elegí el día
+              {loadingSlots && <span className="loading-hint"> · cargando…</span>}
+            </div>
             <MonthCalendar
               selectedDay={diaDate}
               onDaySelect={handleDaySelect}
               today={today}
               getOcupados={getOcupados}
               bookedDays={bookedDays}
+              onMonthChange={fetchDisponibilidad}
             />
             <div className="card-title" style={{ marginTop: '1.25rem' }}>Elegí el horario</div>
             <SlotGrid
               selectedDay={diaDate}
               selectedSlot={slot}
-              onSlotSelect={handleSlotSelect}
+              onSlotSelect={setSlot}
               getOcupados={getOcupados}
             />
             {canAddMore && (
@@ -134,9 +160,7 @@ export default function Turnos() {
           {shifts.length > 0 && (
             <div className="card">
               <div className="shifts-header">
-                <div className="card-title" style={{ margin: 0 }}>
-                  Turnos seleccionados
-                </div>
+                <div className="card-title" style={{ margin: 0 }}>Turnos seleccionados</div>
                 <span className="shifts-count">{shifts.length}/{MAX_SHIFTS}</span>
               </div>
               <div className="shifts-list">
@@ -172,6 +196,7 @@ export default function Turnos() {
           shifts={shifts}
           medioPago={medioPago}
           onConfirm={confirmarTurno}
+          confirmando={confirmando}
         />
       </div>
 
