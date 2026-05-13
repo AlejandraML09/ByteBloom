@@ -5,6 +5,7 @@ import { AdminStatsRow } from '../components/admin/AdminStatsRow'
 import { TurnosTab } from '../components/admin/TurnosTab'
 import { PacientesTab } from '../components/admin/PacientesTab'
 import { CuposTab } from '../components/admin/CuposTab'
+import { CancelarTab } from '../components/admin/CancelarTab'
 import { AsistenciaTab } from '../components/admin/AsistenciaTab'
 import { PriceTab } from '../components/admin/PriceTab'
 import { HORARIOS, PACIENTES, DIST } from '../constants/admin'
@@ -27,6 +28,7 @@ const TABS = [
   { id: 'turnos',    label: 'Turnos del día' },
   { id: 'pacientes', label: 'Pacientes' },
   { id: 'cupos',     label: 'Gestionar cupos' },
+  { id: 'cancelar',   label: 'Cancelar clase' },
   { id: 'asistencia', label: 'Asistencia' },
   { id: 'precios', label: 'Modificar precio' },
 ]
@@ -41,12 +43,14 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState('turnos')
   const [filterDate, setFilterDate] = useState(today)
   const [filterCuposDate, setFilterCuposDate] = useState('')
+  const [filterCancelarDate, setFilterCancelarDate] = useState('')
   const [filterAsistDate, setFilterAsistDate] = useState(today)
   const [filterAsistHora, setFilterAsistHora] = useState(HORARIOS[0])
   const [cuposMax, setCuposMax] = useState(() => Object.fromEntries(HORARIOS.map(h => [h, 5])))
   const [cuposInput, setCuposInput] = useState({})
   const [ocupados] = useState(() => initOcupados())
   const [cuposClasses, setCuposClasses] = useState([])
+  const [clasesParaCancelar, setClasesParaCancelar] = useState([])
   const [asistencia, setAsistencia] = useState({})
   const [cancelados, setCancelados] = useState({})
   const [toastMsg, setToastMsg] = useState('')
@@ -115,6 +119,21 @@ export default function Admin() {
     cargarPrecios()
   }, [])
 
+  useEffect(() => {
+    const cargarClasesCancelar = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/clases-cancelar`)
+        if (res.ok) {
+          const data = await res.json()
+          setClasesParaCancelar(data)
+        }
+      } catch (err) {
+        console.log('No se pudieron cargar las clases para cancelar')
+      }
+    }
+    cargarClasesCancelar()
+  }, [])
+
   const turnos = useMemo(() => buildTurnos(), [])
 
   const turnosFiltrados = turnos.map(t => ({
@@ -139,6 +158,34 @@ export default function Admin() {
     const val = parseInt(cuposInput[hora]) || 5
     setCuposMax(prev => ({ ...prev, [hora]: val }))
     showToast(`Cupo de ${hora} actualizado a ${val} personas`)
+  }
+
+  async function cancelarClase(claseId) {
+    const clase = clasesParaCancelar.find(c => c.id === claseId)
+    if (!clase) return
+
+    try {
+      const res = await fetch(`${API_URL}/api/clases-cancelar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          zona: clase.zona,
+          fecha: clase.fecha,
+          hora: clase.hora,
+        }),
+      })
+
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        showToast(body.detail || 'Error al cancelar clase')
+        return
+      }
+
+      setClasesParaCancelar(prev => prev.filter(c => c.id !== claseId))
+      showToast('La clase ha sido cancelada exitosamente')
+    } catch (err) {
+      showToast('Error al cancelar clase en backend')
+    }
   }
 
   function guardarAsistencia() {
@@ -284,6 +331,15 @@ export default function Admin() {
             asistencia={asistencia}
             onAsistChange={(key, val) => setAsistencia(prev => ({ ...prev, [key]: val }))}
             onSave={guardarAsistencia}
+          />
+        )}
+
+        {activeTab === 'cancelar' && (
+          <CancelarTab
+            classes={clasesParaCancelar}
+            onCancelar={cancelarClase}
+            filterDate={filterCancelarDate}
+            onFilterChange={setFilterCancelarDate}
           />
         )}
 
