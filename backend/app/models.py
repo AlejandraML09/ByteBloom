@@ -26,3 +26,4 @@ class Clase(Base):
     precio = Column(Integer, nullable=False)
     cupo_max = Column(Integer, nullable=False, default=5)
     inscritos = Column(Integer, default=0)
+    cancelada = Column(Integer, default=0)

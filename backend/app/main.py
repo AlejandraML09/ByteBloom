@@ -27,7 +27,15 @@ def ensure_cupo_max_column():
         )
 
 
+def ensure_cancelada_column():
+    with engine.begin() as conn:
+        conn.exec_driver_sql(
+            "ALTER TABLE clases ADD COLUMN IF NOT EXISTS cancelada INTEGER DEFAULT 0 NOT NULL"
+        )
+
+
 ensure_cupo_max_column()
+ensure_cancelada_column()
 
 
 def seed_initial_data():
