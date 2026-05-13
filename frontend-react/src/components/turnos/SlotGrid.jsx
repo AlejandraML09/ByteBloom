@@ -1,6 +1,6 @@
 import { HORARIOS } from '../../constants/turnos'
 
-export function SlotGrid({ selectedDay, selectedSlot, onSlotSelect, getOcupados }) {
+export function SlotGrid({ selectedDay, selectedSlot, onSlotSelect, getOcupados, bookedSlots }) {
   if (!selectedDay) {
     return (
       <div className="empty-state">
@@ -15,14 +15,17 @@ export function SlotGrid({ selectedDay, selectedSlot, onSlotSelect, getOcupados 
   return (
     <div className="slots-grid">
       {HORARIOS.map(hora => {
-        const taken = getOcupados(selectedDay, hora)
-        const isFull = taken >= 5
+        const taken    = getOcupados(selectedDay, hora)
+        const isFull   = taken >= 5
+        const isBooked = bookedSlots?.has(hora)
         const isSelected = selectedSlot === hora
+        const disabled = isFull || isBooked
+
         return (
           <button
             key={hora}
-            className={`slot-btn${isFull ? ' full' : ''}${isSelected ? ' selected' : ''}`}
-            disabled={isFull}
+            className={`slot-btn${isFull ? ' full' : ''}${isBooked ? ' booked' : ''}${isSelected ? ' selected' : ''}`}
+            disabled={disabled}
             onClick={() => onSlotSelect(hora)}
           >
             <span className="slot-time">{hora}</span>
@@ -31,8 +34,10 @@ export function SlotGrid({ selectedDay, selectedSlot, onSlotSelect, getOcupados 
                 <div key={i} className={`slot-dot${i < taken ? ' taken' : ''}`} />
               ))}
             </div>
-            <div className="slot-cupos" style={{ color: isFull ? 'var(--gray-text)' : taken >= 4 ? 'var(--red)' : 'var(--wine-dark)' }}>
-              {isFull ? 'Sin cupos' : `${5 - taken} lugar${5 - taken === 1 ? '' : 'es'}`}
+            <div className="slot-cupos" style={{
+              color: isBooked ? 'var(--primary)' : isFull ? 'var(--text-muted)' : taken >= 4 ? 'var(--danger)' : 'var(--primary-dark)'
+            }}>
+              {isBooked ? 'Agendado' : isFull ? 'Sin cupos' : `${5 - taken} lugar${5 - taken === 1 ? '' : 'es'}`}
             </div>
           </button>
         )

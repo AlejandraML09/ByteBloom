@@ -1,22 +1,22 @@
-import { ZONA_LABELS } from '../../constants/turnos'
+import { ZONA_LABELS, PRICE_PER_SHIFT } from '../../constants/turnos'
 import { fmtDiaLargo, nextHour } from '../../utils/dates'
 
-export function SummaryPanel({ zona, diaDate, slot, nombre, apellido, os, onConfirm }) {
-  const sumZona   = zona    ? ZONA_LABELS[zona] : null
-  const sumDia    = diaDate ? fmtDiaLargo(diaDate) : null
-  const sumHora   = slot    ? `${slot} – ${nextHour(slot)}` : null
-  const sumNombre = (nombre || apellido) ? `${nombre} ${apellido}`.trim() : null
+const PAYMENT_LABELS = {
+  mercadopago: 'MercadoPago',
+  cuentadni:   'CuentaDNI',
+  credito:     'Tarjeta de Crédito',
+  debito:      'Tarjeta de Débito',
+}
 
-  const allFilled = zona && diaDate && slot && nombre && apellido && os
+const fmt = n => `$${n.toLocaleString('es-AR')}`
 
-  const rows = [
-    { key: 'Zona',       val: sumZona,   fallback: 'Sin seleccionar' },
-    { key: 'Día',        val: sumDia,    fallback: 'Sin seleccionar' },
-    { key: 'Horario',    val: sumHora,   fallback: 'Sin seleccionar' },
-    { key: 'Duración',   val: <span className="summary-badge">1 hora</span>, fallback: null },
-    { key: 'Paciente',   val: sumNombre, fallback: 'Sin completar' },
-    { key: 'Obra social', val: os || null, fallback: 'Sin completar' },
-  ]
+export function SummaryPanel({ zona, shifts, medioPago, onConfirm }) {
+  const subtotal    = shifts.length * PRICE_PER_SHIFT
+  const discountPct = shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
+  const discount    = Math.round(subtotal * discountPct / 100)
+  const total       = subtotal - discount
+
+  const allFilled = zona && shifts.length > 0 && medioPago
 
   return (
     <div className="sidebar">
@@ -26,12 +26,68 @@ export function SummaryPanel({ zona, diaDate, slot, nombre, apellido, os, onConf
           <p>Revisá los datos antes de confirmar</p>
         </div>
         <div className="summary-body">
-          {rows.map(({ key, val, fallback }) => (
-            <div className="summary-row" key={key}>
-              <span className="summary-key">{key}</span>
-              <span className={`summary-val${val ? '' : ' empty'}`}>{val || fallback}</span>
+
+          <div className="summary-row">
+            <span className="summary-key">Zona</span>
+            <span className={`summary-val${zona ? '' : ' empty'}`}>
+              {zona ? ZONA_LABELS[zona] : 'Sin seleccionar'}
+            </span>
+          </div>
+
+          {shifts.length === 0 ? (
+            <div className="summary-row">
+              <span className="summary-key">Turno</span>
+              <span className="summary-val empty">Sin seleccionar</span>
             </div>
-          ))}
+          ) : (
+            shifts.map((s, i) => (
+              <div className="summary-row" key={i}>
+                <span className="summary-key">Turno {i + 1}</span>
+                <span className="summary-val">
+                  {fmtDiaLargo(s.diaDate)}<br />
+                  <span style={{ fontSize: '11px', opacity: 0.8 }}>
+                    {s.slot} – {nextHour(s.slot)}
+                  </span>
+                </span>
+              </div>
+            ))
+          )}
+
+          <div className="summary-row">
+            <span className="summary-key">Duración</span>
+            <span className="summary-val"><span className="summary-badge">1 hora</span></span>
+          </div>
+
+          {discountPct > 0 && (
+            <div className="summary-discount-row">
+              <span>Pack {shifts.length} clases · {discountPct}% off</span>
+              <span>− {fmt(discount)}</span>
+            </div>
+          )}
+
+          <div className="summary-row">
+            <span className="summary-key">Total</span>
+            <span className="summary-val">
+              {shifts.length > 0 ? (
+                <>
+                  {fmt(total)}
+                  {discountPct > 0 && (
+                    <span className="summary-original"> {fmt(subtotal)}</span>
+                  )}
+                </>
+              ) : (
+                <span className="empty">—</span>
+              )}
+            </span>
+          </div>
+
+          <div className="summary-row">
+            <span className="summary-key">Pago</span>
+            <span className={`summary-val${medioPago ? '' : ' empty'}`}>
+              {medioPago ? PAYMENT_LABELS[medioPago] : 'Sin seleccionar'}
+            </span>
+          </div>
+
           <button className="btn-confirm" disabled={!allFilled} onClick={onConfirm}>
             Confirmar turno
           </button>
