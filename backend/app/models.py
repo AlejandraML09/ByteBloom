@@ -11,6 +11,20 @@ class Usuario(Base):
     email = Column(String(100), unique=True, index=True, nullable=False)
     password = Column(String(255), nullable=False)
 
+    def set_password(self, plain_password: str):
+        """Hash and store the password using bcrypt."""
+        self.password = bcrypt.hashpw(
+            plain_password.encode('utf-8'),
+            bcrypt.gensalt()
+        ).decode('utf-8')
+
+    def check_password(self, plain_password: str) -> bool:
+        """Verify the given password against the stored hash."""
+        return bcrypt.checkpw(
+            plain_password.encode('utf-8'),
+            self.password.encode('utf-8')
+        )
+
 
 class ZonaEnum(str, enum.Enum):
     superior = "superior"
@@ -41,16 +55,3 @@ class Turno(Base):
     medio_pago = Column(String(30), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    def set_password(self, plain_password: str):
-        """Hash and store the password using bcrypt."""
-        self.password = bcrypt.hashpw(
-            plain_password.encode('utf-8'),
-            bcrypt.gensalt()
-        ).decode('utf-8')
-
-    def check_password(self, plain_password: str) -> bool:
-        """Verify the given password against the stored hash."""
-        return bcrypt.checkpw(
-            plain_password.encode('utf-8'),
-            self.password.encode('utf-8')
-        )
