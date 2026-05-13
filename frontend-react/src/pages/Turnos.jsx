@@ -135,7 +135,7 @@ function handleCloseDiscount() {
           <StepIndicator zona={zona} shifts={shifts} medioPago={medioPago} />
 
           <ZonaSelector selected={zona} onSelect={handleZonaSelect} />
-
+          <div className={`fade-slide ${zona ? 'fade-slide--visible' : ''}`}>
           <div className="card">
             <div className="card-title">
               Elegí el día
@@ -164,6 +164,7 @@ function handleCloseDiscount() {
             {shifts.length === MAX_SHIFTS && diaDate && slot && (
               <p className="shift-max-msg">Máximo {MAX_SHIFTS} turnos por reserva</p>
             )}
+          </div>
           </div>
 
           {shifts.length > 0 && (
@@ -194,10 +195,9 @@ function handleCloseDiscount() {
               )}
             </div>
           )}
-
-          {shifts.length > 0 && (
-            <PaymentSelector selected={medioPago} onSelect={setMedioPago} />
-          )}
+        <div className={`fade-slide ${shifts.length > 0 ? 'fade-slide--visible' : ''}`}>
+          <PaymentSelector selected={medioPago} onSelect={setMedioPago} />
+        </div>
         </div>
 
         <SummaryPanel
