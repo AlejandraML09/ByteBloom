@@ -22,15 +22,16 @@ def get_db():
 # 📝 Registro de usuario
 @router.post("/registro/")
 def registrar(data: UsuarioRequest, db: Session = Depends(get_db)):
+    email_lower = data.email.lower()
     existe = db.query(models.Usuario).filter(
-        models.Usuario.email == data.email
+        models.Usuario.email == email_lower
     ).first()
 
     if existe:
         raise HTTPException(status_code=400, detail="Email ya registrado")
 
     nuevo = models.Usuario(
-        email=data.email,
+        email=email_lower,
         password=data.password
     )
 
@@ -46,8 +47,9 @@ def registrar(data: UsuarioRequest, db: Session = Depends(get_db)):
 # 🔐 Login
 @router.post("/login")
 def login(data: UsuarioRequest, db: Session = Depends(get_db)):
+    email_lower = data.email.lower()
     user = db.query(models.Usuario).filter(
-        models.Usuario.email == data.email
+        models.Usuario.email == email_lower
     ).first()
 
     if not user:
@@ -56,7 +58,10 @@ def login(data: UsuarioRequest, db: Session = Depends(get_db)):
     if user.password != data.password:
         raise HTTPException(status_code=401, detail="Contraseña incorrecta")
 
+    role = 'admin' if user.email == 'admin@test.com' else 'usuario'
+
     return {
         "id": user.id,
-        "email": user.email
+        "email": user.email,
+        "role": role
     }
