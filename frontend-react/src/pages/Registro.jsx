@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { registrarUsuario } from '../api/auth'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import '../css/vars.css'
@@ -19,6 +20,7 @@ export default function Registro() {
 
   const [error, setError] = useState('')
   const [exito, setExito] = useState(false)
+  const [cargando, setCargando] = useState(false)
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -35,13 +37,27 @@ export default function Registro() {
     return ''
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     const msg = validar()
     if (msg) {
       setError(msg)
       return
     }
-    setExito(true)
+
+    setCargando(true)
+    try {
+      await registrarUsuario(form)
+      setExito(true)
+    } catch (err) {
+      const detalle = err.response?.data?.detail
+      if (detalle === 'Email ya registrado') {
+        setError('Este email ya tiene una cuenta registrada.')
+      } else {
+        setError('Ocurrió un error al registrarse. Intentá de nuevo.')
+      }
+    } finally {
+      setCargando(false)
+    }
   }
 
   if (exito) {
@@ -68,52 +84,29 @@ export default function Registro() {
   return (
     <>
       <Navbar />
-
       <div className="registro-page">
         <div className="registro-card">
-
           <div className="registro-header">
             <h2>Crear cuenta</h2>
             <p>Completá tus datos para registrarte</p>
           </div>
 
-          {error && (
-            <div className="error-msg show">{error}</div>
-          )}
+          {error && <div className="error-msg show">{error}</div>}
 
           <div className="registro-grid">
             <div className="form-group">
               <label>Nombre</label>
-              <input
-                type="text"
-                name="nombre"
-                placeholder="María"
-                value={form.nombre}
-                onChange={handleChange}
-              />
+              <input type="text" name="nombre" placeholder="María" value={form.nombre} onChange={handleChange} />
             </div>
-
             <div className="form-group">
               <label>Apellido</label>
-              <input
-                type="text"
-                name="apellido"
-                placeholder="González"
-                value={form.apellido}
-                onChange={handleChange}
-              />
+              <input type="text" name="apellido" placeholder="González" value={form.apellido} onChange={handleChange} />
             </div>
           </div>
 
           <div className="form-group">
             <label>Email</label>
-            <input
-              type="email"
-              name="email"
-              placeholder="maria@email.com"
-              value={form.email}
-              onChange={handleChange}
-            />
+            <input type="email" name="email" placeholder="maria@email.com" value={form.email} onChange={handleChange} />
           </div>
 
           <div className="form-group">
@@ -130,38 +123,23 @@ export default function Registro() {
           <div className="registro-grid">
             <div className="form-group">
               <label>Contraseña</label>
-              <input
-                type="password"
-                name="password"
-                placeholder="Mínimo 6 caracteres"
-                value={form.password}
-                onChange={handleChange}
-              />
+              <input type="password" name="password" placeholder="Mínimo 6 caracteres" value={form.password} onChange={handleChange} />
             </div>
-
             <div className="form-group">
               <label>Confirmar contraseña</label>
-              <input
-                type="password"
-                name="confirmarPassword"
-                placeholder="Repetí tu contraseña"
-                value={form.confirmarPassword}
-                onChange={handleChange}
-              />
+              <input type="password" name="confirmarPassword" placeholder="Repetí tu contraseña" value={form.confirmarPassword} onChange={handleChange} />
             </div>
           </div>
 
-          <button className="btn-registro" onClick={handleSubmit}>
-            Registrarse
+          <button className="btn-registro" onClick={handleSubmit} disabled={cargando}>
+            {cargando ? 'Registrando...' : 'Registrarse'}
           </button>
 
           <div className="login-hint">
             <Link to="/login">¿Ya tenés cuenta? Iniciá sesión</Link>
           </div>
-
         </div>
       </div>
-
       <Footer />
     </>
   )

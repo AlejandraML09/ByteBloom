@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from datetime import date
 from app.database import SessionLocal
 from app import models
 
@@ -8,6 +9,13 @@ router = APIRouter()
 
 # 📦 Schema para recibir datos en JSON
 class UsuarioRequest(BaseModel):
+    nombre: str
+    apellido: str
+    email: str
+    fecha_nacimiento: date
+    password: str
+
+class LoginRequest(BaseModel):
     email: str
     password: str
 
@@ -30,7 +38,12 @@ def registrar(data: UsuarioRequest, db: Session = Depends(get_db)):
     if existe:
         raise HTTPException(status_code=400, detail="Email ya registrado")
 
-    nuevo = models.Usuario(email=data.email)
+    nuevo = models.Usuario(
+        nombre=data.nombre,
+        apellido=data.apellido,
+        email=email_lower,
+        fecha_nacimiento=data.fecha_nacimiento,
+    )
     nuevo.set_password(data.password)  # Hash the password
     db.add(nuevo)
     db.commit()
@@ -43,7 +56,7 @@ def registrar(data: UsuarioRequest, db: Session = Depends(get_db)):
 
 # 🔐 Login
 @router.post("/login")
-def login(data: UsuarioRequest, db: Session = Depends(get_db)):
+def login(data: LoginRequest, db: Session = Depends(get_db)):
     email_lower = data.email.lower()
     user = db.query(models.Usuario).filter(
         models.Usuario.email == email_lower

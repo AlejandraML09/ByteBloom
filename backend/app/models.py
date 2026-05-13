@@ -8,8 +8,11 @@ class Usuario(Base):
     __tablename__ = "usuarios"
 
     id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String(100), nullable=True)
+    apellido = Column(String(100), nullable=True)
     email = Column(String(100), unique=True, index=True, nullable=False)
     password = Column(String(255), nullable=False)
+    fecha_nacimiento = Column(Date, nullable=True)
 
     def set_password(self, plain_password: str):
         """Hash and store the password using bcrypt."""
