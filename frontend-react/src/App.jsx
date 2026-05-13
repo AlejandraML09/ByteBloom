@@ -6,6 +6,7 @@ import Turnos from './pages/Turnos'
 import Contacto from './pages/Contacto'
 import Login from './pages/Login'
 import Admin from './pages/Admin'
+import Registro from './pages/Registro'
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/registro" element={<Registro />} />
       </Routes>
     </BrowserRouter>
   )
