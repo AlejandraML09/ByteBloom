@@ -21,7 +21,7 @@ export default function Home() {
           <span className="hero-badge">Centro de kinesiología</span>
           <h1 className="hero-title">
             Movimiento,<br />
-            <span>bienestar</span> y recuperación
+            <span>bienestar  y recuperación </span>
           </h1>
           <p className="hero-desc">
             Tratamientos personalizados para recuperar tu calidad de vida.

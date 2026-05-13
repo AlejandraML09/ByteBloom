@@ -6,6 +6,7 @@
 
 .services {
   flex: 1;
+  background:var(--white);
 }
 
 .btn-hero {
@@ -36,14 +37,14 @@
 }
 
 .btn-cta {
-  background: var(--primary);
-  color: var(--white);
+  background: var(--bg);
+  color: var(--primary-dark);
   border: none;
   border-radius: 24px;
   padding: 12px 26px;
-  font-size: 14px;
+  font-size: 16px;
   font-family: 'DM Sans', sans-serif;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
   display: inline-block;
@@ -84,7 +85,7 @@
 
 .hero-badge {
   background: var(--primary-mid);
-  color: var(--primary-deep);
+  color: var(--white);
   font-size: 11px;
   font-weight: 500;
   padding: 4px 12px;
@@ -105,8 +106,8 @@
 .hero-title span { color: var(--primary-dark); }
 
 .hero-desc {
-  font-size: 14px;
-  color: var(--primary-deep);
+  font-size: 16px;
+  color: var(--text-main);
   line-height: 1.7;
   margin-bottom: 24px;
 }
@@ -159,11 +160,11 @@
   font-family: 'DM Serif Display', serif;
   font-size: 22px;
   color: var(--text-main);
-  margin-bottom: 6px;
 }
 
 .section-sub {
-  font-size: 13px;
+  font-size: 16px;
+  font-style: bold;
   color: var(--primary-dark);
   margin-bottom: 20px;
 }
@@ -191,7 +192,8 @@
 .service-icon {
   width: 40px;
   height: 40px;
-  background: var(--bg);
+  color:var(--primary-dark);
+  background: var(--primary-tint);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -205,8 +207,8 @@
 }
 
 .service-name {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 18px;
+  font-weight: 600;
   color: var(--text-main);
   margin-bottom: 6px;
 }
@@ -217,19 +219,20 @@
 }
 
 .service-desc {
-  font-size: 12px;
+  font-size: 16px;
+  font-weight: 400;
   color: var(--text-main);
   line-height: 1.5;
 }
 
-.service-card.highlighted .service-desc { color: var(--primary-tint); }
+.service-card.highlighted .service-desc { color: var(--white);}
 
 .cta-banner-wrap { padding: 0 2rem 2.5rem; }
 
 .cta-banner {
-  background: var(--white);
+  background: var(--primary);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 24px 2rem;
   display: flex;
   align-items: center;
@@ -246,6 +249,7 @@
   width: 52px;
   height: 52px;
   border-radius: 14px;
+  border-color: var(--border);
   background: var(--primary);
   display: flex;
   align-items: center;
@@ -256,16 +260,17 @@
 .cta-title {
   font-family: 'DM Serif Display', serif;
   font-size: 20px;
-  color: var(--text-main);
+  color: var(--white);
   margin-bottom: 4px;
 }
 
-.cta-info { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+.cta-info { font-size: 13px; color: var(--white); line-height: 1.6; }
 
 .cta-right { display: flex; align-items: center; gap: 14px; }
 
 .service-detail {
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 300;
   color: var(--primary-tint);
   line-height: 1.65;
   max-height: 0;

@@ -40,9 +40,11 @@ nav.main-nav {
 
 .nav-links {
   display: flex;
-  gap: 24px;
-  font-size: 13px;
+  gap: 60px;
+  font-size: 16px;
+  font-weight: 500;
   list-style: none;
+
 }
 
 .nav-links li { cursor: pointer; }
