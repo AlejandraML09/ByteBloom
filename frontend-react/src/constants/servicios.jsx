@@ -3,7 +3,6 @@ export const ZONES = ['superior', 'medio', 'inferior']
 export const zonesData = [
   {
     id: 'superior',
-    zoneNum: 'Zona 01',
     title: 'Tren superior',
     desc: 'El tren superior comprende todas las estructuras desde la cabeza hasta la cintura. Su rehabilitación requiere un abordaje preciso que combine movilidad, fuerza y control neuromuscular para restaurar la función en actividades cotidianas y deportivas.',
     icon: (
@@ -47,7 +46,6 @@ export const zonesData = [
   },
   {
     id: 'medio',
-    zoneNum: 'Zona 02',
     title: 'Zona media',
     desc: 'Zona media o "core" es el centro biomecánico del cuerpo. Incluye la columna lumbar, la pelvis, el diafragma y toda la musculatura profunda que sostiene la postura y transfiere fuerzas entre la parte superior e inferior del cuerpo.',
     icon: (
@@ -87,7 +85,6 @@ export const zonesData = [
   },
   {
     id: 'inferior',
-    zoneNum: 'Zona 03',
     title: 'Tren inferior',
     desc: 'El tren inferior soporta todo el peso corporal y absorbe los impactos de la marcha y el deporte. Su rehabilitación es fundamental para restaurar la funcionalidad en actividades básicas como caminar, subir escaleras y practicar deporte de manera segura.',
     icon: (

@@ -1,4 +1,6 @@
-import { zonasInfo } from '../../constants/turnos'
+import { zonasInfo, PRICE_PER_SHIFT } from '../../constants/turnos'
+
+const fmt = n => `$${n.toLocaleString('es-AR')}`
 
 export function ZonaSelector({ selected, onSelect }) {
   return (
@@ -19,6 +21,7 @@ export function ZonaSelector({ selected, onSelect }) {
             <div>
               <div className="zona-name">{name}</div>
               <div className="zona-sub">{sub}</div>
+              <div className="zona-price">{fmt(PRICE_PER_SHIFT)}</div>
             </div>
           </button>
         ))}
