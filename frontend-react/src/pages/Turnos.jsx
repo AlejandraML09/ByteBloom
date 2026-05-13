@@ -10,6 +10,7 @@ import { PaymentSelector } from '../components/turnos/PaymentSelector'
 import { SummaryPanel } from '../components/turnos/SummaryPanel'
 import { getDisponibilidad, reservarTurnos } from '../api/turnos'
 import { fmtDate, fmtDiaLargo, nextHour } from '../utils/dates'
+import DiscountModal from '../components/turnos/Discountmodal'
 import '../css/turnos.css'
 
 const MAX_SHIFTS = 3
@@ -112,6 +113,14 @@ export default function Turnos() {
 
   const discountPct = shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
   const canAddMore  = diaDate && slot && shifts.length < MAX_SHIFTS
+  const [showDiscounts, setShowDiscounts] = useState(
+  () => !sessionStorage.getItem('discountSeen')
+)
+
+function handleCloseDiscount() {
+  sessionStorage.setItem('discountSeen', '1')
+  setShowDiscounts(false)
+}
 
   return (
     <>
@@ -202,6 +211,7 @@ export default function Turnos() {
 
       <Footer />
       <Toast msg={msg} visible={visible} />
+      <DiscountModal isOpen={showDiscounts} onClose={() => setShowDiscounts(false)} />
     </>
   )
 }
