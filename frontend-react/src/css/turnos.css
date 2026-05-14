@@ -25,54 +25,60 @@
 
 .left-col { display: flex; flex-direction: column; gap: 1.25rem; }
 
-.payment-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+.payment-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .payment-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 18px 12px;
-  border: 1.5px solid var(--border);
-  border-radius: 12px;
-  background: var(--white);
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  min-width: 80px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
 
-.payment-btn:hover { border-color: var(--primary-mid); background: var(--primary-tint); }
-.payment-btn.selected { border-color: var(--primary); background: var(--primary-tint); color: var(--primary); }
+.payment-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
 
-.payment-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: var(--bg);
+.payment-btn.selected {
+  border: 2px solid #3b82f6;
+  background: #eff6ff;
+}
+
+.payment-logo {
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
-  transition: background 0.15s, color 0.15s;
 }
 
-.payment-btn.selected .payment-icon {
-  background: var(--white);
-  color: var(--primary);
+.payment-logo img,
+.payment-logo svg {
+  height: 28px;
+  max-width: 60px;
+  object-fit: contain;
 }
 
 .payment-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-main);
-  text-align: center;
-  line-height: 1.3;
+  font-size: 11px;
+  color: #6b7280;
+  white-space: nowrap;
 }
 
-.payment-btn.selected .payment-label { color: var(--primary-deep); }
+.payment-btn.selected .payment-label {
+  color: #2563eb;
+}
 
 .steps {
   display: flex;
