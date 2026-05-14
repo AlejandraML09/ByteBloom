@@ -66,5 +66,6 @@ def on_startup():
     seed_initial_data()
 
 app.include_router(usuarios.router)
-app.include_router(servicios.router)
 app.include_router(turnos.router, prefix="/turnos")
+
+app.include_router(servicios.router)
