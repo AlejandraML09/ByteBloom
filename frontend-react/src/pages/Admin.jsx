@@ -75,7 +75,7 @@ export default function Admin() {
   useEffect(() => {
     const cargarClases = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/clases`)
+        const res = await fetch(`${API_URL}/clases`)
         if (res.ok) {
           const data = await res.json()
           setUpcomingClasses(data.length > 0 ? data : upcomingClasses)
@@ -90,7 +90,7 @@ export default function Admin() {
   useEffect(() => {
     const cargarCupos = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/cupos`)
+        const res = await fetch(`${API_URL}/cupos`)
         if (res.ok) {
           const data = await res.json()
           setCuposClasses(data)
@@ -107,7 +107,7 @@ export default function Admin() {
   useEffect(() => {
     const cargarPrecios = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/precios`)
+        const res = await fetch(`${API_URL}/precios`)
         if (res.ok) {
           const data = await res.json()
           setPrices(data)
@@ -122,7 +122,7 @@ export default function Admin() {
   useEffect(() => {
     const cargarClasesCancelar = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/clases-cancelar`)
+        const res = await fetch(`${API_URL}/clases-cancelar`)
         if (res.ok) {
           const data = await res.json()
           setClasesParaCancelar(data)
@@ -165,7 +165,7 @@ export default function Admin() {
     if (!clase) return
 
     try {
-      const res = await fetch(`${API_URL}/api/clases-cancelar`, {
+      const res = await fetch(`${API_URL}/clases-cancelar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -205,7 +205,7 @@ export default function Admin() {
     }
 
     try {
-      const res = await fetch(`${API_URL}/api/cupos`, {
+      const res = await fetch(`${API_URL}/cupos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -248,7 +248,7 @@ export default function Admin() {
     )))
     setPriceInput('')
 
-    fetch(`${API_URL}/api/precios`, {
+    fetch(`${API_URL}/precios`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ zona: selectedZona, nuevo_precio: precio })
