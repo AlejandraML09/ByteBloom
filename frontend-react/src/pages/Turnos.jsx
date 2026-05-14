@@ -85,7 +85,7 @@ export default function Turnos() {
     setConfirmando(true)
     try {
       
-       if (medioPago === 'mercadopago') {
+    if (['mercadopago', 'credito', 'debito'].includes(medioPago)) {
         const { data } = await client.post('/api/crear-preferencia', null, {
           params: {
             servicio_id: 1,
@@ -97,6 +97,8 @@ export default function Turnos() {
           window.location.href = data.init_point
           return
         }
+          showToast('No se pudo obtener el link de pago.')
+          return  
 
      
       }
