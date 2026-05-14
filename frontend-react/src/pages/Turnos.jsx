@@ -112,6 +112,7 @@ export default function Turnos() {
   }
 
   const discountPct = shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
+  const allFilled   = zona && shifts.length > 0 && medioPago
   const canAddMore  = diaDate && slot && shifts.length < MAX_SHIFTS
   const [showDiscounts, setShowDiscounts] = useState(
   () => !sessionStorage.getItem('discountSeen')
@@ -138,7 +139,7 @@ function handleCloseDiscount() {
           <div className={`fade-slide ${zona ? 'fade-slide--visible' : ''}`}>
           <div className="card">
             <div className="card-title">
-              Elegí el día
+              <span className="step-number">2</span> Elegí el día
               {loadingSlots && <span className="loading-hint"> · cargando…</span>}
             </div>
             <MonthCalendar
@@ -199,7 +200,9 @@ function handleCloseDiscount() {
           <PaymentSelector selected={medioPago} onSelect={setMedioPago} />
         </div>
         </div>
+      </div>
 
+      <div className={`fade-slide summary-bottom-wrap ${allFilled ? 'fade-slide--visible' : ''}`}>
         <SummaryPanel
           zona={zona}
           shifts={shifts}

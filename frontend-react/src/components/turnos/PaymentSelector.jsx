@@ -70,7 +70,7 @@ const METHODS = [
 export function PaymentSelector({ selected, onSelect }) {
   return (
     <div className="card">
-      <div className="card-title">Medio de pago</div>
+      <div className="card-title"><span className="step-number">3</span> Medio de pago</div>
       <div className="payment-row">
         {METHODS.map(({ id, label, logo }) => (
           <button
