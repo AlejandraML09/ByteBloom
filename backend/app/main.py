@@ -1,12 +1,10 @@
 from datetime import date, timedelta
-
 from fastapi import FastAPI
-from app.routers import usuarios, turnos, pagos
+from app.routers import usuarios, turnos, pagos, servicios
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from app.database import engine, Base, SessionLocal
 from app.models import Usuario, Clase, ZonaEnum
-from app.routers import usuarios, servicios
 
 app = FastAPI()
 
@@ -42,8 +40,10 @@ ensure_cancelada_column()
 def seed_initial_data():
     db = SessionLocal()
     try:
-        if not db.query(Usuario).filter(Usuario.email == 'admin@test.com').first():
-            db.add(Usuario(email='admin@test.com', password='admin123'))
+        if db.query(Usuario).count() == 0:
+            admin = Usuario(email='admin@test.com', rol='admin')
+            admin.set_password('admin123')
+            db.add(admin)
 
         if db.query(Clase).count() == 0:
             today = date.today()
