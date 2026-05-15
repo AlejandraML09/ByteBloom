@@ -115,7 +115,7 @@
   border-radius: 20px;
 }
 
-.prof-bio { font-size: 13px; color: #4A5E30; line-height: 1.65; margin-bottom: 1rem; }
+.prof-bio { font-size: 13px; color: var(--text-main); line-height: 1.65; margin-bottom: 1rem; }
 
 .reviews-title {
   font-size: 11px;
@@ -143,7 +143,7 @@
 
 .review-text {
   font-size: 12px;
-  color: #4A5E30;
+  color: var(--text-main);
   line-height: 1.55;
   font-style: italic;
   margin-bottom: 5px;
