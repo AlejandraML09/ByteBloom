@@ -162,7 +162,7 @@ export function SummaryPanel({ zona, shifts, medioPago, onConfirm, confirmando }
             <div>
               <div className="summary-v2-info-title" style={{ color: 'var(--text-main)' }}>Importante</div>
               <p className="summary-v2-info-text">
-                Podés cancelar o reprogramar tu turno con hasta 24 hs de anticipación.
+                Podés cancelar o reprogramar tu turno con hasta 48 hs de anticipación.
               </p>
             </div>
           </div>
