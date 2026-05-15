@@ -126,7 +126,12 @@ export default function Login() {
                 onKeyDown={e => e.key === 'Enter' && doLogin()}
               />
             </div>
-
+            {!isAdmin && (
+              <div className="forgot-hint">
+                <Link to="/recuperar-contrasena">¿Olvidaste tu contraseña?</Link>
+              </div>
+            )}
+            
             <button className="btn-login" onClick={doLogin}>
               Ingresar
             </button>
