@@ -6,6 +6,7 @@ import { TurnosTab } from '../components/admin/TurnosTab'
 import { PacientesTab } from '../components/admin/PacientesTab'
 import { CuposTab } from '../components/admin/CuposTab'
 import { CancelarTab } from '../components/admin/CancelarTab'
+import { CrearTab } from '../components/admin/CrearTab'
 import { AsistenciaTab } from '../components/admin/AsistenciaTab'
 import { PriceTab } from '../components/admin/PriceTab'
 import { HORARIOS, PACIENTES, DIST } from '../constants/admin'
@@ -28,6 +29,7 @@ const TABS = [
   { id: 'turnos',    label: 'Turnos del día' },
   { id: 'pacientes', label: 'Pacientes' },
   { id: 'cupos',     label: 'Gestionar cupos' },
+  { id: 'crear',     label: 'Crear clase' },
   { id: 'cancelar',   label: 'Cancelar clase' },
   { id: 'asistencia', label: 'Asistencia' },
   { id: 'precios', label: 'Modificar precio' },
@@ -167,6 +169,19 @@ export default function Admin() {
     setCuposMax(prev => ({ ...prev, [hora]: val }))
     showToast(`Cupo de ${hora} actualizado a ${val} personas`)
   }
+
+  async function crearClase(datos) {
+  const res = await fetch(`${API_URL}/api/clases`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos),
+  })
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    throw new Error(body.detail || 'Error al crear la clase.')
+  }
+  showToast('Clase creada exitosamente')
+}
 
   async function cancelarClase(claseId) {
     const clase = clasesParaCancelar.find(c => c.id === claseId)
@@ -341,6 +356,10 @@ export default function Admin() {
             onAsistChange={(key, val) => setAsistencia(prev => ({ ...prev, [key]: val }))}
             onSave={guardarAsistencia}
           />
+        )}
+
+        {activeTab === 'crear' && (
+          <CrearTab onCrear={crearClase} />
         )}
 
         {activeTab === 'cancelar' && (
