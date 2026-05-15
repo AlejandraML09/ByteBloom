@@ -14,9 +14,9 @@ export function ZonaSelector({ selected, onSelect }) {
             onClick={() => onSelect(id)}
           >
             <div className="zona-icon">
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#5A8A1A" strokeWidth="1.5" strokeLinecap="round">
+              <div className="zona-icon-bg">
                 {icon}
-              </svg>
+              </div>
             </div>
             <div>
               <div className="zona-name">{name}</div>

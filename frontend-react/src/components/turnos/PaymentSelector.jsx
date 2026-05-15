@@ -5,7 +5,7 @@ import modoLogo from '../../assets/modo_logo.png'
 const METHODS = [
   {
    id: 'mercadopago',
-    logo: <img src={mpLogo} alt="MercadoPago" />,
+   logo: <img src={mpLogo} alt="MercadoPago" />,
   },
   {
   id: 'cuentadni',
@@ -70,7 +70,7 @@ const METHODS = [
 export function PaymentSelector({ selected, onSelect }) {
   return (
     <div className="card">
-      <div className="card-title"><span className="step-number">3</span> Medio de pago</div>
+      <div className="card-title"><span className="step-number">3</span> Medios de pago</div>
       <div className="payment-row">
         {METHODS.map(({ id, label, logo }) => (
           <button
