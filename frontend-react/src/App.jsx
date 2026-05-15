@@ -7,6 +7,7 @@ import Contacto from './pages/Contacto'
 import Login from './pages/Login'
 import Admin from './pages/Admin'
 import Registro from './pages/Registro'
+import RecuperarContrasena from './pages/RecuperarContrasena'
 
 export default function App() {
   return (
@@ -19,8 +20,9 @@ export default function App() {
         <Route path="/contacto" element={<Contacto />} />
         <Route path="/login" element={<Login />} />
         <Route path="/admin" element={<Admin />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
         <Route path="/registro" element={<Registro />} />
+        <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   )
