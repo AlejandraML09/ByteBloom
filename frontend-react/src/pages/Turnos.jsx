@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import Toast, { useToast } from '../components/Toast'
+import client from '../api/client'
 import { StepIndicator } from '../components/turnos/StepIndicator'
 import { ZonaSelector } from '../components/turnos/ZonaSelector'
 import { MonthCalendar } from '../components/turnos/MonthCalendar'
@@ -14,6 +15,7 @@ import DiscountModal from '../components/turnos/Discountmodal'
 import '../css/turnos.css'
 
 const MAX_SHIFTS = 3
+const PRECIO_TURNO = 20000  
 
 function toMes(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
@@ -34,7 +36,6 @@ export default function Turnos() {
     const d = new Date(); d.setHours(0, 0, 0, 0); return d
   }, [])
 
-  // Fetch availability whenever the displayed month changes
   const fetchDisponibilidad = useCallback(async (displayDate) => {
     const mes = toMes(displayDate)
     setLoadingSlots(true)
@@ -48,12 +49,10 @@ export default function Turnos() {
     }
   }, [])
 
-  // Returns how many spots are taken for a given day + hour
   function getOcupados(fecha, hora) {
     return disponibilidad[`${fmtDate(fecha)}_${hora}`] || 0
   }
 
-  // Days already booked in this session
   const bookedDays = useMemo(
     () => new Set(shifts.map(s => fmtDate(s.diaDate))),
     [shifts]
@@ -72,23 +71,44 @@ export default function Turnos() {
     setShifts(prev => [...prev, { diaDate, slot }])
     setDiaDate(null)
     setSlot(null)
-    setMedioPago(null)
   }
 
   function removeShift(i) {
     setShifts(prev => prev.filter((_, idx) => idx !== i))
-    setMedioPago(null)
   }
 
   async function confirmarTurno() {
+ if (!medioPago) {
+    showToast('Por favor seleccioná un medio de pago.')
+    return
+  }
+ 
     setConfirmando(true)
     try {
-      await reservarTurnos({
-        zona,
-        turnos: shifts.map(s => ({ fecha: fmtDate(s.diaDate), hora: s.slot })),
-        medioPago,
-      })
-      // Refresh all months that were affected
+      
+    if (['mercadopago', 'credito', 'debito'].includes(medioPago)) {
+        const { data } = await client.post('/api/crear-preferencia', null, {
+          params: {
+            servicio_id: 1,
+            precio: PRECIO_TURNO ,
+            titulo: `Clase ${zona}`
+          }
+        })
+        if (data?.init_point) {
+          window.location.href = data.init_point
+          return
+        }
+          showToast('No se pudo obtener el link de pago.')
+          return  
+
+     
+      }
+    await reservarTurnos({
+  zona,
+  turnos: shifts.map(s => ({ fecha: fmtDate(s.diaDate), hora: s.slot })),
+  medioPago, 
+})
+
       const affectedMonths = [...new Set(shifts.map(s => toMes(s.diaDate)))]
       const refreshed = {}
       await Promise.all(
@@ -98,7 +118,6 @@ export default function Turnos() {
         })
       )
       setDisponibilidad(prev => ({ ...prev, ...refreshed }))
-
       showToast(`✓ ${shifts.length} turno${shifts.length > 1 ? 's' : ''} confirmado${shifts.length > 1 ? 's' : ''}`)
       setTimeout(() => {
         setZona(null); setDiaDate(null); setSlot(null); setShifts([]); setMedioPago(null)
@@ -134,7 +153,6 @@ function handleCloseDiscount() {
       <div className="main">
         <div className="left-col">
           <StepIndicator zona={zona} shifts={shifts} medioPago={medioPago} />
-
           <ZonaSelector selected={zona} onSelect={handleZonaSelect} />
           <div className={`fade-slide ${zona ? 'fade-slide--visible' : ''}`}>
           <div className="card">
@@ -162,7 +180,7 @@ function handleCloseDiscount() {
                 + Agregar turno
               </button>
             )}
-            {shifts.length === MAX_SHIFTS && diaDate && slot && (
+          {shifts.length === MAX_SHIFTS && diaDate && slot && (
               <p className="shift-max-msg">Máximo {MAX_SHIFTS} turnos por reserva</p>
             )}
           </div>
@@ -183,9 +201,7 @@ function handleCloseDiscount() {
                         {fmtDiaLargo(s.diaDate)} · {s.slot} – {nextHour(s.slot)}
                       </span>
                     </div>
-                    <button className="shift-remove" onClick={() => removeShift(i)} aria-label="Quitar turno">
-                      ×
-                    </button>
+                    <button className="shift-remove" onClick={() => removeShift(i)}>×</button>
                   </div>
                 ))}
               </div>
