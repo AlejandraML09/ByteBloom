@@ -180,9 +180,9 @@ body {
   background: none;
 }
 .forgot-hint {
-  font-size: 14px; /* ← subí esto, por ejemplo 14px */
+  font-size: 14px; 
   color: var(--primary-dark);
-  text-align: center; /* ← cambiá right por center */
+  text-align: center;
   display: block;
   margin-top: -8px;
   margin-bottom: 14px;
