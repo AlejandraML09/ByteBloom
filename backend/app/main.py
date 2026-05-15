@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
 from fastapi import FastAPI
-from app.routers import usuarios, turnos
+from app.routers import usuarios, turnos, pagos
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from app.database import engine, Base, SessionLocal
@@ -69,3 +69,5 @@ app.include_router(usuarios.router)
 app.include_router(turnos.router, prefix="/turnos")
 
 app.include_router(servicios.router)
+
+app.include_router(pagos.router)

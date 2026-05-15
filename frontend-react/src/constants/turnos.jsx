@@ -1,3 +1,8 @@
+import iconsuperior from '../assets/back.png'
+import iconmedia from '../assets/abdominal.png'
+import iconinferior from '../assets/running.png'
+
+
 export const HORARIOS = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00']
 export const PRICE_PER_SHIFT = 20000
 
@@ -7,47 +12,32 @@ export const ZONA_LABELS = {
   inferior: 'Tren inferior',
 }
 
+const iconStyle = {
+  width: '36px',
+  height: '36px',
+  objectFit: 'contain',
+}
+
 export const zonasInfo = [
   {
     id: 'superior',
     name: 'Tren superior',
     sub: 'Hombros, brazos, cuello y espalda alta',
-    icon: (
-      <>
-        <circle cx="12" cy="5" r="2"/>
-        <path d="M12 7v5"/>
-        <path d="M7 10c1.5-.5 3-1 5-1s3.5.5 5 1"/>
-        <path d="M7 10l-2 5"/>
-        <path d="M17 10l2 5"/>
-      </>
-    ),
+    icon: <img src={iconsuperior} alt="Tren superior" style={iconStyle} />,
   },
   {
     id: 'medio',
     name: 'Zona media',
     sub: 'Core, lumbar y zona abdominal',
-    icon: (
-      <>
-        <path d="M7 10h10"/>
-        <path d="M7 14h10"/>
-        <path d="M9 7v10"/>
-        <path d="M15 7v10"/>
-      </>
-    ),
+    icon: <img src={iconmedia} alt="Zona media"  style={iconStyle} />,
   },
   {
     id: 'inferior',
     name: 'Tren inferior',
     sub: 'Caderas, rodillas, tobillos y pies',
-    icon: (
-      <>
-        <path d="M12 4v8"/>
-        <path d="M9 12l-3 8"/>
-        <path d="M15 12l3 8"/>
-        <path d="M8 16h8"/>
-      </>
-    ),
+    icon: <img src={iconinferior} alt="Tren inferior"  style={iconStyle} />,
   },
 ]
+
 
 export const OBRAS_SOCIALES = ['OSDE', 'Swiss Medical', 'IOMA', 'PAMI', 'Galeno', 'Particular']

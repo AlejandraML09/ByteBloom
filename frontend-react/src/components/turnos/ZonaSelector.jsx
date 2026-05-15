@@ -5,7 +5,7 @@ const fmt = n => `$${n.toLocaleString('es-AR')}`
 export function ZonaSelector({ selected, onSelect }) {
   return (
     <div className="card">
-      <div className="card-title">¿Qué zona querés trabajar?</div>
+      <div className="card-title"><span className="step-number">1</span> ¿Qué zona querés trabajar?</div>
       <div className="zona-grid">
         {zonasInfo.map(({ id, name, sub, icon }) => (
           <button
@@ -14,9 +14,9 @@ export function ZonaSelector({ selected, onSelect }) {
             onClick={() => onSelect(id)}
           >
             <div className="zona-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5A8A1A" strokeWidth="1.8" strokeLinecap="round">
+              <div className="zona-icon-bg">
                 {icon}
-              </svg>
+              </div>
             </div>
             <div>
               <div className="zona-name">{name}</div>

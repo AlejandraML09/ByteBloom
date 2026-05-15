@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import Toast, { useToast } from '../components/Toast'
+import client from '../api/client'
 import { StepIndicator } from '../components/turnos/StepIndicator'
 import { ZonaSelector } from '../components/turnos/ZonaSelector'
 import { MonthCalendar } from '../components/turnos/MonthCalendar'
@@ -10,9 +11,11 @@ import { PaymentSelector } from '../components/turnos/PaymentSelector'
 import { SummaryPanel } from '../components/turnos/SummaryPanel'
 import { getDisponibilidad, reservarTurnos } from '../api/turnos'
 import { fmtDate, fmtDiaLargo, nextHour } from '../utils/dates'
+import DiscountModal from '../components/turnos/Discountmodal'
 import '../css/turnos.css'
 
 const MAX_SHIFTS = 3
+const PRECIO_TURNO = 20000  
 
 function toMes(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
@@ -33,7 +36,6 @@ export default function Turnos() {
     const d = new Date(); d.setHours(0, 0, 0, 0); return d
   }, [])
 
-  // Fetch availability whenever the displayed month changes
   const fetchDisponibilidad = useCallback(async (displayDate) => {
     const mes = toMes(displayDate)
     setLoadingSlots(true)
@@ -47,12 +49,10 @@ export default function Turnos() {
     }
   }, [])
 
-  // Returns how many spots are taken for a given day + hour
   function getOcupados(fecha, hora) {
     return disponibilidad[`${fmtDate(fecha)}_${hora}`] || 0
   }
 
-  // Days already booked in this session
   const bookedDays = useMemo(
     () => new Set(shifts.map(s => fmtDate(s.diaDate))),
     [shifts]
@@ -71,23 +71,44 @@ export default function Turnos() {
     setShifts(prev => [...prev, { diaDate, slot }])
     setDiaDate(null)
     setSlot(null)
-    setMedioPago(null)
   }
 
   function removeShift(i) {
     setShifts(prev => prev.filter((_, idx) => idx !== i))
-    setMedioPago(null)
   }
 
   async function confirmarTurno() {
+ if (!medioPago) {
+    showToast('Por favor seleccioná un medio de pago.')
+    return
+  }
+ 
     setConfirmando(true)
     try {
-      await reservarTurnos({
-        zona,
-        turnos: shifts.map(s => ({ fecha: fmtDate(s.diaDate), hora: s.slot })),
-        medioPago,
-      })
-      // Refresh all months that were affected
+      
+    if (['mercadopago', 'credito', 'debito'].includes(medioPago)) {
+        const { data } = await client.post('/api/crear-preferencia', null, {
+          params: {
+            servicio_id: 1,
+            precio: PRECIO_TURNO ,
+            titulo: `Clase ${zona}`
+          }
+        })
+        if (data?.init_point) {
+          window.location.href = data.init_point
+          return
+        }
+          showToast('No se pudo obtener el link de pago.')
+          return  
+
+     
+      }
+    await reservarTurnos({
+  zona,
+  turnos: shifts.map(s => ({ fecha: fmtDate(s.diaDate), hora: s.slot })),
+  medioPago, 
+})
+
       const affectedMonths = [...new Set(shifts.map(s => toMes(s.diaDate)))]
       const refreshed = {}
       await Promise.all(
@@ -97,7 +118,6 @@ export default function Turnos() {
         })
       )
       setDisponibilidad(prev => ({ ...prev, ...refreshed }))
-
       showToast(`✓ ${shifts.length} turno${shifts.length > 1 ? 's' : ''} confirmado${shifts.length > 1 ? 's' : ''}`)
       setTimeout(() => {
         setZona(null); setDiaDate(null); setSlot(null); setShifts([]); setMedioPago(null)
@@ -111,7 +131,16 @@ export default function Turnos() {
   }
 
   const discountPct = shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
+  const allFilled   = zona && shifts.length > 0 && medioPago
   const canAddMore  = diaDate && slot && shifts.length < MAX_SHIFTS
+  const [showDiscounts, setShowDiscounts] = useState(
+  () => !sessionStorage.getItem('discountSeen')
+)
+
+function handleCloseDiscount() {
+  sessionStorage.setItem('discountSeen', '1')
+  setShowDiscounts(false)
+}
 
   return (
     <>
@@ -124,12 +153,11 @@ export default function Turnos() {
       <div className="main">
         <div className="left-col">
           <StepIndicator zona={zona} shifts={shifts} medioPago={medioPago} />
-
           <ZonaSelector selected={zona} onSelect={handleZonaSelect} />
-
+          <div className={`fade-slide ${zona ? 'fade-slide--visible' : ''}`}>
           <div className="card">
             <div className="card-title">
-              Elegí el día
+              <span className="step-number">2</span> Elegí el día
               {loadingSlots && <span className="loading-hint"> · cargando…</span>}
             </div>
             <MonthCalendar
@@ -152,9 +180,10 @@ export default function Turnos() {
                 + Agregar turno
               </button>
             )}
-            {shifts.length === MAX_SHIFTS && diaDate && slot && (
+          {shifts.length === MAX_SHIFTS && diaDate && slot && (
               <p className="shift-max-msg">Máximo {MAX_SHIFTS} turnos por reserva</p>
             )}
+          </div>
           </div>
 
           {shifts.length > 0 && (
@@ -172,9 +201,7 @@ export default function Turnos() {
                         {fmtDiaLargo(s.diaDate)} · {s.slot} – {nextHour(s.slot)}
                       </span>
                     </div>
-                    <button className="shift-remove" onClick={() => removeShift(i)} aria-label="Quitar turno">
-                      ×
-                    </button>
+                    <button className="shift-remove" onClick={() => removeShift(i)}>×</button>
                   </div>
                 ))}
               </div>
@@ -185,12 +212,13 @@ export default function Turnos() {
               )}
             </div>
           )}
-
-          {shifts.length > 0 && (
-            <PaymentSelector selected={medioPago} onSelect={setMedioPago} />
-          )}
+        <div className={`fade-slide ${shifts.length > 0 ? 'fade-slide--visible' : ''}`}>
+          <PaymentSelector selected={medioPago} onSelect={setMedioPago} />
         </div>
+        </div>
+      </div>
 
+      <div className={`fade-slide summary-bottom-wrap ${allFilled ? 'fade-slide--visible' : ''}`}>
         <SummaryPanel
           zona={zona}
           shifts={shifts}
@@ -202,6 +230,7 @@ export default function Turnos() {
 
       <Footer />
       <Toast msg={msg} visible={visible} />
+      <DiscountModal isOpen={showDiscounts} onClose={() => setShowDiscounts(false)} />
     </>
   )
 }

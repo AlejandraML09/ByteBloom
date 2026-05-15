@@ -17,7 +17,7 @@ export function StepIndicator({ zona, shifts, medioPago }) {
       <div className="step-sep" />
       <div className={`step ${step3}`}>
         <div className="step-num">3</div>
-        <span>Medio de pago</span>
+        <span>Medios de pago</span>
       </div>
     </div>
   )
