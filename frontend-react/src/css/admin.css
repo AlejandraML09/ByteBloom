@@ -282,7 +282,7 @@
   font-size: 13px;
   font-weight: 500;
   transition: transform 0.3s cubic-bezier(.34,1.56,.64,1);
-  z-index: 999;
+  z-index: 1001;
 }
 .admin-toast.show { transform: translateX(-50%) translateY(0); }
 
@@ -298,4 +298,43 @@
   .admin-page .page-header { padding: 1.5rem 1.25rem; }
   .admin-page table { font-size: 12px; }
   .admin-page td, .admin-page thead th { padding: 9px 10px; }
+}
+
+.admin-profile-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: inherit;          /* hereda el color de admin-nav */
+  padding: 6px;
+  border-radius: 50%;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.admin-profile-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(1.08);
+}
+
+/* Badge "Administrador" dentro del sidebar */
+.admin-sidebar-badge {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--p-deep);
+  border-radius: 4px;
+  padding: 2px 7px;
+  width: fit-content;
+}
+
+/* Avatar del admin con color diferenciado */
+.admin-sidebar-avatar {
+  background: var(--p-light) !important;
+  color: var(--p-deep) !important;
 }

@@ -37,8 +37,16 @@ export default function Admin() {
   const navigate = useNavigate()
   const today = fmtDate(new Date())
 
-  const sess = sessionStorage.getItem('ks_user')
-  const user = sess ? JSON.parse(sess) : { nombre: 'Dr. Ramírez' }
+  useEffect(() => {
+    const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
+    const user = stored ? JSON.parse(stored) : null
+    if (!user || user.rol !== 'admin') {
+      navigate('/login')
+    }
+  }, [])
+
+  const storedUser = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
+  const user = storedUser ? JSON.parse(storedUser) : { nombre: 'Dr. Ramírez' }
 
   const [activeTab, setActiveTab] = useState('turnos')
   const [filterDate, setFilterDate] = useState(today)
@@ -268,7 +276,8 @@ export default function Admin() {
   }
 
   function logout() {
-    sessionStorage.removeItem('ks_user')
+    localStorage.removeItem('usuario')
+    localStorage.removeItem('ks_user')
     navigate('/login')
   }
 

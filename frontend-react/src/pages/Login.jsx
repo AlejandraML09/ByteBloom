@@ -46,16 +46,23 @@ export default function Login() {
         return
       }
 
-      sessionStorage.setItem(
-        'ks_user',
-        JSON.stringify({
-          id: data.id,
-          email: data.email,
-          role: data.role || 'usuario'
-        })
-      )
+      if (data.rol !== role) {
+        setError(true)
+        setPass('')
+        return
+      }
 
-      navigate(data.role === 'admin' ? '/admin' : '/turnos')
+      const usuarioActivo = {
+        id: data.id,
+        email: data.email,
+        nombre: data.nombre,
+        apellido: data.apellido,
+        rol: data.rol
+      }
+
+      localStorage.setItem('usuario', JSON.stringify(usuarioActivo))
+
+      navigate(data.rol === 'admin' ? '/admin' : '/turnos')
 
     } catch (err) {
       setError(true)

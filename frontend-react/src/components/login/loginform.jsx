@@ -12,9 +12,19 @@ export default function LoginForm() {
     e.preventDefault();
     try {
       const data = await login(email, password);
-      localStorage.setItem("token", data.access_token);
+      localStorage.setItem(
+        "usuario",
+        JSON.stringify({
+          id: data.id,
+          nombre: data.nombre,
+          apellido: data.apellido,
+          email: data.email,
+          role: data.role || 'usuario'
+        })
+      );
       navigate("/dashboard"); // o donde quieras redirigir
     } catch (err) {
+      console.error(err);
       setError("Email o contraseña incorrectos");
     }
   };
