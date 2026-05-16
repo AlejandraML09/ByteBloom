@@ -66,14 +66,9 @@ export default function Admin() {
   const [toastMsg, setToastMsg] = useState('')
   const [toastVisible, setToastVisible] = useState(false)
   const [presentes, setPresentes] = useState(0)
-  const [prices, setPrices] = useState({ superior: 1800, medio: 1600, inferior: 1400 })
-  const [selectedZona, setSelectedZona] = useState('superior')
+  const [precio, setPrecio] = useState(0)
   const [priceInput, setPriceInput] = useState('')
-  const [upcomingClasses, setUpcomingClasses] = useState([
-    { id: 1, zona: 'superior', fecha: '2026-05-09', hora: '09:00', precio: 1800, inscritos: 0 },
-    { id: 2, zona: 'medio', fecha: '2026-05-10', hora: '10:00', precio: 1600, inscritos: 0 },
-    { id: 3, zona: 'inferior', fecha: '2026-05-11', hora: '11:00', precio: 1400, inscritos: 0 },
-  ])
+  const [upcomingClasses, setUpcomingClasses] = useState([])
 
   function showToast(msg) {
     setToastMsg(msg)
@@ -120,10 +115,10 @@ export default function Admin() {
         const res = await fetch(`${API_URL}/api/precios`)
         if (res.ok) {
           const data = await res.json()
-          setPrices(data)
+          setPrecio(data.precio ?? 0)
         }
       } catch (err) {
-        console.log('Usando precios de demostración')
+        console.log('Usando precio de demostración')
       }
     }
     cargarPrecios()
@@ -171,17 +166,20 @@ export default function Admin() {
   }
 
   async function crearClase(datos) {
-  const res = await fetch(`${API_URL}/api/clases`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(datos),
-  })
-  const body = await res.json().catch(() => ({}))
-  if (!res.ok) {
-    throw new Error(body.detail || 'Error al crear la clase.')
+    const res = await fetch(`${API_URL}/api/clases`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos),
+    })
+    const body = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      const msg = Array.isArray(body.detail)
+        ? body.detail[0].msg.replace('Value error, ', '')
+        : body.detail || 'Error al crear la clase.'
+      throw new Error(msg)
+    }
+    showToast('Clase creada exitosamente')
   }
-  showToast('Clase creada exitosamente')
-}
 
   async function cancelarClase(claseId) {
     const clase = clasesParaCancelar.find(c => c.id === claseId)
@@ -256,39 +254,32 @@ export default function Admin() {
   }
 
   function modificarPrecio() {
-    const precio = parseInt(priceInput, 10)
-    if (!precio || precio <= 0) {
-      showToast('Ingresá un precio válido')
-      return
-    }
-
-    // Actualizamos localmente primero para que el UI responda inmediatamente.
-    setPrices(prev => ({ ...prev, [selectedZona]: precio }))
-    setUpcomingClasses(prev => prev.map(clase => (
-      clase.zona === selectedZona && clase.inscriptos === 0
-        ? { ...clase, precio }
-        : clase
-    )))
-    setPriceInput('')
-
-    fetch(`${API_URL}/api/precios`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ zona: selectedZona, nuevo_precio: precio })
-    })
-      .then(async res => {
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}))
-          const detail = body.detail || 'Error al guardar en backend'
-          showToast(`Guardado local, pero fallo backend: ${detail}`)
-          return
-        }
-        showToast('Modificación exitosa')
-      })
-      .catch(() => {
-        showToast('Guardado local, backend no disponible')
-      })
+  const nuevoPrecio = parseInt(priceInput, 10)
+  if (!nuevoPrecio || nuevoPrecio <= 0) {
+    showToast('Ingresá un precio válido')
+    return
   }
+
+  setPrecio(nuevoPrecio)
+  setPriceInput('')
+
+  fetch(`${API_URL}/api/precios`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nuevo_precio: nuevoPrecio }),
+  })
+    .then(async res => {
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        showToast(body.detail || 'Error al guardar en backend')
+        return
+      }
+      showToast('Modificación exitosa')
+    })
+    .catch(() => {
+      showToast('Guardado local, backend no disponible')
+    })
+}
 
   function logout() {
     localStorage.removeItem('usuario')
@@ -374,12 +365,10 @@ export default function Admin() {
         {activeTab === 'precios' && (
           <PriceTab
             classes={upcomingClasses}
-            selectedZona={selectedZona}
             priceValue={priceInput}
-            onSelectZona={setSelectedZona}
             onPriceChange={setPriceInput}
             onModifyPrice={modificarPrecio}
-            currentPrices={prices}
+            currentPrice={precio}
           />
         )}
       </div>

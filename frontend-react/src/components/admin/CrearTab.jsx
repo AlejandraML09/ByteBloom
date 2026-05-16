@@ -84,8 +84,8 @@ export function CrearTab({ onCrear }) {
               className={errors.zona ? 'input-error' : ''}
             >
               <option value="">Seleccioná una zona</option>
-              {ZONAS.map(z => (
-                <option key={z} value={z}>{z}</option>
+              {Object.entries(ZONAS).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
               ))}
             </select>
             {errors.zona && <span className="field-error">{errors.zona}</span>}

@@ -13,7 +13,6 @@ class ClaseResponse(BaseModel):
     zona: str
     fecha: date
     hora: str
-    precio: int
     cupo_max: int
     inscritos: int
     cancelada: int
@@ -23,7 +22,6 @@ class ClaseResponse(BaseModel):
 
 
 class ModificarPrecioRequest(BaseModel):
-    zona: str
     nuevo_precio: int
 
 
@@ -57,11 +55,10 @@ def obtener_clases_sin_inscriptos(db: Session = Depends(get_db)):
         models.Clase.inscritos == 0,
         models.Clase.fecha >= date.today()
     ).order_by(models.Clase.fecha, models.Clase.hora).all()
-    
     return clases
 
 
-# � GET: Obtener clases sin inscriptos para cupo
+# 📋 GET: Obtener clases sin inscriptos para cupo
 @router.get("/cupos", response_model=list[ClaseResponse])
 def obtener_clases_para_cupos(db: Session = Depends(get_db)):
     """Obtiene todas las clases sin inscriptos para gestión de cupos"""
@@ -109,56 +106,34 @@ def modificar_cupo(data: ModificarCupoRequest, db: Session = Depends(get_db)):
     }
 
 
-# �🔧 POST: Modificar precio de clases
+# 🔧 POST: Modificar precio global
 @router.post("/precios")
 def modificar_precio(data: ModificarPrecioRequest, db: Session = Depends(get_db)):
-    """Modifica el precio de las próximas clases sin inscriptos de una zona"""
-    
+    """Modifica el precio único global en la tabla configuracion"""
     if data.nuevo_precio <= 0:
         raise HTTPException(status_code=400, detail="El precio debe ser mayor a 0")
-    
-    # Actualizar clases sin inscriptos de la zona seleccionada
-    clases_actualizadas = db.query(models.Clase).filter(
-        models.Clase.zona == data.zona,
-        models.Clase.inscritos == 0,
-        models.Clase.fecha >= date.today()
-    ).all()
-    
-    if not clases_actualizadas:
-        raise HTTPException(
-            status_code=404, 
-            detail="No hay clases sin inscriptos para esa zona"
-        )
-    
-    for clase in clases_actualizadas:
-        clase.precio = data.nuevo_precio
-    
+
+    config = db.query(models.Configuracion).filter(models.Configuracion.id == 1).first()
+    if not config:
+        config = models.Configuracion(id=1, precio=data.nuevo_precio)
+        db.add(config)
+    else:
+        config.precio = data.nuevo_precio
+
     db.commit()
-    
+
     return {
-        "mensaje": "Modificación exitosa",
-        "zona": data.zona,
+        "mensaje": "Precio actualizado exitosamente",
         "nuevo_precio": data.nuevo_precio,
-        "clases_actualizadas": len(clases_actualizadas)
     }
 
 
-# 📊 GET: Obtener precios actuales por zona
+# 📊 GET: Obtener precio actual
 @router.get("/precios")
 def obtener_precios(db: Session = Depends(get_db)):
-    """Obtiene el precio más reciente de cada zona"""
-    
-    zonas = ["superior", "medio", "inferior"]
-    precios = {}
-    
-    for zona in zonas:
-        clase = db.query(models.Clase).filter(
-            models.Clase.zona == zona
-        ).order_by(models.Clase.fecha.desc()).first()
-        
-        precios[zona] = clase.precio if clase else 0
-    
-    return precios
+    """Obtiene el precio global desde configuracion"""
+    config = db.query(models.Configuracion).filter(models.Configuracion.id == 1).first()
+    return {"precio": config.precio if config else 0}
 
 
 # 🚫 GET: Obtener clases disponibles para cancelar
