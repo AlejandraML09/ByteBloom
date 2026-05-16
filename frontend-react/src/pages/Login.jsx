@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import client from "../api/client"
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import "../css/vars.css"
 import '../css/login.css'
 
 export default function Login() {
@@ -9,19 +11,10 @@ export default function Login() {
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-  const [role, setRole] = useState('usuario')
   const [email, setEmail] = useState('')
   const [pass, setPass] = useState('')
   const [error, setError] = useState(false)
-
-  const isAdmin = role === 'admin'
-
-  function handleSetRole(r) {
-    setRole(r)
-    setEmail('')
-    setPass('')
-    setError(false)
-  }
+  const [showPassword, setShowPassword] = useState(false)
 
   async function doLogin() {
     try {
@@ -46,12 +39,6 @@ export default function Login() {
         return
       }
 
-      if (data.rol !== role) {
-        setError(true)
-        setPass('')
-        return
-      }
-
       const usuarioActivo = {
         id: data.id,
         email: data.email,
@@ -62,6 +49,7 @@ export default function Login() {
 
       localStorage.setItem('usuario', JSON.stringify(usuarioActivo))
 
+      // Redirige según el rol que devuelve la BD
       navigate(data.rol === 'admin' ? '/admin' : '/turnos')
 
     } catch (err) {
@@ -77,27 +65,11 @@ export default function Login() {
       <div className="login-page">
         <div className="login-card" id="login-card">
 
-          <div className="role-tabs">
-            <button
-              className={`role-tab${role === 'usuario' ? ' active-tab' : ''}`}
-              onClick={() => handleSetRole('usuario')}
-            >
-              Paciente
-            </button>
-
-            <button
-              className={`role-tab admin-tab${role === 'admin' ? ' active-tab' : ''}`}
-              onClick={() => handleSetRole('admin')}
-            >
-              Administrador
-            </button>
-          </div>
-
-          <div className={`login-body${isAdmin ? ' admin-mode' : ''}`}>
+          <div className="login-body">
 
             <div className="login-greeting">
-              <h2>{isAdmin ? 'Panel de administracion' : 'Bienvenido/a'}</h2>
-              <p>{isAdmin ? 'Acceso admin' : 'Ingresá con tu cuenta'}</p>
+              <h2>Bienvenido/a</h2>
+              <p>Ingresá con tu cuenta</p>
             </div>
 
             {error && (
@@ -116,25 +88,41 @@ export default function Login() {
               />
             </div>
 
-            <div className="form-group">
+            <div style={{ position: "relative", display: "flex", alignItems: "center" }} className="form-group">
               <label>Contraseña</label>
               <input
-                type="password"
-                placeholder="••••••••"
+                type={showPassword ? "text" : "password"}
+                placeholder="Contraseña"
                 value={pass}
                 onChange={e => setPass(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && doLogin()}
+                required
+                style={{ width: "100%", padding: "8px", paddingRight: "45px", boxSizing: "border-box" }}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: "absolute",
+                  right: "8px",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: "18px",
+                  padding: "0"
+                }}
+              >
+                {showPassword ? "👁️" : "👁️‍🗨️"}
+              </button>
             </div>
 
             <button className="btn-login" onClick={doLogin}>
               Ingresar
             </button>
-            {!isAdmin && (
-              <div className="register-hint">
-                <Link to="/registro">¿No tenés cuenta? Registrate</Link>
-              </div>
-            )}
+
+            <div className="register-hint">
+              <Link to="/registro">¿No tenés cuenta? Registrate</Link>
+            </div>
           </div>
         </div>
       </div>

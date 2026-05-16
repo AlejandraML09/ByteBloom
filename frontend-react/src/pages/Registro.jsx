@@ -21,6 +21,8 @@ export default function Registro() {
   const [error, setError] = useState('')
   const [exito, setExito] = useState(false)
   const [cargando, setCargando] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -123,11 +125,59 @@ export default function Registro() {
           <div className="registro-grid">
             <div className="form-group">
               <label>Contraseña</label>
-              <input type="password" name="password" placeholder="Mínimo 6 caracteres" value={form.password} onChange={handleChange} />
+              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder="Mínimo 6 caracteres"
+                  value={form.password}
+                  onChange={handleChange}
+                  style={{ width: "100%", padding: "8px", paddingRight: "35px", boxSizing: "border-box" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: "absolute",
+                    right: "8px",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "18px",
+                    padding: "0"
+                  }}
+                >
+                  {showPassword ? "👁️" : "👁️‍🗨️"}
+                </button>
+              </div>
             </div>
             <div className="form-group">
               <label>Confirmar contraseña</label>
-              <input type="password" name="confirmarPassword" placeholder="Repetí tu contraseña" value={form.confirmarPassword} onChange={handleChange} />
+              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  name="confirmarPassword"
+                  placeholder="Repetí tu contraseña"
+                  value={form.confirmarPassword}
+                  onChange={handleChange}
+                  style={{ width: "100%", padding: "8px", paddingRight: "35px", boxSizing: "border-box" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={{
+                    position: "absolute",
+                    right: "8px",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "18px",
+                    padding: "0"
+                  }}
+                >
+                  {showConfirmPassword ? "👁️" : "👁️‍🗨️"}
+                </button>
+              </div>
             </div>
           </div>
 
