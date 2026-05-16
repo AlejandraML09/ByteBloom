@@ -8,9 +8,12 @@ class Usuario(Base):
     __tablename__ = "usuarios"
 
     id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String(100), nullable=True)
+    apellido = Column(String(100), nullable=True)
     email = Column(String(100), unique=True, index=True, nullable=False)
     password = Column(String(255), nullable=False)
-    rol = Column(String(50), default="paciente")  # ← Ahora puede ser: paciente, admin, dueño
+    fecha_nacimiento = Column(Date, nullable=True)
+    rol = Column(String(20), nullable=False, default='usuario')
 
     def set_password(self, plain_password: str):
         """Hash and store the password using bcrypt."""
