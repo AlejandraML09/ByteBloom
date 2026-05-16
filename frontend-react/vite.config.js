@@ -7,5 +7,8 @@ export default defineConfig({
   build: {
     cssMinify: true,
     sourcemap: true
+  },
+  server: {
+    allowedHosts: ['overcrowd-clump-disregard.ngrok-free.dev']
   }
 })
