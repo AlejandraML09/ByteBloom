@@ -14,7 +14,15 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [pass, setPass] = useState('')
   const [error, setError] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
+
+  const isAdmin = role === 'admin' || role === 'secretario'
+
+  function handleSetRole(r) {
+    setRole(r)
+    setEmail('')
+    setPass('')
+    setError(false)
+  }
 
   async function doLogin() {
     try {
@@ -39,6 +47,19 @@ export default function Login() {
         return
       }
 
+      const rolesPanel = ['admin', 'secretario']
+      const esPanel = rolesPanel.includes(role)
+      if (esPanel && !rolesPanel.includes(data.rol)) {
+        setError(true)
+        setPass('')
+        return
+      }
+      if (!esPanel && data.rol !== 'usuario') {
+        setError(true)
+        setPass('')
+        return
+      }
+
       const usuarioActivo = {
         id: data.id,
         email: data.email,
@@ -49,8 +70,7 @@ export default function Login() {
 
       localStorage.setItem('usuario', JSON.stringify(usuarioActivo))
 
-      // Redirige según el rol que devuelve la BD
-      navigate(data.rol === 'admin' ? '/admin' : '/turnos')
+      navigate(rolesPanel.includes(data.rol) ? '/admin' : '/turnos')
 
     } catch (err) {
       setError(true)
@@ -115,7 +135,12 @@ export default function Login() {
                 {showPassword ? "👁️" : "👁️‍🗨️"}
               </button>
             </div>
-
+            {!isAdmin && (
+              <div className="forgot-hint">
+                <Link to="/recuperar-contrasena">¿Olvidaste tu contraseña?</Link>
+              </div>
+            )}
+            
             <button className="btn-login" onClick={doLogin}>
               Ingresar
             </button>

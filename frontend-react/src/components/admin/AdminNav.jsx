@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import logo from '../../assets/fulllogo_slogan_sinfondo.png'
 
 // Ícono de perfil SVG (mismo que Navbar usuario)
 function UserIcon() {
@@ -62,7 +62,6 @@ export function AdminNav({ user, onLogout }) {
 
   const nombreCompleto = [user?.nombre, user?.apellido].filter(Boolean).join(' ') || user?.email || 'Administrador'
 
-  // Cerrar al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (sidebarRef.current && !sidebarRef.current.contains(e.target)) {
@@ -73,7 +72,6 @@ export function AdminNav({ user, onLogout }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [sidebarOpen])
 
-  // Bloquear scroll del body
   useEffect(() => {
     document.body.style.overflow = sidebarOpen ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
@@ -82,19 +80,18 @@ export function AdminNav({ user, onLogout }) {
   return (
     <>
       <nav className="admin-nav">
-        <Link to="/" className="admin-nav-logo">
-          <div className="admin-nav-logo-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round">
-              <path d="M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z"/>
-              <circle cx="12" cy="9" r="2.5" fill="#fff" stroke="none"/>
-            </svg>
-          </div>
-          <span className="admin-nav-logo-name">Endereza2</span>
-        </Link>
+        <div className="admin-nav-logo">
+          <img
+            src={logo}
+            alt="Logo"
+            style={{ height: '100px', width: '200px' }}
+          />
+        </div>
 
-        <span className="nav-badge">Panel Admin</span>
+        <span className="nav-badge">
+          {user?.rol === 'secretario' ? 'Panel Secretario' : 'Panel Administrador'}
+        </span>
 
-        {/* Ícono de perfil — reemplaza avatar + botón cerrar sesión */}
         <div className="nav-right">
           <button
             className="admin-profile-btn"
@@ -122,7 +119,6 @@ export function AdminNav({ user, onLogout }) {
         className={`user-sidebar${sidebarOpen ? ' user-sidebar--open' : ''}`}
         aria-label="Menú de administrador"
       >
-        {/* Header */}
         <div className="user-sidebar__header">
           <div className="user-sidebar__avatar admin-sidebar-avatar">
             <UserIcon />
@@ -132,7 +128,9 @@ export function AdminNav({ user, onLogout }) {
             {user?.email && (
               <span className="user-sidebar__email">{user.email}</span>
             )}
-            <span className="admin-sidebar-badge">Administrador</span>
+            <span className="admin-sidebar-badge">
+              {user?.rol === 'secretario' ? 'Secretario' : 'Administrador'}
+            </span>
           </div>
           <button
             className="user-sidebar__close"
@@ -145,7 +143,6 @@ export function AdminNav({ user, onLogout }) {
 
         <div className="user-sidebar__divider" />
 
-        {/* Ítems */}
         <nav className="user-sidebar__nav">
           <ul>
             <li className="user-sidebar__item">
@@ -157,7 +154,6 @@ export function AdminNav({ user, onLogout }) {
 
         <div className="user-sidebar__divider" />
 
-        {/* Cerrar sesión */}
         <button
           className="user-sidebar__logout"
           onClick={() => { setSidebarOpen(false); onLogout() }}
