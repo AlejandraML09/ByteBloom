@@ -48,7 +48,7 @@ body {
 .role-tab:first-child { border-right: 1px solid var(--primary-mid); }
 
 .role-tab.active-tab { background: var(--white); color: var(--primary-deep); border-bottom-color: var(--primary); }
-.role-tab.active-tab.admin-tab { color: #5B2D8E; border-bottom-color: #9B6DD6; }
+.role-tab.active-tab.admin-tab { color: var(--primary-deep); border-bottom-color: var(--primary); }
 
 .role-icon {
   width: 28px;
@@ -61,7 +61,7 @@ body {
 }
 
 .role-tab.active-tab .role-icon { background: var(--primary-tint); }
-.role-tab.active-tab.admin-tab .role-icon { background: #EDE5F8; }
+.role-tab.active-tab.admin-tab .role-icon { background: var(--primary-tint); }
 
 .login-body { padding: 2rem; }
 
@@ -89,13 +89,13 @@ body {
 .form-group input:focus { border-color: var(--primary); }
 .form-group input::placeholder { color: var(--text-muted); }
 
-.admin-mode .form-group input:focus { border-color: #9B6DD6; }
-.admin-mode .btn-login { background: #7C3DBF; }
-.admin-mode .btn-login:hover { background: #5B2D8E; }
-.admin-mode .form-group label { color: #5B2D8E; }
+.admin-mode .form-group input:focus { border-color: var(--primary); }
+.admin-mode .btn-login { background: var(--primary); }
+.admin-mode .btn-login:hover { background: var(--primary-dark); }
+.admin-mode .form-group label { color: var(--primary-deep); }
 
 .forgot { font-size: 12px; color: var(--primary-dark); text-align: right; display: block; margin-top: -8px; margin-bottom: 14px; cursor: pointer; text-decoration: none; }
-.admin-mode .forgot { color: #7C3DBF; }
+.admin-mode .forgot { color: var(--primary-dark); }
 
 .btn-login {
   width: 100%;
@@ -126,9 +126,9 @@ body {
   line-height: 1.7;
 }
 
-.admin-mode .demo-hint { border-color: #C9A8F0; background: #F7F0FD; }
+.admin-mode .demo-hint { border-color: var(--primary-mid); background: var(--bg); }
 .demo-hint strong { color: var(--text-main); }
-.admin-mode .demo-hint strong { color: #5B2D8E; }
+.admin-mode .demo-hint strong { color: var(--primary-deep); }
 
 .error-msg {
   background: #FEE8E8;
@@ -162,6 +162,7 @@ body {
 @media (max-width: 560px) {
   .login-body { padding: 1.5rem; }
 }
+
 .back-btn {
   background: none;
   border: 1px solid var(--border);
@@ -179,8 +180,9 @@ body {
   border-color: var(--primary);
   background: none;
 }
+
 .forgot-hint {
-  font-size: 14px; 
+  font-size: 14px;
   color: var(--primary-dark);
   text-align: center;
   display: block;
