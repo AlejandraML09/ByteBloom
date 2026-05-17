@@ -11,6 +11,7 @@ export const profesionales = [
   {
     initials: 'MR',
     name: 'Dra. Marcela Ríos',
+    email: 'marcela.rios@endereza2.com',
     image: marcelaImg,
     title: 'Kinesióloga · Directora clínica',
     tags: ['Tren superior', 'Neurológica'],
@@ -24,6 +25,7 @@ export const profesionales = [
   {
     initials: 'JP',
     name: 'Lic. Julián Pedraza',
+    email: 'julian.pedraza@endereza2.com',
     image: julianImg,
     title: 'Kinesiólogo deportivo',
     tags: ['Tren inferior', 'Deportiva'],
@@ -37,6 +39,7 @@ export const profesionales = [
   {
     initials: 'AS',
     name: 'Lic. Andrea Salinas',
+    email: 'andrea.salinas@endereza2.com',
     image: andreaImg,
     title: 'Kinesióloga · Terapia manual',
     tags: ['Zona media', 'Osteopatía'],
@@ -50,6 +53,7 @@ export const profesionales = [
   {
     initials: 'LB',
     name: 'Lic. Lucas Bertoldi',
+    email: 'lucas.bertoldi@endereza2.com',
     image: lucasImg,  
     title: 'Kinesiólogo · Pilates clínico',
     tags: ['Zona media', 'Pilates'],
@@ -63,6 +67,7 @@ export const profesionales = [
   {
     initials: 'CF',
     name: 'Lic. Carolina Fuentes',
+    email: 'carolina.fuentes@endereza2.com',
     image: carolinaImg, 
     title: 'Kinesióloga · Electroterapia',
     tags: ['Tren superior', 'Electroterapia'],
@@ -76,6 +81,7 @@ export const profesionales = [
   {
     initials: 'EM',
     name: 'Lic. Emilio Manrique',
+    email: 'emilio.manrique@endereza2.com',
     image: emilioImg,
     title: 'Kinesiólogo · Rehabilitación neurológica',
     tags: ['Tren inferior', 'Neurológica'],

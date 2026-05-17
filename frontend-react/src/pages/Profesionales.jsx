@@ -32,7 +32,7 @@ export default function Profesionales() {
 
         <div className="prof-grid">
           {profesionales.map(
-            ({ initials, name, title, tags, bio, stars, reviews, image }) => (
+            ({ initials, name, title, tags, bio, stars, reviews, image, email }) => (
               <div className="prof-card" key={initials}>
                 <div className="prof-photo-placeholder">
                   {image ? (
@@ -44,6 +44,7 @@ export default function Profesionales() {
                 <div className="prof-body">
                   <div className="prof-name">{name}</div>
                   <div className="prof-title">{title}</div>
+                  <div className="prof-email">{email}</div>
                   <div className="prof-tags">
                     {tags.map((t) => (
                       <span className="prof-tag" key={t}>
