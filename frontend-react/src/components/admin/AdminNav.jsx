@@ -88,7 +88,9 @@ export function AdminNav({ user, onLogout }) {
           />
         </div>
 
-        <span className="nav-badge">Panel Admin</span>
+        <span className="nav-badge">
+          {user?.rol === 'secretario' ? 'Panel Secretario' : 'Panel Administrador'}
+        </span>
 
         <div className="nav-right">
           <button
@@ -126,7 +128,9 @@ export function AdminNav({ user, onLogout }) {
             {user?.email && (
               <span className="user-sidebar__email">{user.email}</span>
             )}
-            <span className="admin-sidebar-badge">Administrador</span>
+            <span className="admin-sidebar-badge">
+              {user?.rol === 'secretario' ? 'Secretario' : 'Administrador'}
+            </span>
           </div>
           <button
             className="user-sidebar__close"
