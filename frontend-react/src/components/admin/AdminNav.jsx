@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import logo from '../../assets/fulllogo_slogan_sinfondo.png'
+import SecretariosTab from './SecretariosTab'
 
 // Ícono de perfil SVG (mismo que Navbar usuario)
 function UserIcon() {
@@ -56,7 +57,7 @@ function LogoutIcon() {
   )
 }
 
-export function AdminNav({ user, onLogout }) {
+export function AdminNav({ user, activeTab, setActiveTab, visibleTabs, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const sidebarRef = useRef(null)
 
@@ -158,6 +159,24 @@ export function AdminNav({ user, onLogout }) {
           <span>Cerrar sesión</span>
         </button>
       </aside>
+
+      <div className="admin-content">
+        <div className="admin-tabs">
+          {visibleTabs.map(tab => (
+            <button
+              key={tab.id}
+              className={`nav-btn ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="admin-tab-content">
+          {/* El contenido se renderiza en Admin.jsx */}
+        </div>
+      </div>
     </>
   )
 }

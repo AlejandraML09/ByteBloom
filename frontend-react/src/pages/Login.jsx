@@ -1,63 +1,33 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import client from '../api/client'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import '../css/vars.css'
 import '../css/login.css'
 
 export default function Login() {
   const navigate = useNavigate()
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-
-  const [role, setRole] = useState('usuario')
   const [email, setEmail] = useState('')
   const [pass, setPass] = useState('')
   const [error, setError] = useState(false)
-
-  const isAdmin = role === 'admin' || role === 'secretario'
-
-  function handleSetRole(r) {
-    setRole(r)
-    setEmail('')
-    setPass('')
-    setError(false)
-  }
+  const [showPassword, setShowPassword] = useState(false)
+  const [cargando, setCargando] = useState(false)
 
   async function doLogin() {
     try {
       setError(false)
+      setCargando(true)
 
-      const res = await fetch(`${API_URL}/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          password: pass,
-        }),
+      const response = await client.post('/login', {
+        email: email.trim().toLowerCase(),
+        password: pass
       })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        setError(true)
-        setPass('')
-        return
-      }
-
-      const rolesPanel = ['admin', 'secretario']
-      const esPanel = rolesPanel.includes(role)
-      if (esPanel && !rolesPanel.includes(data.rol)) {
-        setError(true)
-        setPass('')
-        return
-      }
-      if (!esPanel && data.rol !== 'usuario') {
-        setError(true)
-        setPass('')
-        return
-      }
+      
+      const data = response.data
+      
+      console.log('Response completo:', data)
 
       const usuarioActivo = {
         id: data.id,
@@ -67,22 +37,31 @@ export default function Login() {
         rol: data.rol,
       }
 
+      console.log('Usuario a guardar:', usuarioActivo)
       localStorage.setItem('usuario', JSON.stringify(usuarioActivo))
+      console.log('Usuario guardado en localStorage')
 
-      navigate(rolesPanel.includes(data.rol) ? '/admin' : '/turnos')
+      navigate(data.rol === 'admin' || data.rol === 'dueño' ? '/admin' : '/turnos')
+
     } catch (err) {
+      console.error('Error completo:', err)
       setError(true)
       setPass('')
+    } finally {
+      setCargando(false)
     }
   }
 
   return (
     <>
       <Navbar />
-      <div className='login-page'>
-        <div className='login-card' id='login-card'>
-          <div className='login-body'>
-            <div className='login-greeting'>
+
+      <div className="login-page">
+        <div className="login-card" id="login-card">
+
+          <div className="login-body">
+
+            <div className="login-greeting">
               <h2>Bienvenido/a</h2>
               <p>Ingresá con tu cuenta</p>
             </div>
@@ -96,25 +75,45 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            <div className='form-group'>
+
+            <div style={{ position: "relative", display: "flex", alignItems: "center" }} className="form-group">
               <label>Contraseña</label>
               <input
-                type='password'
-                placeholder='••••••••'
+                type={showPassword ? "text" : "password"}
+                placeholder="Contraseña"
                 value={pass}
-                onChange={(e) => setPass(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && doLogin()}
+                onChange={e => setPass(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && doLogin()}
+                required
+                style={{ width: "100%", padding: "8px", paddingRight: "45px", boxSizing: "border-box" }}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: "absolute",
+                  right: "8px",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: "18px",
+                  padding: "0"
+                }}
+              >
+                {showPassword ? "👁️" : "👁️‍🗨️"}
+              </button>
             </div>
-            <div className='forgot-hint'>
-              <Link to='/recuperar-contrasena'>¿Olvidaste tu contraseña?</Link>
-            </div>
-            <button className='btn-login' onClick={doLogin}>
+              <div className="forgot-hint">
+                <Link to="/recuperar-contrasena">¿Olvidaste tu contraseña?</Link>
+              </div>
+            <button className="btn-login" onClick={doLogin}>
               Ingresar
             </button>
-            <div className='register-hint'>
-              <Link to='/registro'>¿No tenés cuenta? Registrate</Link>
-            </div>
+
+              <div className="register-hint">
+                <Link to="/registro">¿No tenés cuenta? Registrate</Link>
+              </div>
+
           </div>
         </div>
       </div>
