@@ -66,39 +66,18 @@ export default function Login() {
   return (
     <>
       <Navbar />
-
       <div className="login-page">
         <div className="login-card" id="login-card">
-
-          <div className="role-tabs">
-            <button
-              className={`role-tab${role === 'usuario' ? ' active-tab' : ''}`}
-              onClick={() => handleSetRole('usuario')}
-            >
-              Paciente
-            </button>
-
-            <button
-              className={`role-tab admin-tab${role === 'admin' ? ' active-tab' : ''}`}
-              onClick={() => handleSetRole('admin')}
-            >
-              Administrador
-            </button>
-          </div>
-
-          <div className={`login-body${isAdmin ? ' admin-mode' : ''}`}>
-
+          <div className="login-body">
             <div className="login-greeting">
-              <h2>{isAdmin ? 'Panel de administracion' : 'Bienvenido/a'}</h2>
-              <p>{isAdmin ? 'Acceso admin' : 'Ingresá con tu cuenta'}</p>
+              <h2>Bienvenido/a</h2>
+              <p>Ingresá con tu cuenta</p>
             </div>
-
             {error && (
               <div className="error-msg show">
                 Usuario o contraseña incorrectos.
               </div>
             )}
-
             <div className="form-group">
               <label>Email</label>
               <input
@@ -108,7 +87,6 @@ export default function Login() {
                 onChange={e => setEmail(e.target.value)}
               />
             </div>
-
             <div className="form-group">
               <label>Contraseña</label>
               <input
@@ -119,19 +97,18 @@ export default function Login() {
                 onKeyDown={e => e.key === 'Enter' && doLogin()}
               />
             </div>
-
+              <div className="forgot-hint">
+                <Link to="/recuperar-contrasena">¿Olvidaste tu contraseña?</Link>
+              </div>
             <button className="btn-login" onClick={doLogin}>
               Ingresar
             </button>
-            {!isAdmin && (
               <div className="register-hint">
                 <Link to="/registro">¿No tenés cuenta? Registrate</Link>
               </div>
-            )}
           </div>
         </div>
       </div>
-
       <Footer />
     </>
   )
