@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: bytebloom
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    image: python:3.12-slim
+    network_mode: host
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+      - pip-cache:/root/.cache/pip
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5433/bytebloom
+    command: sh -c "pip install -r requirements.txt -q && alembic upgrade head"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  pgdata:
+  pip-cache:

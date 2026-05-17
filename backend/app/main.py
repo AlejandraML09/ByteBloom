@@ -2,7 +2,7 @@ from datetime import date, timedelta
 from fastapi import FastAPI
 from app.routers import usuarios, turnos, pagos, servicios, clases
 from fastapi.middleware.cors import CORSMiddleware
-from app.database import engine, Base, SessionLocal
+from app.database import SessionLocal
 from app.models import Usuario, Clase, Configuracion, ZonaEnum
 
 app = FastAPI()
@@ -14,8 +14,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-Base.metadata.create_all(bind=engine)
 
 
 def seed_initial_data():
