@@ -15,11 +15,7 @@ import DiscountModal from '../components/turnos/Discountmodal'
 import '../css/turnos.css'
 
 const MAX_SHIFTS = 3
-<<<<<<< HEAD
 
-=======
-const PRECIO_TURNO = 20000
->>>>>>> main
 
 function toMes(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
@@ -112,16 +108,10 @@ export default function Turnos() {
         const { data } = await client.post('/api/crear-preferencia', null, {
           params: {
             servicio_id: 1,
-<<<<<<< HEAD
             precio:  precioTurno ,
             titulo: `Clase ${zona}`,
             cantidad: shifts.length 
           }
-=======
-            precio: PRECIO_TURNO,
-            titulo: `Clase ${zona}`,
-          },
->>>>>>> main
         })
         if (data?.init_point) {
           window.location.href = data.init_point
