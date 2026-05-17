@@ -103,12 +103,9 @@ export default function Login() {
                 {showPassword ? "👁️" : "👁️‍🗨️"}
               </button>
             </div>
-            {!isAdmin && (
               <div className="forgot-hint">
                 <Link to="/recuperar-contrasena">¿Olvidaste tu contraseña?</Link>
               </div>
-            )}
-            
             <button className="btn-login" onClick={doLogin}>
               Ingresar
             </button>
