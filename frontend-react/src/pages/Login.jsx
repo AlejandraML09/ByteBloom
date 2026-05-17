@@ -14,7 +14,7 @@ export default function Login() {
   const [pass, setPass] = useState('')
   const [error, setError] = useState(false)
 
-  const isAdmin = role === 'admin'
+  const isAdmin = role === 'admin' || role === 'secretario'
 
   function handleSetRole(r) {
     setRole(r)
@@ -46,7 +46,14 @@ export default function Login() {
         return
       }
 
-      if (data.rol !== role) {
+      const rolesPanel = ['admin', 'secretario']
+      const esPanel = rolesPanel.includes(role)
+      if (esPanel && !rolesPanel.includes(data.rol)) {
+        setError(true)
+        setPass('')
+        return
+      }
+      if (!esPanel && data.rol !== 'usuario') {
         setError(true)
         setPass('')
         return
@@ -62,7 +69,7 @@ export default function Login() {
 
       localStorage.setItem('usuario', JSON.stringify(usuarioActivo))
 
-      navigate(data.rol === 'admin' ? '/admin' : '/turnos')
+      navigate(rolesPanel.includes(data.rol) ? '/admin' : '/turnos')
 
     } catch (err) {
       setError(true)

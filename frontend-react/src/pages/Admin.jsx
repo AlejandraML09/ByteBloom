@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AdminNav } from '../components/admin/AdminNav'
 import { AdminStatsRow } from '../components/admin/AdminStatsRow'
@@ -26,31 +26,29 @@ function initOcupados() {
 }
 
 const TABS = [
-  { id: 'turnos',    label: 'Turnos del día' },
-  { id: 'pacientes', label: 'Pacientes' },
-  { id: 'cupos',     label: 'Gestionar cupos' },
-  { id: 'crear',     label: 'Crear clase' },
-  { id: 'cancelar',   label: 'Cancelar clase' },
-  { id: 'asistencia', label: 'Asistencia' },
-  { id: 'precios', label: 'Modificar precio' },
+  { id: 'turnos',     label: 'Turnos del día',  roles: ['admin'] },
+  { id: 'pacientes',  label: 'Pacientes',        roles: ['admin'] },
+  { id: 'cupos',      label: 'Gestionar cupos',  roles: ['admin'] },
+  { id: 'asistencia', label: 'Asistencia',       roles: ['secretario'] },
+  { id: 'crear',      label: 'Crear clase',      roles: ['admin', 'secretario'] },
+  { id: 'cancelar',   label: 'Cancelar clase',   roles: ['admin', 'secretario'] },
+  { id: 'precios',    label: 'Modificar precio', roles: ['admin'] },
 ]
 
+// Leer usuario UNA sola vez, fuera del componente no es posible con hooks,
+// así que lo hacemos antes de los hooks pero dentro del componente.
 export default function Admin() {
   const navigate = useNavigate()
   const today = fmtDate(new Date())
 
-  useEffect(() => {
-    const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
-    const user = stored ? JSON.parse(stored) : null
-    if (!user || user.rol !== 'admin') {
-      navigate('/login')
-    }
-  }, [])
-
+  // ── Lectura unificada del usuario ──────────────────────────────────────────
   const storedUser = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
-  const user = storedUser ? JSON.parse(storedUser) : { nombre: 'Dr. Ramírez' }
+  const user = storedUser ? JSON.parse(storedUser) : null
 
-  const [activeTab, setActiveTab] = useState('turnos')
+  const visibleTabs = TABS.filter(t => t.roles.includes(user?.rol))
+
+  // ── Hooks ──────────────────────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState(visibleTabs[0]?.id ?? 'crear')
   const [filterDate, setFilterDate] = useState(today)
   const [filterCuposDate, setFilterCuposDate] = useState('')
   const [filterCancelarDate, setFilterCancelarDate] = useState('')
@@ -70,22 +68,23 @@ export default function Admin() {
   const [priceInput, setPriceInput] = useState('')
   const [upcomingClasses, setUpcomingClasses] = useState([])
 
-  function showToast(msg) {
-    setToastMsg(msg)
-    setToastVisible(true)
-    setTimeout(() => setToastVisible(false), 3000)
-  }
+  // ── Guarda de rol ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!user || !['admin', 'secretario'].includes(user.rol)) {
+      navigate('/login')
+    }
+  }, [])
 
-  // Cargar clases del backend
+  // ── Carga de datos desde backend ───────────────────────────────────────────
   useEffect(() => {
     const cargarClases = async () => {
       try {
         const res = await fetch(`${API_URL}/api/clases`)
         if (res.ok) {
           const data = await res.json()
-          setUpcomingClasses(data.length > 0 ? data : upcomingClasses)
+          if (data.length > 0) setUpcomingClasses(data)
         }
-      } catch (err) {
+      } catch {
         console.log('Backend no disponible, usando datos de demostración')
       }
     }
@@ -101,14 +100,13 @@ export default function Admin() {
           setCuposClasses(data)
           setCuposInput(Object.fromEntries(data.map(clase => [clase.id, clase.cupo_max])))
         }
-      } catch (err) {
+      } catch {
         console.log('No se pudieron cargar los cupos desde el backend')
       }
     }
     cargarCupos()
   }, [])
 
-  // Cargar precios actuales del backend
   useEffect(() => {
     const cargarPrecios = async () => {
       try {
@@ -117,7 +115,7 @@ export default function Admin() {
           const data = await res.json()
           setPrecio(data.precio ?? 0)
         }
-      } catch (err) {
+      } catch {
         console.log('Usando precio de demostración')
       }
     }
@@ -132,13 +130,14 @@ export default function Admin() {
           const data = await res.json()
           setClasesParaCancelar(data)
         }
-      } catch (err) {
+      } catch {
         console.log('No se pudieron cargar las clases para cancelar')
       }
     }
     cargarClasesCancelar()
   }, [])
 
+  // ── Datos derivados ────────────────────────────────────────────────────────
   const turnos = useMemo(() => buildTurnos(), [])
 
   const turnosFiltrados = turnos.map(t => ({
@@ -154,15 +153,16 @@ export default function Admin() {
     return acc + Math.max(0, cuposMax[h] - occ)
   }, 0)
 
+  // ── Funciones ──────────────────────────────────────────────────────────────
+  function showToast(msg) {
+    setToastMsg(msg)
+    setToastVisible(true)
+    setTimeout(() => setToastVisible(false), 3000)
+  }
+
   function cancelarTurno(id, nombre) {
     setCancelados(prev => ({ ...prev, [id]: true }))
     showToast(`Turno de ${nombre} cancelado`)
-  }
-
-  function guardarCupo(hora) {
-    const val = parseInt(cuposInput[hora]) || 5
-    setCuposMax(prev => ({ ...prev, [hora]: val }))
-    showToast(`Cupo de ${hora} actualizado a ${val} personas`)
   }
 
   async function crearClase(datos) {
@@ -204,7 +204,7 @@ export default function Admin() {
 
       setClasesParaCancelar(prev => prev.filter(c => c.id !== claseId))
       showToast('La clase ha sido cancelada exitosamente')
-    } catch (err) {
+    } catch {
       showToast('Error al cancelar clase en backend')
     }
   }
@@ -243,43 +243,43 @@ export default function Admin() {
         return
       }
 
-      setCuposClasses(prev => prev.map(c => (
+      setCuposClasses(prev => prev.map(c =>
         c.id === claseId ? { ...c, cupo_max: nuevoCupo } : c
-      )))
+      ))
       setCuposInput(prev => ({ ...prev, [claseId]: nuevoCupo }))
       showToast('Modificación exitosa')
-    } catch (err) {
+    } catch {
       showToast('Error al modificar cupo en backend')
     }
   }
 
   function modificarPrecio() {
-  const nuevoPrecio = parseInt(priceInput, 10)
-  if (!nuevoPrecio || nuevoPrecio <= 0) {
-    showToast('Ingresá un precio válido')
-    return
+    const nuevoPrecio = parseInt(priceInput, 10)
+    if (!nuevoPrecio || nuevoPrecio <= 0) {
+      showToast('Ingresá un precio válido')
+      return
+    }
+
+    setPrecio(nuevoPrecio)
+    setPriceInput('')
+
+    fetch(`${API_URL}/api/precios`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nuevo_precio: nuevoPrecio }),
+    })
+      .then(async res => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          showToast(body.detail || 'Error al guardar en backend')
+          return
+        }
+        showToast('Modificación exitosa')
+      })
+      .catch(() => {
+        showToast('Guardado local, backend no disponible')
+      })
   }
-
-  setPrecio(nuevoPrecio)
-  setPriceInput('')
-
-  fetch(`${API_URL}/api/precios`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ nuevo_precio: nuevoPrecio }),
-  })
-    .then(async res => {
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        showToast(body.detail || 'Error al guardar en backend')
-        return
-      }
-      showToast('Modificación exitosa')
-    })
-    .catch(() => {
-      showToast('Guardado local, backend no disponible')
-    })
-}
 
   function logout() {
     localStorage.removeItem('usuario')
@@ -287,17 +287,18 @@ export default function Admin() {
     navigate('/login')
   }
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="admin-page">
       <AdminNav user={user} onLogout={logout} />
 
       <div className="page-header">
         <h1>Panel de administración</h1>
-        <p>Bienvenido/a, {user.nombre} · Hoy es {fmtLargo(today)}</p>
+        <p>Bienvenido/a, {user?.nombre ?? 'Administrador'} · Hoy es {fmtLargo(today)}</p>
       </div>
 
       <div className="section-tabs">
-        {TABS.map(({ id, label }) => (
+        {visibleTabs.map(({ id, label }) => (
           <button
             key={id}
             className={`sec-tab${activeTab === id ? ' active' : ''}`}
@@ -309,7 +310,13 @@ export default function Admin() {
       </div>
 
       <div className="admin-main">
-        <AdminStatsRow statTurnos={statTurnos} presentes={presentes} totalLibres={totalLibres} />
+        {user?.rol === 'admin' && (
+          <AdminStatsRow
+            statTurnos={statTurnos}
+            presentes={presentes}
+            totalLibres={totalLibres}
+          />
+        )}
 
         {activeTab === 'turnos' && (
           <TurnosTab
