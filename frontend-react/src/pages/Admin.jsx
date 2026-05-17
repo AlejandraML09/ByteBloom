@@ -12,6 +12,7 @@ import { PriceTab } from '../components/admin/PriceTab'
 import { HORARIOS, PACIENTES, DIST } from '../constants/admin'
 import { fmtDate, fmtLargo } from '../utils/dates'
 import '../css/admin.css'
+import SecretariosTab from '../components/admin/SecretariosTab'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -28,13 +29,14 @@ function initOcupados() {
 }
 
 const TABS = [
-  { id: 'turnos', label: 'Turnos del día', roles: ['admin'] },
-  { id: 'pacientes', label: 'Pacientes', roles: ['admin'] },
-  { id: 'cupos', label: 'Gestionar cupos', roles: ['admin'] },
-  { id: 'asistencia', label: 'Asistencia', roles: ['secretario'] },
-  { id: 'crear', label: 'Crear clase', roles: ['admin', 'secretario'] },
-  { id: 'cancelar', label: 'Cancelar clase', roles: ['admin', 'secretario'] },
-  { id: 'precios', label: 'Modificar precio', roles: ['admin'] },
+  { id: 'turnos',     label: 'Turnos del día',  roles: ['admin'] },
+  { id: 'pacientes',  label: 'Pacientes',        roles: ['admin'] },
+  { id: 'cupos',      label: 'Gestionar cupos',  roles: ['admin'] },
+  { id: 'asistencia', label: 'Asistencia',       roles: ['secretario'] },
+  { id: 'crear',      label: 'Crear clase',      roles: ['admin', 'secretario'] },
+  { id: 'cancelar',   label: 'Cancelar clase',   roles: ['admin', 'secretario'] },
+  { id: 'precios',    label: 'Modificar precio', roles: ['admin'] },
+  { id: 'secretarios', label: 'Secretarios',     roles: ['admin'] },
 ]
 
 // Leer usuario UNA sola vez, fuera del componente no es posible con hooks,
@@ -291,33 +293,16 @@ export default function Admin() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className='admin-page'>
-      <AdminNav user={user} onLogout={logout} />
-
-      <div className='page-header'>
-        <h1>Panel de administración</h1>
-        <p>
-          Bienvenido/a, {user?.nombre ?? 'Administrador'} · Hoy es {fmtLargo(today)}
-        </p>
-      </div>
-
-      <div className='section-tabs'>
-        {visibleTabs.map(({ id, label }) => (
-          <button
-            key={id}
-            className={`sec-tab${activeTab === id ? ' active' : ''}`}
-            onClick={() => setActiveTab(id)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      <div className='admin-main'>
-        {user?.rol === 'admin' && (
-          <AdminStatsRow statTurnos={statTurnos} presentes={presentes} totalLibres={totalLibres} />
-        )}
-
+    <>
+      <AdminNav 
+        user={user} 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab}
+        visibleTabs={visibleTabs}
+        onLogout={logout}
+      />
+      
+      <div className="admin-container">
         {activeTab === 'turnos' && (
           <TurnosTab
             turnos={turnosFiltrados}
@@ -374,9 +359,11 @@ export default function Admin() {
             currentPrice={precio}
           />
         )}
+
+        {activeTab === 'secretarios' && <SecretariosTab />}
       </div>
 
       <div className={`admin-toast${toastVisible ? ' show' : ''}`}>{toastMsg}</div>
-    </div>
+    </>
   )
 }
