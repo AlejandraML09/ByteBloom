@@ -26,8 +26,6 @@ export default function Login() {
       })
       
       const data = response.data
-      
-      console.log('Response completo:', data)
 
       const usuarioActivo = {
         id: data.id,
@@ -36,10 +34,7 @@ export default function Login() {
         apellido: data.apellido,
         rol: data.rol,
       }
-
-      console.log('Usuario a guardar:', usuarioActivo)
       localStorage.setItem('usuario', JSON.stringify(usuarioActivo))
-      console.log('Usuario guardado en localStorage')
 
       navigate(data.rol === 'admin' || data.rol === 'dueño' ? '/admin' : '/turnos')
 

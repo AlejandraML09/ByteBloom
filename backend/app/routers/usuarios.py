@@ -61,22 +61,16 @@ def registrar(data: UsuarioRequest, db: Session = Depends(get_db)):
 @router.post("/login")
 def login(data: LoginRequest, db: Session = Depends(get_db)):
     email_lower = data.email.lower()
-    print(f"Intentando login con: {email_lower}")
     user = db.query(models.Usuario).filter(
         models.Usuario.email == email_lower
     ).first()
 
     if not user:
-        print(f"Usuario no encontrado: {email_lower}")
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-    print(f"Usuario encontrado: {user.email}, contraseña BD: {user.password[:20]}...")
-
     if not user.check_password(data.password):
-        print(f"Contraseña incorrecta para {email_lower}")
         raise HTTPException(status_code=401, detail="Contraseña incorrecta")
 
-    print(f"Login exitoso para {user.email}")
 
     return {
         "id": user.id,
