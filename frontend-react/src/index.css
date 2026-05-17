@@ -60,7 +60,7 @@ a {
 
 /* --- Shared CTA section --- */
 .cta-section {
-  background: var(--text-main);
+  background: var(--primary-dark);
   padding: 3rem 2rem;
   text-align: center;
 }
@@ -72,11 +72,11 @@ a {
   margin-bottom: 10px;
 }
 
-.cta-section p { font-size: 14px; color: var(--primary-mid); margin-bottom: 1.5rem; }
+.cta-section p { font-size: 14px; color: var(--white); margin-bottom: 1.5rem; }
 
 .cta-section .btn-cta {
   display: inline-block;
-  background: var(--primary);
+  background: var(--primary-tint);
   color: var(--text-main);
   border-radius: 24px;
   padding: 13px 32px;
@@ -87,7 +87,7 @@ a {
   transition: background 0.15s;
 }
 
-.cta-section .btn-cta:hover { background: var(--primary-dark); color: var(--white); }
+.cta-section .btn-cta:hover { background: var(--primary-mid); color: var(--white); }
 
 /* --- Shared footer --- */
 footer {

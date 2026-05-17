@@ -13,6 +13,7 @@ class Usuario(Base):
     email = Column(String(100), unique=True, index=True, nullable=False)
     password = Column(String(255), nullable=False)
     fecha_nacimiento = Column(Date, nullable=True)
+    rol = Column(String(20), nullable=False, default='usuario')
 
     def set_password(self, plain_password: str):
         """Hash and store the password using bcrypt."""
@@ -42,10 +43,16 @@ class Clase(Base):
     zona = Column(SQLEnum(ZonaEnum), nullable=False, index=True)
     fecha = Column(Date, nullable=False, index=True)
     hora = Column(String(5), nullable=False)
-    precio = Column(Integer, nullable=False)
     cupo_max = Column(Integer, nullable=False, default=5)
     inscritos = Column(Integer, default=0)
     cancelada = Column(Integer, default=0)
+
+
+class Configuracion(Base):
+    __tablename__ = "configuracion"
+
+    id = Column(Integer, primary_key=True, default=1)
+    precio = Column(Integer, nullable=False, default=0)
 
 
 class Turno(Base):
@@ -57,4 +64,3 @@ class Turno(Base):
     zona = Column(String(20), nullable=False)                 # "superior"|"medio"|"inferior"
     medio_pago = Column(String(30), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-

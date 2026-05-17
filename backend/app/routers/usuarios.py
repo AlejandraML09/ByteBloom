@@ -43,6 +43,7 @@ def registrar(data: UsuarioRequest, db: Session = Depends(get_db)):
         apellido=data.apellido,
         email=email_lower,
         fecha_nacimiento=data.fecha_nacimiento,
+        rol='usuario'
     )
     nuevo.set_password(data.password)  # Hash the password
     db.add(nuevo)
@@ -65,13 +66,13 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-    if not user.check_password(data.password):  # Use hash verification
+    if not user.check_password(data.password):
         raise HTTPException(status_code=401, detail="Contraseña incorrecta")
-
-    role = 'admin' if user.email == 'admin@test.com' else 'usuario'
 
     return {
         "id": user.id,
+        "nombre": user.nombre,
+        "apellido": user.apellido,
         "email": user.email,
-        "role": role
+        "rol": user.rol
     }
