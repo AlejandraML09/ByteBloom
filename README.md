@@ -22,6 +22,8 @@ Docker Engine is the underlying technology that runs containers)
 ## Base de datos (Docker + Postgres)
 
 ### Iniciar la base de datos (aplica migraciones pendientes automáticamente)
+Una vez que tenemos Docker Desktop de fondo, correr el siguiente comando en la terminal de bash
+del proyecto:
 
 ```bash
 docker compose up -d
