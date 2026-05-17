@@ -24,10 +24,15 @@ class Usuario(Base):
 
     def check_password(self, plain_password: str) -> bool:
         """Verify the given password against the stored hash."""
-        return bcrypt.checkpw(
-            plain_password.encode('utf-8'),
-            self.password.encode('utf-8')
-        )
+        if not self.password:
+            return False
+        try:
+            return bcrypt.checkpw(
+                plain_password.encode('utf-8'),
+                self.password.encode('utf-8')
+            )
+        except ValueError:
+            return False
 
 
 class ZonaEnum(str, enum.Enum):

@@ -4,6 +4,7 @@ from app.routers import usuarios, turnos, pagos, servicios, clases
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base, SessionLocal
 from app.models import Usuario, Clase, Configuracion, ZonaEnum
+from app import models
 
 app = FastAPI()
 
@@ -45,6 +46,45 @@ def seed_initial_data():
 
 
 @app.on_event('startup')
+def crear_admins_por_defecto():
+    """Crea dos cuentas de admin por defecto si no existen"""
+    db = SessionLocal()
+    
+    admins_por_defecto = [
+        {
+            "email": "jose@endereza2.com",
+            "password": "josepepe",
+            "nombre": "Jose",
+            "apellido": "Pepe",
+            "fecha_nacimiento": date(1990, 1, 15)
+        },
+        {
+            "email": "laura@endereza2.com",
+            "password": "lauragonzalez",
+            "nombre": "Laura",
+            "apellido": "Gonzalez",
+            "fecha_nacimiento": date(1992, 3, 20)
+        }
+    ]
+    
+    for admin_data in admins_por_defecto:
+        existe = db.query(models.Usuario).filter(
+            models.Usuario.email == admin_data["email"]
+        ).first()
+        
+        if not existe:
+            nuevo_admin = models.Usuario(
+                email=admin_data["email"],
+                nombre=admin_data["nombre"],
+                apellido=admin_data["apellido"],
+                fecha_nacimiento=admin_data["fecha_nacimiento"],
+                rol="admin"
+            )
+            nuevo_admin.set_password(admin_data["password"])
+            db.add(nuevo_admin)
+    
+    db.commit()
+    db.close()
 def on_startup():
     seed_initial_data()
 

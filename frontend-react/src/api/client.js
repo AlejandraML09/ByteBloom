@@ -1,6 +1,5 @@
 import axios from "axios";
 
-// PROD
 const client = axios.create({
   baseURL: import.meta.env.VITE_API_URL
 });
@@ -13,5 +12,14 @@ client.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Manejo de respuestas
+client.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error('Error en response interceptor:', error);
+    return Promise.reject(error);
+  }
+);
 
 export default client;
