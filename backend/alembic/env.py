@@ -16,8 +16,9 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL"))
-
+db_url = os.getenv("DATABASE_URL")
+config.set_main_option("sqlalchemy.url", db_url)
+print(f"Using database URL: {db_url}")
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
