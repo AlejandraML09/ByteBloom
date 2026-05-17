@@ -59,8 +59,18 @@
   text-transform: uppercase;
 }
 
-.nav-right { display: flex; align-items: center; gap: 14px; }
-.nav-user { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 13px; }
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.nav-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
 
 .nav-avatar {
   width: 32px;
@@ -85,7 +95,9 @@
   font-size: 12px;
   font-family: 'DM Sans', sans-serif;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 .btn-logout:hover {
   background: var(--primary);
@@ -128,17 +140,29 @@
   color: var(--text-muted);
   cursor: pointer;
   border-bottom: 2.5px solid transparent;
-  transition: color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
   display: flex;
   align-items: center;
   gap: 7px;
   white-space: nowrap;
 }
-.sec-tab:hover { color: var(--primary-dark); }
-.sec-tab.active { color: var(--primary-deep); font-weight: 500; border-bottom-color: var(--primary); }
+.sec-tab:hover {
+  color: var(--primary-dark);
+}
+.sec-tab.active {
+  color: var(--primary-deep);
+  font-weight: 500;
+  border-bottom-color: var(--primary);
+}
 
 /* ── Main content ── */
-.admin-main { max-width: 1100px; margin: 0 auto; padding: 1.75rem 2rem; }
+.admin-main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.75rem 2rem;
+}
 
 .stats-row {
   display: grid;
@@ -153,9 +177,24 @@
   border-radius: 14px;
   padding: 1.1rem 1.25rem;
 }
-.admin-page .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-.admin-page .stat-val { font-family: 'DM Serif Display', serif; font-size: 28px; color: var(--primary-deep); line-height: 1; margin-bottom: 4px; }
-.admin-page .stat-sub { font-size: 11px; color: var(--text-muted); }
+.admin-page .stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+.admin-page .stat-val {
+  font-family: 'DM Serif Display', serif;
+  font-size: 28px;
+  color: var(--primary-deep);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.admin-page .stat-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
 
 .admin-page .card {
   background: var(--white);
@@ -171,10 +210,22 @@
   align-items: center;
   justify-content: space-between;
 }
-.admin-page .card-header h3 { font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--text-main); }
-.admin-page .card-header p { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.admin-page .card-header h3 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 16px;
+  color: var(--text-main);
+}
+.admin-page .card-header p {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
 
-.admin-page table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.admin-page table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
 .admin-page thead th {
   background: var(--bg);
   padding: 10px 16px;
@@ -186,10 +237,20 @@
   letter-spacing: 0.5px;
   border-bottom: 1px solid var(--border);
 }
-.admin-page tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
-.admin-page tbody tr:last-child { border-bottom: none; }
-.admin-page tbody tr:hover { background: var(--bg); }
-.admin-page td { padding: 11px 16px; vertical-align: middle; }
+.admin-page tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+.admin-page tbody tr:last-child {
+  border-bottom: none;
+}
+.admin-page tbody tr:hover {
+  background: var(--bg);
+}
+.admin-page td {
+  padding: 11px 16px;
+  vertical-align: middle;
+}
 
 /* ── Badges ── */
 .badge {
@@ -208,10 +269,23 @@
 .badge-gray   { background: var(--border);        color: var(--text-muted);   }
 
 /* ── Cupos ── */
-.cupo-bar { display: flex; gap: 3px; align-items: center; }
-.cupo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
-.cupo-dot.taken { background: var(--primary); }
-.cupo-dot.full  { background: var(--danger); }
+.cupo-bar {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+.cupo-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+}
+.cupo-dot.taken {
+  background: var(--primary);
+}
+.cupo-dot.full {
+  background: var(--danger);
+}
 
 .cupo-input {
   width: 48px;
@@ -224,9 +298,16 @@
   outline: none;
   transition: border-color 0.15s;
 }
-.cupo-input:focus { border-color: var(--primary); }
+.cupo-input:focus {
+  border-color: var(--primary);
+}
 
-.asist-check { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
+.asist-check {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
 
 /* ── Botones de acción ── */
 .btn-action {
@@ -245,8 +326,12 @@
 .btn-action.danger:hover { background: var(--danger-border); }
 
 /* ── Filtros de fecha ── */
-.date-filter { display: flex; gap: 8px; align-items: center; }
-.date-filter input[type="date"],
+.date-filter {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.date-filter input[type='date'],
 .date-filter select {
   border: 1.5px solid var(--border);
   border-radius: 8px;
@@ -257,11 +342,17 @@
   outline: none;
   background: var(--white);
 }
-.date-filter input[type="date"]:focus,
-.date-filter select:focus { border-color: var(--primary); }
+.date-filter input[type='date']:focus,
+.date-filter select:focus {
+  border-color: var(--primary);
+}
 
-.section-panel { display: none; }
-.section-panel.active { display: block; }
+.section-panel {
+  display: none;
+}
+.section-panel.active {
+  display: block;
+}
 
 /* ── Pacientes ── */
 .patient-avatar {
@@ -277,7 +368,11 @@
   justify-content: center;
   flex-shrink: 0;
 }
-.patient-name { display: flex; align-items: center; gap: 8px; }
+.patient-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
 /* ── Toast ── */
 .admin-toast {
@@ -291,10 +386,12 @@
   border-radius: 12px;
   font-size: 13px;
   font-weight: 500;
-  transition: transform 0.3s cubic-bezier(.34,1.56,.64,1);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   z-index: 1001;
 }
-.admin-toast.show { transform: translateX(-50%) translateY(0); }
+.admin-toast.show {
+  transform: translateX(-50%) translateY(0);
+}
 
 /* ── Formularios (CrearTab / EliminarTab) ── */
 .create-form {
@@ -454,7 +551,9 @@
   color: var(--primary-deep);
   padding: 6px;
   border-radius: 50%;
-  transition: background 0.15s ease, transform 0.15s ease;
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
 }
 .admin-profile-btn:hover {
   background: var(--primary-tint);

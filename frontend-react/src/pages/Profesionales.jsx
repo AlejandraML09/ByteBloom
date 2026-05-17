@@ -10,25 +10,24 @@ export default function Profesionales() {
     <>
       <Navbar />
 
-      <div className="page-hero">
-        <div className="page-hero-badge">Nuestro equipo</div>
+      <div className='page-hero'>
+        <div className='page-hero-badge'>Nuestro equipo</div>
         <h1>
           Profesionales <span>especializados</span>
           <br />a tu servicio
         </h1>
         <p>
-          Cada kinesiólogo de nuestro equipo cuenta con formación universitaria,
-          especialización clínica y años de experiencia acompañando la
-          recuperación de nuestros pacientes.
+          Cada kinesiólogo de nuestro equipo cuenta con formación universitaria, especialización
+          clínica y años de experiencia acompañando la recuperación de nuestros pacientes.
         </p>
       </div>
 
       <StatsStrip />
 
       {/* Grilla de profesionales */}
-      <div className="section-wrap">
-        <div className="section-label">Conocé al equipo</div>
-        <h2 className="section-title">Quiénes nos cuidan</h2>
+      <div className='section-wrap'>
+        <div className='section-label'>Conocé al equipo</div>
+        <h2 className='section-title'>Quiénes nos cuidan</h2>
 
         <div className="prof-grid">
           {profesionales.map(
@@ -69,18 +68,17 @@ export default function Profesionales() {
         </div>
       </div>
 
-      <div className="cta-section">
+      <div className='cta-section'>
         <h2>¿Querés conocer a nuestro equipo en persona?</h2>
         <p>
-          Reservá tu primera consulta sin cargo y encontrá al profesional ideal
-          para tu recuperación
+          Reservá tu primera consulta sin cargo y encontrá al profesional ideal para tu recuperación
         </p>
-        <Link to="/turnos" className="btn-cta">
+        <Link to='/turnos' className='btn-cta'>
           Reservar turno →
         </Link>
       </div>
 
       <Footer />
     </>
-  );
+  )
 }

@@ -19,23 +19,33 @@
   background: transparent;
   border-bottom: 2.5px solid transparent;
   font-family: 'DM Sans', sans-serif;
-  transition: color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.zone-tab:hover { color: var(--primary-deep); }
-.zone-tab.active { color: var(--primary-deep); border-bottom-color: var(--primary); }
+.zone-tab:hover {
+  color: var(--primary-deep);
+}
+.zone-tab.active {
+  color: var(--primary-deep);
+  border-bottom-color: var(--primary);
+}
 
 .zone-dot {
-  width: 8px; height: 8px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--border);
   transition: background 0.15s;
 }
 
-.zone-tab.active .zone-dot { background: var(--primary); }
+.zone-tab.active .zone-dot {
+  background: var(--primary);
+}
 
 .main-wrap {
   max-width: 1100px;
@@ -48,7 +58,9 @@
   scroll-margin-top: 120px;
 }
 
-.zone-section:last-child { margin-bottom: 0; }
+.zone-section:last-child {
+  margin-bottom: 0;
+}
 
 .zone-header {
   display: flex;
@@ -119,7 +131,8 @@
 }
 
 .card-inner-title span {
-  width: 6px; height: 6px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--primary);
   display: inline-block;
@@ -173,7 +186,9 @@
   display: flex;
   gap: 12px;
   align-items: flex-start;
-  transition: border-color 0.15s, transform 0.15s;
+  transition:
+    border-color 0.15s,
+    transform 0.15s;
 }
 
 .tech-card:hover {
@@ -192,8 +207,17 @@
   flex-shrink: 0;
 }
 
-.tech-name { font-size: 13px; font-weight: 500; color: var(--text-main); margin-bottom: 3px; }
-.tech-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+.tech-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-main);
+  margin-bottom: 3px;
+}
+.tech-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
 
 .patologias-row {
   background: var(--white);
@@ -220,14 +244,31 @@
 }
 
 @media (max-width: 820px) {
-  .zone-content { grid-template-columns: 1fr; }
-  .tech-grid { grid-template-columns: 1fr; }
-  .zones-nav { overflow-x: auto; justify-content: flex-start; padding: 0 1rem; }
-  .zone-tab { white-space: nowrap; }
+  .zone-content {
+    grid-template-columns: 1fr;
+  }
+  .tech-grid {
+    grid-template-columns: 1fr;
+  }
+  .zones-nav {
+    overflow-x: auto;
+    justify-content: flex-start;
+    padding: 0 1rem;
+  }
+  .zone-tab {
+    white-space: nowrap;
+  }
 }
 
 @media (max-width: 560px) {
-  .main-wrap { padding: 2rem 1.25rem; }
-  .zone-header { flex-direction: column; gap: 1rem; }
-  .zone-title { font-size: 22px; }
+  .main-wrap {
+    padding: 2rem 1.25rem;
+  }
+  .zone-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .zone-title {
+    font-size: 22px;
+  }
 }

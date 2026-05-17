@@ -15,16 +15,16 @@ export default function App() {
     <BrowserRouter>
       <ScrollToTop />
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/servicios" element={<Servicios />} />
-        <Route path="/profesionales" element={<Profesionales />} />
-        <Route path="/turnos" element={<Turnos />} />
-        <Route path="/contacto" element={<Contacto />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/registro" element={<Registro />} />
-        <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path='/' element={<Home />} />
+        <Route path='/servicios' element={<Servicios />} />
+        <Route path='/profesionales' element={<Profesionales />} />
+        <Route path='/turnos' element={<Turnos />} />
+        <Route path='/contacto' element={<Contacto />} />
+        <Route path='/login' element={<Login />} />
+        <Route path='/admin' element={<Admin />} />
+        <Route path='/registro' element={<Registro />} />
+        <Route path='/recuperar-contrasena' element={<RecuperarContrasena />} />
+        <Route path='*' element={<Navigate to='/' replace />} />
       </Routes>
     </BrowserRouter>
   )

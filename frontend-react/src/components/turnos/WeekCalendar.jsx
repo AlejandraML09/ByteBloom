@@ -36,12 +36,20 @@ export function WeekCalendar({ weekOffset, onWeekChange, selectedDay, onDaySelec
 
   return (
     <>
-      <div className="week-nav">
-        <button className="week-arrow" disabled={prevDisabled} onClick={() => onWeekChange(o => o - 1)}>&#8249;</button>
-        <span className="week-label">{weekLabel}</span>
-        <button className="week-arrow" onClick={() => onWeekChange(o => o + 1)}>&#8250;</button>
+      <div className='week-nav'>
+        <button
+          className='week-arrow'
+          disabled={prevDisabled}
+          onClick={() => onWeekChange((o) => o - 1)}
+        >
+          &#8249;
+        </button>
+        <span className='week-label'>{weekLabel}</span>
+        <button className='week-arrow' onClick={() => onWeekChange((o) => o + 1)}>
+          &#8250;
+        </button>
       </div>
-      <div className="days-row">
+      <div className='days-row'>
         {weekDays.map((d) => {
           const isPast = d < today
           const isToday = fmtDate(d) === fmtDate(today)
@@ -54,8 +62,8 @@ export function WeekCalendar({ weekOffset, onWeekChange, selectedDay, onDaySelec
               style={{ opacity: isPast ? 0.35 : 1, cursor: isPast ? 'not-allowed' : 'pointer' }}
               onClick={() => onDaySelect(d)}
             >
-              <div className="day-name">{DIAS_ES[d.getDay()]}</div>
-              <div className="day-num">{d.getDate()}</div>
+              <div className='day-name'>{DIAS_ES[d.getDay()]}</div>
+              <div className='day-num'>{d.getDate()}</div>
             </button>
           )
         })}

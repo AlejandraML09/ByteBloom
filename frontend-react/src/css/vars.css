@@ -1,15 +1,15 @@
 :root {
-  --primary:      #84151E;
-  --primary-mid:  #9B3040;
-  --primary-tint: #F2D5D8;
-  --primary-dark: #63101A;
-  --primary-deep: #42090F;
-  --text-main:    #1A1A1A;
-  --white:        #FFFFFF;
-  --bg:           #F7F0E8;
-  --border:       #DDD0C4;
-  --text-muted:   #7A6D65;
-  --danger:       #C62828;
+  --primary: #84151e;
+  --primary-mid: #9b3040;
+  --primary-tint: #f2d5d8;
+  --primary-dark: #63101a;
+  --primary-deep: #42090f;
+  --text-main: #1a1a1a;
+  --white: #ffffff;
+  --bg: #f7f0e8;
+  --border: #ddd0c4;
+  --text-muted: #7a6d65;
+  --danger: #c62828;
   --gold: #7a5500;
   --danger-tint:   #FEE8E8;
   --danger-border: #F5BBBB;

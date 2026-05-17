@@ -28,14 +28,14 @@ export default function Login() {
       setError(false)
 
       const res = await fetch(`${API_URL}/login`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json"
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
-          password: pass
-        })
+          password: pass,
+        }),
       })
 
       const data = await res.json()
@@ -64,13 +64,12 @@ export default function Login() {
         email: data.email,
         nombre: data.nombre,
         apellido: data.apellido,
-        rol: data.rol
+        rol: data.rol,
       }
 
       localStorage.setItem('usuario', JSON.stringify(usuarioActivo))
 
       navigate(rolesPanel.includes(data.rol) ? '/admin' : '/turnos')
-
     } catch (err) {
       setError(true)
       setPass('')
@@ -80,77 +79,45 @@ export default function Login() {
   return (
     <>
       <Navbar />
-
-      <div className="login-page">
-        <div className="login-card" id="login-card">
-
-          <div className="role-tabs">
-            <button
-              className={`role-tab${role === 'usuario' ? ' active-tab' : ''}`}
-              onClick={() => handleSetRole('usuario')}
-            >
-              Paciente
-            </button>
-
-            <button
-              className={`role-tab admin-tab${role === 'admin' ? ' active-tab' : ''}`}
-              onClick={() => handleSetRole('admin')}
-            >
-              Administrador
-            </button>
-          </div>
-
-          <div className={`login-body${isAdmin ? ' admin-mode' : ''}`}>
-
-            <div className="login-greeting">
-              <h2>{isAdmin ? 'Panel de administracion' : 'Bienvenido/a'}</h2>
-              <p>{isAdmin ? 'Acceso admin' : 'Ingresá con tu cuenta'}</p>
+      <div className='login-page'>
+        <div className='login-card' id='login-card'>
+          <div className='login-body'>
+            <div className='login-greeting'>
+              <h2>Bienvenido/a</h2>
+              <p>Ingresá con tu cuenta</p>
             </div>
-
-            {error && (
-              <div className="error-msg show">
-                Usuario o contraseña incorrectos.
-              </div>
-            )}
-
-            <div className="form-group">
+            {error && <div className='error-msg show'>Usuario o contraseña incorrectos.</div>}
+            <div className='form-group'>
               <label>Email</label>
               <input
-                type="email"
-                placeholder="tu@email.com"
+                type='email'
+                placeholder='tu@email.com'
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-
-            <div className="form-group">
+            <div className='form-group'>
               <label>Contraseña</label>
               <input
-                type="password"
-                placeholder="••••••••"
+                type='password'
+                placeholder='••••••••'
                 value={pass}
-                onChange={e => setPass(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && doLogin()}
+                onChange={(e) => setPass(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && doLogin()}
               />
             </div>
-            {!isAdmin && (
-              <div className="forgot-hint">
-                <Link to="/recuperar-contrasena">¿Olvidaste tu contraseña?</Link>
-              </div>
-            )}
-            
-            <button className="btn-login" onClick={doLogin}>
+            <div className='forgot-hint'>
+              <Link to='/recuperar-contrasena'>¿Olvidaste tu contraseña?</Link>
+            </div>
+            <button className='btn-login' onClick={doLogin}>
               Ingresar
             </button>
-            {!isAdmin && (
-              <div className="register-hint">
-                <Link to="/registro">¿No tenés cuenta? Registrate</Link>
-              </div>
-            )}
+            <div className='register-hint'>
+              <Link to='/registro'>¿No tenés cuenta? Registrate</Link>
+            </div>
           </div>
         </div>
       </div>
-
       <Footer />
     </>
   )
