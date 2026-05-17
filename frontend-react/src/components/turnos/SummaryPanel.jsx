@@ -1,4 +1,4 @@
-import { ZONA_LABELS, PRICE_PER_SHIFT } from '../../constants/turnos'
+import { ZONA_LABELS } from '../../constants/turnos'
 import { fmtDiaLargo, nextHour } from '../../utils/dates'
 
 const PAYMENT_LABELS = {
@@ -58,8 +58,8 @@ function IconDiscount() {
   )
 }
 
-export function SummaryPanel({ zona, shifts, medioPago, onConfirm, confirmando }) {
-  const subtotal    = shifts.length * PRICE_PER_SHIFT
+export function SummaryPanel({ zona, shifts, medioPago, onConfirm, confirmando ,precioTurno}) {
+  const subtotal = shifts.length * precioTurno 
   const discountPct = shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
   const discount    = Math.round(subtotal * discountPct / 100)
   const total       = subtotal - discount

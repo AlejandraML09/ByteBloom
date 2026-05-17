@@ -15,7 +15,7 @@ import DiscountModal from '../components/turnos/Discountmodal'
 import '../css/turnos.css'
 
 const MAX_SHIFTS = 3
-const PRECIO_TURNO = 20000  
+
 
 function toMes(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
@@ -31,7 +31,7 @@ export default function Turnos() {
   const [loadingSlots,    setLoadingSlots]    = useState(false)
   const [confirmando,     setConfirmando]     = useState(false)
   const { msg, visible, showToast } = useToast()
-
+  const [precioTurno, setPrecioTurno] = useState(20000)
   const today = useMemo(() => {
     const d = new Date(); d.setHours(0, 0, 0, 0); return d
   }, [])
@@ -58,7 +58,11 @@ export default function Turnos() {
     if (status === 'failure') showToast('✗ El pago fue rechazado. Intentá de nuevo.')
     if (status === 'pending') showToast('⏳ Tu pago está pendiente de confirmación.')
   }, [])
-
+  useEffect(() => {
+    client.get('/api/precios').then(({ data }) => {
+      if (data?.precio) setPrecioTurno(data.precio)
+    })
+  }, [])
 
   function getOcupados(fecha, hora) {
     return disponibilidad[`${fmtDate(fecha)}_${hora}`] || 0
@@ -101,7 +105,7 @@ export default function Turnos() {
         const { data } = await client.post('/api/crear-preferencia', null, {
           params: {
             servicio_id: 1,
-            precio: PRECIO_TURNO ,
+            precio:  precioTurno ,
             titulo: `Clase ${zona}`,
             cantidad: shifts.length 
           }
