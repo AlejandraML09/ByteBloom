@@ -30,7 +30,8 @@ export const infoCards = [
     id: 'direccion',
     title: 'Dirección',
     value: 'Lugar\nLa Plata, Buenos Aires',
-    iconPath: 'M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z M12,9 a2.5,2.5 0 1,0 0.001,0',
+    iconPath:
+      'M12 2a7 7 0 0 1 7 7c0 5-7 13-7 13S5 14 5 9a7 7 0 0 1 7-7z M12,9 a2.5,2.5 0 1,0 0.001,0',
     href: null,
   },
   {

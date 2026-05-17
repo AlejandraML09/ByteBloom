@@ -15,12 +15,14 @@ export default function Registro() {
     email: '',
     fechaNacimiento: '',
     password: '',
-    confirmarPassword: ''
+    confirmarPassword: '',
   })
 
   const [error, setError] = useState('')
   const [exito, setExito] = useState(false)
   const [cargando, setCargando] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -64,13 +66,13 @@ export default function Registro() {
     return (
       <>
         <Navbar />
-        <div className="registro-page">
-          <div className="registro-card">
-            <div className="registro-exito">
-              <span className="exito-icono">✓</span>
+        <div className='registro-page'>
+          <div className='registro-card'>
+            <div className='registro-exito'>
+              <span className='exito-icono'>✓</span>
               <h2>¡Registro exitoso!</h2>
               <p>Tu cuenta fue creada correctamente.</p>
-              <button className="btn-registro" onClick={() => navigate('/login')}>
+              <button className='btn-registro' onClick={() => navigate('/login')}>
                 Ir al inicio de sesión
               </button>
             </div>
@@ -84,59 +86,125 @@ export default function Registro() {
   return (
     <>
       <Navbar />
-      <div className="registro-page">
-        <div className="registro-card">
-          <div className="registro-header">
+      <div className='registro-page'>
+        <div className='registro-card'>
+          <div className='registro-header'>
             <h2>Crear cuenta</h2>
             <p>Completá tus datos para registrarte</p>
           </div>
 
-          {error && <div className="error-msg show">{error}</div>}
+          {error && <div className='error-msg show'>{error}</div>}
 
-          <div className="registro-grid">
-            <div className="form-group">
+          <div className='registro-grid'>
+            <div className='form-group'>
               <label>Nombre</label>
-              <input type="text" name="nombre" placeholder="María" value={form.nombre} onChange={handleChange} />
+              <input
+                type='text'
+                name='nombre'
+                placeholder='María'
+                value={form.nombre}
+                onChange={handleChange}
+              />
             </div>
-            <div className="form-group">
+            <div className='form-group'>
               <label>Apellido</label>
-              <input type="text" name="apellido" placeholder="González" value={form.apellido} onChange={handleChange} />
+              <input
+                type='text'
+                name='apellido'
+                placeholder='González'
+                value={form.apellido}
+                onChange={handleChange}
+              />
             </div>
           </div>
 
-          <div className="form-group">
+          <div className='form-group'>
             <label>Email</label>
-            <input type="email" name="email" placeholder="maria@email.com" value={form.email} onChange={handleChange} />
+            <input
+              type='email'
+              name='email'
+              placeholder='maria@email.com'
+              value={form.email}
+              onChange={handleChange}
+            />
           </div>
 
-          <div className="form-group">
+          <div className='form-group'>
             <label>Fecha de nacimiento</label>
             <input
-              type="date"
-              name="fechaNacimiento"
+              type='date'
+              name='fechaNacimiento'
               value={form.fechaNacimiento}
               onChange={handleChange}
               max={new Date().toISOString().split('T')[0]}
             />
           </div>
 
-          <div className="registro-grid">
-            <div className="form-group">
+          <div className='registro-grid'>
+            <div className='form-group'>
               <label>Contraseña</label>
-              <input type="password" name="password" placeholder="Mínimo 6 caracteres" value={form.password} onChange={handleChange} />
+              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  placeholder="Mínimo 6 caracteres"
+                  value={form.password}
+                  onChange={handleChange}
+                  style={{ width: "100%", padding: "8px", paddingRight: "35px", boxSizing: "border-box" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: "absolute",
+                    right: "8px",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "18px",
+                    padding: "0"
+                  }}
+                >
+                  {showPassword ? "👁️" : "👁️‍🗨️"}
+                </button>
+              </div>
             </div>
-            <div className="form-group">
+            <div className='form-group'>
               <label>Confirmar contraseña</label>
-              <input type="password" name="confirmarPassword" placeholder="Repetí tu contraseña" value={form.confirmarPassword} onChange={handleChange} />
+              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  name="confirmarPassword"
+                  placeholder="Repetí tu contraseña"
+                  value={form.confirmarPassword}
+                  onChange={handleChange}
+                  style={{ width: "100%", padding: "8px", paddingRight: "35px", boxSizing: "border-box" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={{
+                    position: "absolute",
+                    right: "8px",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "18px",
+                    padding: "0"
+                  }}
+                >
+                  {showConfirmPassword ? "👁️" : "👁️‍🗨️"}
+                </button>
+              </div>
             </div>
           </div>
 
-          <button className="btn-registro" onClick={handleSubmit} disabled={cargando}>
+          <button className='btn-registro' onClick={handleSubmit} disabled={cargando}>
             {cargando ? 'Registrando...' : 'Registrarse'}
           </button>
 
-          <div className="login-hint">
-            <Link to="/login">¿Ya tenés cuenta? Iniciá sesión</Link>
+          <div className='login-hint'>
+            <Link to='/login'>¿Ya tenés cuenta? Iniciá sesión</Link>
           </div>
         </div>
       </div>
