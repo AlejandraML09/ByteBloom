@@ -8,10 +8,12 @@ import Login from './pages/Login'
 import Admin from './pages/Admin'
 import Registro from './pages/Registro'
 import RecuperarContrasena from './pages/RecuperarContrasena'
+import ScrollToTop from './components/ScrollToTop'
 
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/servicios" element={<Servicios />} />
