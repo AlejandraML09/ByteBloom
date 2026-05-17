@@ -48,6 +48,17 @@ export default function Turnos() {
       setLoadingSlots(false)
     }
   }, [])
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const status = params.get('status')
+    if (status === 'approved') {
+     const cantidad = parseInt(params.get('cantidad')) || 1
+     showToast(`✓ ${cantidad} turno${cantidad > 1 ? 's' : ''} confirmado${cantidad > 1 ? 's' : ''}`)
+  }
+    if (status === 'failure') showToast('✗ El pago fue rechazado. Intentá de nuevo.')
+    if (status === 'pending') showToast('⏳ Tu pago está pendiente de confirmación.')
+  }, [])
+
 
   function getOcupados(fecha, hora) {
     return disponibilidad[`${fmtDate(fecha)}_${hora}`] || 0
@@ -91,7 +102,8 @@ export default function Turnos() {
           params: {
             servicio_id: 1,
             precio: PRECIO_TURNO ,
-            titulo: `Clase ${zona}`
+            titulo: `Clase ${zona}`,
+            cantidad: shifts.length 
           }
         })
         if (data?.init_point) {

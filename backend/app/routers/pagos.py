@@ -8,7 +8,7 @@ sdk = mercadopago.SDK(os.getenv("MP_ACCESS_TOKEN"))
 
 
 @router.post("/crear-preferencia")
-def crear_preferencia(servicio_id: int, precio: float, titulo: str):
+def crear_preferencia(servicio_id: int, precio: float, titulo: str,cantidad: int = 1):
     FRONTEND_URL = os.getenv("FRONTEND_URL")  
     preference_data = {
         "items": [
@@ -22,7 +22,7 @@ def crear_preferencia(servicio_id: int, precio: float, titulo: str):
         ],
 
         "back_urls": {
-            "success": f"{FRONTEND_URL}/turnos?status=approved", 
+            "success": f"{FRONTEND_URL}/turnos?status=approved&cantidad={cantidad}", 
             "failure":  f"{FRONTEND_URL}/turnos?status=failure",
             "pending": f"{FRONTEND_URL}/turnos?status=pending"
         },
