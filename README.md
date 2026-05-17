@@ -46,8 +46,9 @@ Usuario: postgres
 Contraseña: postgres
 Base de datos: bytebloom
 
-Y ahí están las tablas!!! :D
+Y ahí están las tablas!!! :D fin
 
+## Comandos útiles:
 ### Detener (los datos se conservan)
 
 ```bash
