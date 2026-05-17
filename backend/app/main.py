@@ -22,8 +22,8 @@ def seed_initial_data():
     db = SessionLocal()
     try:
         if db.query(Usuario).count() == 0:
-            admin = Usuario(email='admin@test.com', rol='admin')
-            admin.set_password('admin123')
+            admin = Usuario(email="admin@test.com", rol="admin")
+            admin.set_password("admin123")
             db.add(admin)
 
         if db.query(Configuracion).count() == 0:
@@ -32,10 +32,34 @@ def seed_initial_data():
         if db.query(Clase).count() == 0:
             today = date.today()
             sample_clases = [
-                Clase(zona=ZonaEnum.superior, fecha=today + timedelta(days=1), hora='09:00', cupo_max=30, inscritos=0),
-                Clase(zona=ZonaEnum.medio,    fecha=today + timedelta(days=2), hora='10:00', cupo_max=25, inscritos=0),
-                Clase(zona=ZonaEnum.inferior, fecha=today + timedelta(days=3), hora='11:00', cupo_max=20, inscritos=0),
-                Clase(zona=ZonaEnum.superior, fecha=today + timedelta(days=4), hora='12:00', cupo_max=30, inscritos=2),
+                Clase(
+                    zona=ZonaEnum.superior,
+                    fecha=today + timedelta(days=1),
+                    hora="09:00",
+                    cupo_max=30,
+                    inscritos=0,
+                ),
+                Clase(
+                    zona=ZonaEnum.medio,
+                    fecha=today + timedelta(days=2),
+                    hora="10:00",
+                    cupo_max=25,
+                    inscritos=0,
+                ),
+                Clase(
+                    zona=ZonaEnum.inferior,
+                    fecha=today + timedelta(days=3),
+                    hora="11:00",
+                    cupo_max=20,
+                    inscritos=0,
+                ),
+                Clase(
+                    zona=ZonaEnum.superior,
+                    fecha=today + timedelta(days=4),
+                    hora="12:00",
+                    cupo_max=30,
+                    inscritos=2,
+                ),
             ]
             db.add_all(sample_clases)
 
@@ -44,9 +68,10 @@ def seed_initial_data():
         db.close()
 
 
-@app.on_event('startup')
+@app.on_event("startup")
 def on_startup():
     seed_initial_data()
+
 
 app.include_router(usuarios.router)
 app.include_router(turnos.router, prefix="/turnos")

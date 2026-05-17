@@ -19,9 +19,11 @@ def get_db():
 
 # ── Schemas ──────────────────────────────────────────────────────────────────
 
+
 class TurnoItem(BaseModel):
-    fecha: str   # "YYYY-MM-DD"
-    hora: str    # "HH:MM"
+    fecha: str  # "YYYY-MM-DD"
+    hora: str  # "HH:MM"
+
 
 class ReservaRequest(BaseModel):
     zona: str
@@ -31,6 +33,7 @@ class ReservaRequest(BaseModel):
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
+
 @router.get("/disponibilidad")
 def get_disponibilidad(mes: str, db: Session = Depends(get_db)):
     """
@@ -38,11 +41,7 @@ def get_disponibilidad(mes: str, db: Session = Depends(get_db)):
     mes: "YYYY-MM"
     Response: { "YYYY-MM-DD_HH:MM": count, ... }
     """
-    rows = (
-        db.query(models.Turno)
-        .filter(models.Turno.fecha.startswith(mes))
-        .all()
-    )
+    rows = db.query(models.Turno).filter(models.Turno.fecha.startswith(mes)).all()
     result: dict[str, int] = {}
     for row in rows:
         key = f"{row.fecha}_{row.hora}"
@@ -71,12 +70,14 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
             )
 
     for item in data.turnos:
-        db.add(models.Turno(
-            fecha=item.fecha,
-            hora=item.hora,
-            zona=data.zona,
-            medio_pago=data.medio_pago,
-        ))
+        db.add(
+            models.Turno(
+                fecha=item.fecha,
+                hora=item.hora,
+                zona=data.zona,
+                medio_pago=data.medio_pago,
+            )
+        )
 
     db.commit()
     return {"ok": True, "reservados": len(data.turnos)}

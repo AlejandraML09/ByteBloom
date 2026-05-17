@@ -9,8 +9,8 @@ router = APIRouter(prefix="/api/clases", tags=["clases"])
 
 class CrearClaseRequest(BaseModel):
     zona: str
-    fecha: str   # formato: YYYY-MM-DD
-    hora: str    # formato: HH:MM
+    fecha: str  # formato: YYYY-MM-DD
+    hora: str  # formato: HH:MM
     cupo_max: int
 
     @field_validator("zona")
@@ -85,6 +85,8 @@ async def crear_clase(body: CrearClaseRequest):
         return nueva_clase
     except Exception:
         db.rollback()
-        raise HTTPException(status_code=500, detail="Error interno al guardar la clase.")
+        raise HTTPException(
+            status_code=500, detail="Error interno al guardar la clase."
+        )
     finally:
         db.close()

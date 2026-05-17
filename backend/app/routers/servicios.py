@@ -7,6 +7,7 @@ from app import models
 
 router = APIRouter(prefix="/api", tags=["servicios"])
 
+
 # 📦 Schemas
 class ClaseResponse(BaseModel):
     id: int
@@ -51,10 +52,12 @@ def get_db():
 @router.get("/clases", response_model=list[ClaseResponse])
 def obtener_clases_sin_inscriptos(db: Session = Depends(get_db)):
     """Obtiene las próximas clases programadas sin inscriptos o con pocos"""
-    clases = db.query(models.Clase).filter(
-        models.Clase.inscritos == 0,
-        models.Clase.fecha >= date.today()
-    ).order_by(models.Clase.fecha, models.Clase.hora).all()
+    clases = (
+        db.query(models.Clase)
+        .filter(models.Clase.inscritos == 0, models.Clase.fecha >= date.today())
+        .order_by(models.Clase.fecha, models.Clase.hora)
+        .all()
+    )
     return clases
 
 
@@ -62,9 +65,12 @@ def obtener_clases_sin_inscriptos(db: Session = Depends(get_db)):
 @router.get("/cupos", response_model=list[ClaseResponse])
 def obtener_clases_para_cupos(db: Session = Depends(get_db)):
     """Obtiene todas las clases sin inscriptos para gestión de cupos"""
-    clases = db.query(models.Clase).filter(
-        models.Clase.inscritos == 0
-    ).order_by(models.Clase.fecha, models.Clase.hora).all()
+    clases = (
+        db.query(models.Clase)
+        .filter(models.Clase.inscritos == 0)
+        .order_by(models.Clase.fecha, models.Clase.hora)
+        .all()
+    )
     return clases
 
 
@@ -80,17 +86,21 @@ def modificar_cupo(data: ModificarCupoRequest, db: Session = Depends(get_db)):
     except ValueError:
         raise HTTPException(status_code=400, detail="Fecha inválida")
 
-    clase = db.query(models.Clase).filter(
-        models.Clase.zona == data.zona,
-        models.Clase.fecha == fecha_obj,
-        models.Clase.hora == data.hora,
-        models.Clase.inscritos == 0,
-    ).first()
+    clase = (
+        db.query(models.Clase)
+        .filter(
+            models.Clase.zona == data.zona,
+            models.Clase.fecha == fecha_obj,
+            models.Clase.hora == data.hora,
+            models.Clase.inscritos == 0,
+        )
+        .first()
+    )
 
     if not clase:
         raise HTTPException(
             status_code=404,
-            detail="No se encontró una clase sin inscriptos para los datos ingresados"
+            detail="No se encontró una clase sin inscriptos para los datos ingresados",
         )
 
     clase.cupo_max = data.nuevo_cupo
@@ -140,10 +150,12 @@ def obtener_precios(db: Session = Depends(get_db)):
 @router.get("/clases-cancelar", response_model=list[ClaseResponse])
 def obtener_clases_cancelar(db: Session = Depends(get_db)):
     """Obtiene todas las clases no canceladas."""
-    clases = db.query(models.Clase).filter(
-        models.Clase.cancelada == 0,
-        models.Clase.fecha >= date.today()
-    ).order_by(models.Clase.fecha, models.Clase.hora).all()
+    clases = (
+        db.query(models.Clase)
+        .filter(models.Clase.cancelada == 0, models.Clase.fecha >= date.today())
+        .order_by(models.Clase.fecha, models.Clase.hora)
+        .all()
+    )
     return clases
 
 
@@ -156,22 +168,24 @@ def cancelar_clase(data: CancelarClaseRequest, db: Session = Depends(get_db)):
     except ValueError:
         raise HTTPException(status_code=400, detail="Fecha inválida")
 
-    clase = db.query(models.Clase).filter(
-        models.Clase.zona == data.zona,
-        models.Clase.fecha == fecha_obj,
-        models.Clase.hora == data.hora,
-    ).first()
+    clase = (
+        db.query(models.Clase)
+        .filter(
+            models.Clase.zona == data.zona,
+            models.Clase.fecha == fecha_obj,
+            models.Clase.hora == data.hora,
+        )
+        .first()
+    )
 
     if not clase:
         raise HTTPException(
-            status_code=404,
-            detail="No se encontró una clase con los datos ingresados"
+            status_code=404, detail="No se encontró una clase con los datos ingresados"
         )
 
     if clase.cancelada:
         raise HTTPException(
-            status_code=400,
-            detail="La clase ingresada ya se encuentra cancelada"
+            status_code=400, detail="La clase ingresada ya se encuentra cancelada"
         )
 
     clase.cancelada = 1

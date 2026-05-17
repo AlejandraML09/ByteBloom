@@ -5,7 +5,14 @@ import { HORARIOS } from '../../constants/turnos'
 const DIAS_HEADER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 const MAX_PER_SLOT = 5
 
-export function MonthCalendar({ selectedDay, onDaySelect, today, getOcupados, bookedDays, onMonthChange }) {
+export function MonthCalendar({
+  selectedDay,
+  onDaySelect,
+  today,
+  getOcupados,
+  bookedDays,
+  onMonthChange,
+}) {
   const [monthOffset, setMonthOffset] = useState(0)
 
   const displayDate = useMemo(() => {
@@ -41,19 +48,29 @@ export function MonthCalendar({ selectedDay, onDaySelect, today, getOcupados, bo
 
   return (
     <>
-      <div className="month-nav">
-        <button className="week-arrow" disabled={prevDisabled} onClick={() => setMonthOffset(o => o - 1)}>&#8249;</button>
-        <span className="week-label">{monthLabel}</span>
-        <button className="week-arrow" onClick={() => setMonthOffset(o => o + 1)}>&#8250;</button>
+      <div className='month-nav'>
+        <button
+          className='week-arrow'
+          disabled={prevDisabled}
+          onClick={() => setMonthOffset((o) => o - 1)}
+        >
+          &#8249;
+        </button>
+        <span className='week-label'>{monthLabel}</span>
+        <button className='week-arrow' onClick={() => setMonthOffset((o) => o + 1)}>
+          &#8250;
+        </button>
       </div>
 
-      <div className="month-header">
-        {DIAS_HEADER.map(d => <span key={d}>{d}</span>)}
+      <div className='month-header'>
+        {DIAS_HEADER.map((d) => (
+          <span key={d}>{d}</span>
+        ))}
       </div>
 
-      <div className="month-grid">
+      <div className='month-grid'>
         {calendarDays.map((d, i) => {
-          if (!d) return <div key={`e-${i}`} className="month-empty" />
+          if (!d) return <div key={`e-${i}`} className='month-empty' />
 
           const isPast = d < today
           const isToday = fmtDate(d) === fmtDate(today)
@@ -75,14 +92,16 @@ export function MonthCalendar({ selectedDay, onDaySelect, today, getOcupados, bo
                 isSelected ? 'selected' : '',
                 isBooked ? 'booked' : '',
                 disabled ? 'disabled' : '',
-              ].filter(Boolean).join(' ')}
+              ]
+                .filter(Boolean)
+                .join(' ')}
               disabled={disabled}
               onClick={() => onDaySelect(d)}
             >
-              <span className="month-day-num">{d.getDate()}</span>
+              <span className='month-day-num'>{d.getDate()}</span>
               {!disabled && (
-                <div className="month-day-bar">
-                  <div className="month-day-fill" style={{ width: `${pct}%` }} />
+                <div className='month-day-bar'>
+                  <div className='month-day-fill' style={{ width: `${pct}%` }} />
                 </div>
               )}
             </button>
