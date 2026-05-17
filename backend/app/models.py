@@ -28,8 +28,7 @@ class Usuario(Base):
             return False
         try:
             return bcrypt.checkpw(
-                plain_password.encode('utf-8'),
-                self.password.encode('utf-8')
+                plain_password.encode("utf-8"), self.password.encode("utf-8")
             )
         except ValueError:
             return False
@@ -68,4 +67,5 @@ class Turno(Base):
     hora = Column(String(5), nullable=False)  # "HH:MM"
     zona = Column(String(20), nullable=False)  # "superior"|"medio"|"inferior"
     medio_pago = Column(String(30), nullable=True)
+    usuario_id = Column(Integer, nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

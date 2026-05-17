@@ -104,10 +104,13 @@ export default function Turnos() {
         showToast('No se pudo obtener el link de pago.')
         return
       }
+      const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
+      const usuarioId = stored ? JSON.parse(stored)?.id : null
       await reservarTurnos({
         zona,
         turnos: shifts.map((s) => ({ fecha: fmtDate(s.diaDate), hora: s.slot })),
         medioPago,
+        usuarioId,
       })
 
       const affectedMonths = [...new Set(shifts.map((s) => toMes(s.diaDate)))]

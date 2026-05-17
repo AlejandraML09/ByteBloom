@@ -12,13 +12,23 @@ export async function getDisponibilidad(mes) {
 
 /**
  * Books one or more shifts.
- * @param {{ zona: string, turnos: {fecha: string, hora: string}[], medioPago: string }} payload
+ * @param {{ zona: string, turnos: {fecha: string, hora: string}[], medioPago: string, usuarioId?: number }} payload
  */
-export async function reservarTurnos({ zona, turnos, medioPago }) {
+export async function reservarTurnos({ zona, turnos, medioPago, usuarioId }) {
   const { data } = await client.post('/turnos/reservar', {
     zona,
     turnos,
     medio_pago: medioPago,
+    usuario_id: usuarioId ?? null,
   })
+  return data
+}
+
+/**
+ * Returns all turnos for the logged-in user.
+ * @param {number} usuarioId
+ */
+export async function getMisTurnos(usuarioId) {
+  const { data } = await client.get('/turnos/mis-turnos', { params: { usuario_id: usuarioId } })
   return data
 }

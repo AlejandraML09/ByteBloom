@@ -234,8 +234,14 @@ export default function Navbar() {
         <nav className='user-sidebar__nav'>
           <ul>
             <li className='user-sidebar__item'>
-              <span className='user-sidebar__item-icon'>📅</span>
-              <span>Mis reservas</span>
+              <Link
+                to='/mis-reservas'
+                className='user-sidebar__item-link'
+                onClick={() => setSidebarOpen(false)}
+              >
+                <span className='user-sidebar__item-icon'>📅</span>
+                <span>Mis reservas</span>
+              </Link>
             </li>
             <li className='user-sidebar__item'>
               <span className='user-sidebar__item-icon'>💳</span>
