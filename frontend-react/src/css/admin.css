@@ -537,6 +537,35 @@
   vertical-align: middle;
 }
 
+/* ── Botones de formulario ── */
+.btn-crear-form {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 14px;
+  margin-top: 1rem;
+}
+
+.btn-crear-form:disabled {
+  background: var(--border);
+  border-color: var(--border);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.btn-eliminar-form {
+  padding: 8px 12px;
+  font-size: 12px;
+  background: #FEE8E8;
+  color: var(--danger);
+  border-color: #F5BBBB;
+}
+
+.btn-eliminar-form:hover {
+  background: #F5BBBB;
+  border-color: var(--danger);
+  color: var(--white);
+}
+
 /* ── Responsive ── */
 @media (max-width: 820px) {
   .stats-row {

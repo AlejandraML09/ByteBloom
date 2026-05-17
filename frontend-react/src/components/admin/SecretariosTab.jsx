@@ -60,10 +60,11 @@ export default function SecretariosTab() {
   async function handleEliminarSecretario(secretarioId) {
     if (confirm('¿Estás seguro de que deseas eliminar este secretario?')) {
       try {
-        await client.delete(`/secretario/${secretarioId}`)
+        await client.delete(`/secretarios/${secretarioId}`)
         setSecretarios(secretarios.filter(s => s.id !== secretarioId))
       } catch (err) {
         setError('Error al eliminar secretario')
+        console.error('Error:', err)
       }
     }
   }
@@ -155,7 +156,7 @@ export default function SecretariosTab() {
             />
           </div>
 
-          <button type="submit" disabled={loading} className="btn-crear">
+          <button type="submit" disabled={loading} className="btn-nuevo btn-crear-form">
             {loading ? 'Creando...' : 'Crear Secretario'}
           </button>
         </form>
@@ -194,7 +195,7 @@ export default function SecretariosTab() {
                   <td>{secretario.email}</td>
                   <td>
                     <button
-                      className="btn-eliminar"
+                      className="btn-nuevo btn-eliminar-form"
                       onClick={() => handleEliminarSecretario(secretario.id)}
                     >
                       Eliminar

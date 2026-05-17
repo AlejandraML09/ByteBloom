@@ -133,3 +133,24 @@ def listar_secretarios(db: Session = Depends(get_db)):
         }
         for secretario in secretarios
     ]
+
+@router.delete("/secretarios/{secretario_id}")
+def eliminar_secretario(secretario_id: int, db: Session = Depends(get_db)):
+    secretario = db.query(models.Usuario).filter(
+        models.Usuario.id == secretario_id,
+        models.Usuario.rol == "secretario"
+    ).first()
+    
+    if not secretario:
+        raise HTTPException(status_code=404, detail="Secretario no encontrado")
+    
+    db.delete(secretario)
+    db.commit()
+    
+    return {"message": "Secretario eliminado exitosamente"}
+
+@router.post("/logout")
+def logout(db: Session = Depends(get_db)):
+    # Si usas JWT, aquí podrías blacklistar el token
+    # Por ahora, simplemente confirma el logout
+    return {"message": "Sesión cerrada exitosamente"}
