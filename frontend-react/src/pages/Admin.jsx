@@ -9,6 +9,7 @@ import { CancelarTab } from '../components/admin/CancelarTab'
 import { CrearTab } from '../components/admin/CrearTab'
 import { AsistenciaTab } from '../components/admin/AsistenciaTab'
 import { PriceTab } from '../components/admin/PriceTab'
+import { EliminarTab } from '../components/admin/EliminarTab'
 import { HORARIOS, PACIENTES, DIST } from '../constants/admin'
 import { fmtDate, fmtLargo } from '../utils/dates'
 import '../css/admin.css'
@@ -32,6 +33,7 @@ const TABS = [
   { id: 'asistencia', label: 'Asistencia',       roles: ['secretario'] },
   { id: 'crear',      label: 'Crear clase',      roles: ['admin', 'secretario'] },
   { id: 'cancelar',   label: 'Cancelar clase',   roles: ['admin', 'secretario'] },
+  { id: 'eliminar',   label: 'Eliminar por profesional',    roles: ['admin'] },
   { id: 'precios',    label: 'Modificar precio', roles: ['admin'] },
 ]
 
@@ -195,6 +197,19 @@ export default function Admin() {
           hora: clase.hora,
         }),
       })
+
+  async function eliminarClasesPorProfesional(email) {
+    const res = await fetch(
+      `${API_URL}/api/clases/por-profesional/${encodeURIComponent(email)}`,
+      { method: 'DELETE' }
+    )
+    const body = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(body.detail || 'Error al eliminar las clases.')
+    }
+    showToast(`Clases de ${email} canceladas correctamente`)
+    return body // { eliminadas: N, profesional_email: '...' }
+  }
 
       const body = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -367,6 +382,10 @@ export default function Admin() {
             filterDate={filterCancelarDate}
             onFilterChange={setFilterCancelarDate}
           />
+        )}
+
+        {activeTab === 'eliminar' && (
+          <EliminarTab onEliminar={eliminarClasesPorProfesional} />
         )}
 
         {activeTab === 'precios' && (

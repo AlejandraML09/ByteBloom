@@ -11,4 +11,12 @@
   --text-muted:   #7A6D65;
   --danger:       #C62828;
   --gold: #7a5500;
+  --danger-tint:   #FEE8E8;
+  --danger-border: #F5BBBB;
+  --danger-text:   #B03030;
+  --danger-muted:  #7A3030;
+  --success-tint:  #EDF5D6;
+  --success-text:  #3A5C0E;
+  --warning-tint:  #FEF3E2;
+  --warning-text:  #7A4A05;
 }
