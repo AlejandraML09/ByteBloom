@@ -12,6 +12,7 @@ class CrearClaseRequest(BaseModel):
     fecha: str   # formato: YYYY-MM-DD
     hora: str    # formato: HH:MM
     cupo_max: int
+    profesional_email: str | None = None 
 
     @field_validator("zona")
     @classmethod
@@ -49,6 +50,15 @@ class CrearClaseRequest(BaseModel):
         if v < 1:
             raise ValueError("El cupo máximo debe ser al menos 1.")
         return v
+    
+    @field_validator("profesional_email")
+    @classmethod
+    def email_valido(cls, v):
+        if v is None:
+            return v
+        if "@" not in v:
+            raise ValueError("El email del profesional no es válido.")
+        return v.strip().lower()
 
 
 class ClaseResponse(BaseModel):
@@ -59,6 +69,7 @@ class ClaseResponse(BaseModel):
     cupo_max: int
     inscritos: int
     cancelada: int
+    profesional_email: str | None = None
 
     class Config:
         from_attributes = True
@@ -78,6 +89,7 @@ async def crear_clase(body: CrearClaseRequest):
             cupo_max=body.cupo_max,
             inscritos=0,
             cancelada=0,
+            profesional_email=body.profesional_email
         )
         db.add(nueva_clase)
         db.commit()
@@ -86,5 +98,27 @@ async def crear_clase(body: CrearClaseRequest):
     except Exception:
         db.rollback()
         raise HTTPException(status_code=500, detail="Error interno al guardar la clase.")
+    finally:
+        db.close()
+
+@router.delete("/por-profesional/{email}", status_code=200)
+async def eliminar_clases_de_profesional(email: str):
+    db = SessionLocal()
+    try:
+        clases = db.query(Clase).filter(
+            Clase.profesional_email == email.strip().lower(),
+            Clase.cancelada == 0
+        ).all()
+        if not clases:
+            raise HTTPException(status_code=404, detail="No se encontraron clases para ese profesional.")
+        for clase in clases:
+            clase.cancelada = 1  # soft delete, no borra el registro
+        db.commit()
+        return {"eliminadas": len(clases), "profesional_email": email}
+    except HTTPException:
+        raise
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Error al eliminar las clases.")
     finally:
         db.close()
