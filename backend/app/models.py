@@ -19,7 +19,7 @@ class Usuario(Base):
     password = Column(String(255), nullable=False)
     fecha_nacimiento = Column(Date, nullable=True)
     dni = Column(Integer, nullable=True, unique=True)
-    rol = Column(SQLEnum(RolEnum), nullable=False, default=RolEnum.usuario)
+    rol = Column(SQLEnum(RolEnum, name="rol_usuario"), nullable=False, default=RolEnum.usuario)
 
     def set_password(self, plain_password: str):
         """Hash and store the password using bcrypt."""
