@@ -6,6 +6,9 @@ export default defineConfig({
   plugins: [react()],
   build: {
     cssMinify: true,
-    sourcemap: true,
+    sourcemap: true
   },
+  server: {
+    allowedHosts: ['overcrowd-clump-disregard.ngrok-free.dev']
+  }
 })
