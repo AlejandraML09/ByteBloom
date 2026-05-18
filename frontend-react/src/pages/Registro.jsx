@@ -32,7 +32,9 @@ export default function Registro() {
   function validar() {
     if (!form.nombre.trim()) return 'El nombre es obligatorio.'
     if (!form.apellido.trim()) return 'El apellido es obligatorio.'
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!form.email.trim()) return 'El email es obligatorio.'
+    if (!emailRegex.test(form.email.trim())) return 'El formato del email no es válido.'
     if (!form.fechaNacimiento) return 'La fecha de nacimiento es obligatoria.'
     if (form.password.length < 6) return 'La contraseña debe tener al menos 6 caracteres.'
     if (form.password !== form.confirmarPassword) return 'Las contraseñas no coinciden.'
