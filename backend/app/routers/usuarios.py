@@ -48,7 +48,7 @@ def registrar(data: UsuarioRequest, db: Session = Depends(get_db)):
         email=email_lower,
         fecha_nacimiento=data.fecha_nacimiento,
         dni=data.dni,
-        rol="usuario",
+        rol=models.RolEnum.usuario.value,
     )
     nuevo.set_password(data.password)  # Hash the password
     db.add(nuevo)
@@ -102,7 +102,7 @@ def crear_secretario(data: UsuarioRequest, db: Session = Depends(get_db)):
         nombre=data.nombre,
         apellido=data.apellido,
         fecha_nacimiento=data.fecha_nacimiento,
-        rol="secretario"
+        rol=models.RolEnum.secretario.value
     )
     nuevo_secretario.set_password(data.password)
     db.add(nuevo_secretario)
@@ -121,7 +121,7 @@ def crear_secretario(data: UsuarioRequest, db: Session = Depends(get_db)):
 @router.get("/secretarios")
 def listar_secretarios(db: Session = Depends(get_db)):
     secretarios = db.query(models.Usuario).filter(
-        models.Usuario.rol == "secretario"
+        models.Usuario.rol == models.RolEnum.secretario.value
     ).all()
     
     return [

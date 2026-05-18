@@ -21,7 +21,7 @@ def seed_initial_data():
     db = SessionLocal()
     try:
         if db.query(Usuario).count() == 0:
-            admin = Usuario(email="admin@test.com", rol="admin")
+            admin = Usuario(email="admin@test.com", rol=RolEnum.admin)
             admin.set_password("admin123")
             db.add(admin)
 
@@ -78,14 +78,16 @@ def crear_admins_por_defecto():
             "password": "josepepe",
             "nombre": "Jose",
             "apellido": "Pepe",
-            "fecha_nacimiento": date(1990, 1, 15)
+            "fecha_nacimiento": date(1990, 1, 15),
+            "dni": 99999999
         },
         {
             "email": "laura@endereza2.com",
             "password": "lauragonzalez",
             "nombre": "Laura",
             "apellido": "Gonzalez",
-            "fecha_nacimiento": date(1992, 3, 20)
+            "fecha_nacimiento": date(1992, 3, 20),
+            "dni": 88888888
         }
     ]
     
@@ -100,6 +102,7 @@ def crear_admins_por_defecto():
                 nombre=admin_data["nombre"],
                 apellido=admin_data["apellido"],
                 fecha_nacimiento=admin_data["fecha_nacimiento"],
+                dni=admin_data["dni"],
                 rol=RolEnum.admin
             )
             nuevo_admin.set_password(admin_data["password"])
