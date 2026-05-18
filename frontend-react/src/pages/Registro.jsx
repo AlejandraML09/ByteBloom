@@ -13,6 +13,7 @@ export default function Registro() {
     nombre: '',
     apellido: '',
     email: '',
+    dni: '', 
     fechaNacimiento: '',
     password: '',
     confirmarPassword: '',
@@ -32,7 +33,11 @@ export default function Registro() {
   function validar() {
     if (!form.nombre.trim()) return 'El nombre es obligatorio.'
     if (!form.apellido.trim()) return 'El apellido es obligatorio.'
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!form.email.trim()) return 'El email es obligatorio.'
+    if (!emailRegex.test(form.email.trim())) return 'El formato del email no es válido.'
+    if (!form.dni) return 'El DNI es obligatorio.'
+    if (!/^\d{7,8}$/.test(form.dni)) return 'El DNI debe tener 7 u 8 dígitos.'
     if (!form.fechaNacimiento) return 'La fecha de nacimiento es obligatoria.'
     if (form.password.length < 6) return 'La contraseña debe tener al menos 6 caracteres.'
     if (form.password !== form.confirmarPassword) return 'Las contraseñas no coinciden.'
@@ -128,7 +133,16 @@ export default function Registro() {
               onChange={handleChange}
             />
           </div>
-
+          <div className='form-group'>
+          <label>DNI</label>
+          <input
+            type='number'
+            name='dni'
+            placeholder='12345678'
+            value={form.dni}
+            onChange={handleChange}
+          />
+        </div>
           <div className='form-group'>
             <label>Fecha de nacimiento</label>
             <input

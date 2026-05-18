@@ -14,6 +14,7 @@ class Usuario(Base):
     email = Column(String(100), unique=True, index=True, nullable=False)
     password = Column(String(255), nullable=False)
     fecha_nacimiento = Column(Date, nullable=True)
+    dni = Column(Integer, nullable=True, unique=True)
     rol = Column(String(20), nullable=False, default="usuario")
 
     def set_password(self, plain_password: str):

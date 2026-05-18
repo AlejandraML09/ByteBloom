@@ -15,7 +15,7 @@ class UsuarioRequest(BaseModel):
     email: str
     fecha_nacimiento: date
     password: str
-
+    dni: int | None = None
 
 class LoginRequest(BaseModel):
     email: str
@@ -47,6 +47,7 @@ def registrar(data: UsuarioRequest, db: Session = Depends(get_db)):
         apellido=data.apellido,
         email=email_lower,
         fecha_nacimiento=data.fecha_nacimiento,
+        dni=data.dni,
         rol="usuario",
     )
     nuevo.set_password(data.password)  # Hash the password
