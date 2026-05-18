@@ -6,7 +6,7 @@ import bcrypt
 
 class RolEnum(str, enum.Enum):
     admin = "admin"
-    profesional = "profesional"
+    secretario = "secretario"
     usuario = "usuario"
 
 class Usuario(Base):
