@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import SessionLocal
 from app.models import Usuario, Clase, Configuracion, ZonaEnum
 from app import models
+from enum import Enum
 
 app = FastAPI()
 
@@ -16,6 +17,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class RolUsuario(str, Enum):
+    usuario = "usuario"
+    admin = "admin"
+    secretario = "secretario"
 
 def seed_initial_data():
     db = SessionLocal()
