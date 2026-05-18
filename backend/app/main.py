@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from app.routers import usuarios, turnos, pagos, servicios, clases
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import SessionLocal
-from app.models import Usuario, Clase, Configuracion, ZonaEnum
+from app.models import Usuario, Clase, Configuracion, ZonaEnum, RolEnum
 from app import models
 
 app = FastAPI()
@@ -100,7 +100,7 @@ def crear_admins_por_defecto():
                 nombre=admin_data["nombre"],
                 apellido=admin_data["apellido"],
                 fecha_nacimiento=admin_data["fecha_nacimiento"],
-                rol="admin"
+                rol=RolEnum.admin
             )
             nuevo_admin.set_password(admin_data["password"])
             db.add(nuevo_admin)

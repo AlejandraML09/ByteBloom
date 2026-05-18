@@ -4,6 +4,10 @@ from app.database import Base
 import enum
 import bcrypt
 
+class RolEnum(str, enum.Enum):
+    admin = "admin"
+    profesional = "profesional"
+    usuario = "usuario"
 
 class Usuario(Base):
     __tablename__ = "usuarios"
@@ -15,7 +19,7 @@ class Usuario(Base):
     password = Column(String(255), nullable=False)
     fecha_nacimiento = Column(Date, nullable=True)
     dni = Column(Integer, nullable=True, unique=True)
-    rol = Column(String(20), nullable=False, default="usuario")
+    rol = Column(SQLEnum(RolEnum), nullable=False, default=RolEnum.usuario)
 
     def set_password(self, plain_password: str):
         """Hash and store the password using bcrypt."""
