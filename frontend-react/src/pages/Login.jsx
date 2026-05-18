@@ -41,7 +41,7 @@ export default function Login() {
       localStorage.setItem('usuario', JSON.stringify(usuarioActivo))
       console.log('Usuario guardado en localStorage')
 
-      navigate(data.rol === 'admin' || data.rol === 'dueño' ? '/admin' : '/turnos')
+      navigate(data.rol === 'admin' || data.rol === 'secretario' ? '/admin' : '/')
 
     } catch (err) {
       console.error('Error completo:', err)
