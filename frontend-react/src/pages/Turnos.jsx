@@ -31,7 +31,6 @@ export default function Turnos() {
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
   const { msg, visible, showToast } = useToast()
-  const [precioTurno, setPrecioTurno] = useState(20000)
   const today = useMemo(() => {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
@@ -59,11 +58,6 @@ export default function Turnos() {
   }
     if (status === 'failure') showToast('✗ El pago fue rechazado. Intentá de nuevo.')
     if (status === 'pending') showToast('⏳ Tu pago está pendiente de confirmación.')
-  }, [])
-  useEffect(() => {
-    client.get('/api/precios').then(({ data }) => {
-      if (data?.precio) setPrecioTurno(data.precio)
-    })
   }, [])
 
   function getOcupados(fecha, hora) {

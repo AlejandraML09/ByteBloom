@@ -13,7 +13,6 @@ export const HORARIOS = [
   '16:00',
   '17:00',
 ]
-export const PRICE_PER_SHIFT = 20000
 
 export const ZONA_LABELS = {
   superior: 'Tren superior',
@@ -27,25 +26,22 @@ const iconStyle = {
   objectFit: 'contain',
 }
 
-export const zonasInfo = [
-  {
-    id: 'superior',
+export const zonasInfoMap = {
+  superior:{
     name: 'Tren superior',
     sub: 'Hombros, brazos, cuello y espalda alta',
     icon: <img src={iconsuperior} alt='Tren superior' style={iconStyle} />,
   },
-  {
-    id: 'medio',
+  medio: {
     name: 'Zona media',
     sub: 'Core, lumbar y zona abdominal',
     icon: <img src={iconmedia} alt='Zona media' style={iconStyle} />,
   },
-  {
-    id: 'inferior',
+  inferior: {
     name: 'Tren inferior',
     sub: 'Caderas, rodillas, tobillos y pies',
     icon: <img src={iconinferior} alt='Tren inferior' style={iconStyle} />,
-  },
-]
+  }
+}
 
 export const OBRAS_SOCIALES = ['OSDE', 'Swiss Medical', 'IOMA', 'PAMI', 'Galeno', 'Particular']

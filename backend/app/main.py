@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 from fastapi import FastAPI
-from app.routers import usuarios, turnos, pagos, servicios, clases
+from app.routers import usuarios, turnos, pagos, servicios, clases, zonas
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import SessionLocal
 from app.models import Usuario, Clase, Configuracion, ZonaEnum
