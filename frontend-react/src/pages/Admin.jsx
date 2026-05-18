@@ -202,19 +202,6 @@ export default function Admin() {
         }),
       })
 
-  async function eliminarClasesPorProfesional(email) {
-    const res = await fetch(
-      `${API_URL}/api/clases/por-profesional/${encodeURIComponent(email)}`,
-      { method: 'DELETE' }
-    )
-    const body = await res.json().catch(() => ({}))
-    if (!res.ok) {
-      throw new Error(body.detail || 'Error al eliminar las clases.')
-    }
-    showToast(`Clases de ${email} canceladas correctamente`)
-    return body // { eliminadas: N, profesional_email: '...' }
-  }
-
       const body = await res.json().catch(() => ({}))
       if (!res.ok) {
         showToast(body.detail || 'Error al cancelar clase')
@@ -226,6 +213,19 @@ export default function Admin() {
     } catch {
       showToast('Error al cancelar clase en backend')
     }
+  }
+
+  async function eliminarClasesPorProfesional(email) {
+    const res = await fetch(
+      `${API_URL}/api/clases/por-profesional/${encodeURIComponent(email)}`,
+      { method: 'DELETE' }
+    )
+    const body = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(body.detail || 'Error al eliminar las clases.')
+    }
+    showToast(`Clases de ${email} canceladas correctamente`)
+    return body
   }
 
   function guardarAsistencia() {

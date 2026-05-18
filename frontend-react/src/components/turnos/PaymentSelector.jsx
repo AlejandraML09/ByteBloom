@@ -147,7 +147,7 @@ export function PaymentSelector({ selected, onSelect }) {
         <span className='step-number'>3</span> Medios de pago
       </div>
       <div className='payment-row'>
-        {METHODS.map(({ id, label, logo }) => (
+        {METHODS.map(({ id, label, logo, disabled }) => (
           <button
             key={id}
             className={`payment-btn${selected === id ? ' selected' : ''}${disabled ? ' disabled' : ''}`}
