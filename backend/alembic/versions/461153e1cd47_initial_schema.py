@@ -1,8 +1,8 @@
 """initial schema
 
-Revision ID: 4ad7e18926ce
+Revision ID: 461153e1cd47
 Revises: 
-Create Date: 2026-05-18 10:58:45.465314
+Create Date: 2026-05-18 15:31:49.089639
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '4ad7e18926ce'
+revision: str = '461153e1cd47'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -54,7 +54,7 @@ def upgrade():
         nombre VARCHAR(50) NOT NULL,
         apellido VARCHAR(50) NOT NULL,
 
-        dni VARCHAR(20) NOT NULL UNIQUE,
+        dni INTEGER NOT NULL UNIQUE,
 
         email VARCHAR(100) NOT NULL UNIQUE,
 
@@ -76,6 +76,9 @@ def upgrade():
         nombre VARCHAR(50) NOT NULL UNIQUE,
 
         descripcion TEXT,
+    
+        precio NUMERIC(10,2) NOT NULL
+        CHECK (precio >= 0),
 
         activo BOOLEAN NOT NULL
             DEFAULT TRUE
@@ -94,15 +97,14 @@ def upgrade():
 
         descripcion TEXT,
 
-        precio NUMERIC(10,2) NOT NULL
-            CHECK (precio >= 0),
-
         cupo_maximo INTEGER NOT NULL
             CHECK (cupo_maximo > 0),
 
         activo BOOLEAN NOT NULL
             DEFAULT TRUE,
 
+        profesional_email VARCHAR(100),
+               
         CONSTRAINT fk_clases_zona
             FOREIGN KEY (zona_id)
             REFERENCES zonas(id)
@@ -272,20 +274,24 @@ def upgrade():
 
     INSERT INTO zonas (
         nombre,
-        descripcion
+        descripcion,
+        precio
     )
     VALUES
     (
         'Tren superior',
-        'Ejercicios de tren superior'
+        'Ejercicios de tren superior',
+        20000
     ),
     (
         'Zona media',
-        'Ejercicios de core y abdomen'
+        'Ejercicios de core y abdomen',
+        15000
     ),
     (
         'Tren inferior',
-        'Ejercicios de piernas'
+        'Ejercicios de piernas',
+        30000
     );
 
     INSERT INTO medios_pago (nombre)
@@ -307,11 +313,11 @@ def upgrade():
     VALUES (
         'Admin',
         'Sistema',
-        '00000000',
+        80808080,
         'admin@endereza2.com',
-        '$2b$12$replace_this_hash',
+        '$2b$12$3K2Gx6qJY0b9uKkwM91wh.w0dCiOxlIL/murLtvCkJNnZ4wnSUqzS',
         '1990-01-01',
-        'admin'
+        'admin'::rol_usuario
     );
     """)
 
@@ -365,4 +371,5 @@ def downgrade():
 
     DROP TYPE IF EXISTS rol_usuario;
     """)
+
 
