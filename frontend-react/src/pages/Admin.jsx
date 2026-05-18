@@ -9,6 +9,7 @@ import { CancelarTab } from '../components/admin/CancelarTab'
 import { CrearTab } from '../components/admin/CrearTab'
 import { AsistenciaTab } from '../components/admin/AsistenciaTab'
 import { PriceTab } from '../components/admin/PriceTab'
+import { EliminarTab } from '../components/admin/EliminarTab'
 import { HORARIOS, PACIENTES, DIST } from '../constants/admin'
 import { fmtDate, fmtLargo } from '../utils/dates'
 import '../css/admin.css'
@@ -29,13 +30,14 @@ function initOcupados() {
 }
 
 const TABS = [
-  { id: 'turnos',     label: 'Turnos del día',  roles: ['admin'] },
-  { id: 'pacientes',  label: 'Pacientes',        roles: ['admin'] },
-  { id: 'cupos',      label: 'Gestionar cupos',  roles: ['admin'] },
-  { id: 'asistencia', label: 'Asistencia',       roles: ['secretario'] },
-  { id: 'crear',      label: 'Crear clase',      roles: ['admin', 'secretario'] },
-  { id: 'cancelar',   label: 'Cancelar clase',   roles: ['admin', 'secretario'] },
-  { id: 'precios',    label: 'Modificar precio', roles: ['admin'] },
+  { id: 'turnos',         label: 'Turnos del día',   roles: ['admin'] },
+  { id: 'pacientes',   label: 'Pacientes',               roles: ['admin'] },
+  { id: 'cupos',           label: 'Gestionar cupos',   roles: ['admin'] },
+  { id: 'asistencia', label: 'Asistencia',             roles: ['secretario'] },
+  { id: 'crear',           label: 'Crear clase',           roles: ['admin', 'secretario'] },
+  { id: 'cancelar',     label: 'Cancelar clase',     roles: ['admin', 'secretario'] },
+  { id: 'eliminar',   label: 'Eliminar por profesional',    roles: ['admin'] },
+  { id: 'precios',       label: 'Modificar precio', roles: ['admin'] },
   { id: 'secretarios', label: 'Secretarios',     roles: ['admin'] },
 ]
 
@@ -213,6 +215,19 @@ export default function Admin() {
     }
   }
 
+  async function eliminarClasesPorProfesional(email) {
+    const res = await fetch(
+      `${API_URL}/api/clases/por-profesional/${encodeURIComponent(email)}`,
+      { method: 'DELETE' }
+    )
+    const body = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(body.detail || 'Error al eliminar las clases.')
+    }
+    showToast(`Clases de ${email} canceladas correctamente`)
+    return body
+  }
+
   function guardarAsistencia() {
     const total = Object.values(asistencia).filter(Boolean).length
     setPresentes(total)
@@ -348,6 +363,10 @@ export default function Admin() {
             filterDate={filterCancelarDate}
             onFilterChange={setFilterCancelarDate}
           />
+        )}
+
+        {activeTab === 'eliminar' && (
+          <EliminarTab onEliminar={eliminarClasesPorProfesional} />
         )}
 
         {activeTab === 'precios' && (

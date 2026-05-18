@@ -7,6 +7,7 @@ export const registrarUsuario = async (datos) => {
     email: datos.email,
     fecha_nacimiento: datos.fechaNacimiento,
     password: datos.password,
+    dni: datos.dni ? parseInt(datos.dni) : null,
   })
   return response.data
 }
