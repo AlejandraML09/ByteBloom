@@ -86,6 +86,8 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
         "apellido": user.apellido,
         "email": user.email,
         "rol": user.rol,
+        "dni": user.dni,
+        "fecha_nacimiento": str(user.fecha_nacimiento) if user.fecha_nacimiento else "",
     }
 
 @router.post("/crear-secretario")
@@ -157,8 +159,17 @@ def actualizar_usuario(data: ActualizarUsuarioRequest, db: Session = Depends(get
 
     user.nombre = data.nombre.strip()
     user.apellido = data.apellido.strip()
-    user.dni = data.dni
     user.fecha_nacimiento = data.fecha_nacimiento
-    db.commit()
 
+    # Solo actualizar dni si cambió
+    if data.dni and data.dni != user.dni:
+        existe = db.query(models.Usuario).filter(
+            models.Usuario.dni == data.dni,
+            models.Usuario.id != data.usuario_id
+        ).first()
+        if existe:
+            raise HTTPException(status_code=400, detail="El DNI ya está registrado por otro usuario")
+        user.dni = data.dni
+
+    db.commit()
     return {"mensaje": "Modificación exitosa"}

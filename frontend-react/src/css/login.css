@@ -293,3 +293,15 @@ body, html {
 .login-page {
   flex: 1;
 }
+
+.dato-valor {
+  margin: 0.25rem 0 0 0;
+  font-size: 1rem;
+  color: var(--text-primary, #1a1a1a);
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-color, #e5e5e5);
+}
+ 
+.dato-vacio {
+  color: var(--text-muted, #aaa);
+}
