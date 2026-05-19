@@ -12,8 +12,10 @@ import { PriceTab } from '../components/admin/PriceTab'
 import { EliminarTab } from '../components/admin/EliminarTab'
 import { HORARIOS, PACIENTES, DIST } from '../constants/admin'
 import { fmtDate, fmtLargo } from '../utils/dates'
+import { RegistrarClienteTab } from '../components/admin/RegistrarClienteTab'
 import '../css/admin.css'
 import SecretariosTab from '../components/admin/SecretariosTab'
+
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -39,6 +41,7 @@ const TABS = [
   { id: 'eliminar',   label: 'Eliminar por profesional',    roles: ['admin'] },
   { id: 'precios',       label: 'Modificar precio', roles: ['admin'] },
   { id: 'secretarios', label: 'Secretarios',     roles: ['admin'] },
+  { id: 'registrar-paciente', label: 'Registrar paciente', roles: ['secretario'] },
 ]
 
 // Leer usuario UNA sola vez, fuera del componente no es posible con hooks,
@@ -380,6 +383,9 @@ export default function Admin() {
         )}
 
         {activeTab === 'secretarios' && <SecretariosTab />}
+        {activeTab === 'registrar-paciente' && (
+          <RegistrarClienteTab onToast={showToast} />
+        )}
       </div>
 
       <div className={`admin-toast${toastVisible ? ' show' : ''}`}>{toastMsg}</div>
