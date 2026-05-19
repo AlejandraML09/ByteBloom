@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import cast, String as SAString
+from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel
 from typing import Optional
 from app.database import SessionLocal
@@ -110,20 +111,42 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
                 status_code=400,
                 detail=f"Sin cupos disponibles para {item.fecha} a las {item.hora}.",
             )
+        # Check the user doesn't already have an active booking for this slot
+        if data.usuario_id is not None:
+            existing = (
+                db.query(models.Reserva)
+                .filter(
+                    models.Reserva.usuario_id == data.usuario_id,
+                    models.Reserva.clase_programada_id == cp.id,
+                    models.Reserva.estado != models.EstadoReserva.cancelada,
+                )
+                .first()
+            )
+            if existing:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Ya tenés una reserva activa para el {item.fecha} a las {item.hora}.",
+                )
         clase_programadas.append(cp)
 
-    for cp in clase_programadas:
-        db.add(
-            models.Reserva(
-                usuario_id=data.usuario_id,
-                clase_programada_id=cp.id,
-                medio_pago_id=medio_pago.id,
-                precio_pagado=zona.precio,
+    try:
+        for cp in clase_programadas:
+            db.add(
+                models.Reserva(
+                    usuario_id=data.usuario_id,
+                    clase_programada_id=cp.id,
+                    medio_pago_id=medio_pago.id,
+                    precio_pagado=zona.precio,
+                )
             )
+            cp.cupo_disponible -= 1
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Ya tenés una reserva activa para uno de los horarios seleccionados.",
         )
-        cp.cupo_disponible -= 1
-
-    db.commit()
     return {"ok": True, "reservados": len(clase_programadas)}
 
 
