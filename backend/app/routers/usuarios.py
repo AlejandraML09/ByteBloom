@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from datetime import date
 from app.database import SessionLocal
 from app import models
+from typing import Optional
 
 router = APIRouter()
 
@@ -134,3 +135,30 @@ def listar_secretarios(db: Session = Depends(get_db)):
         }
         for secretario in secretarios
     ]
+
+class ActualizarUsuarioRequest(BaseModel):
+    usuario_id: int
+    nombre: str
+    apellido: str
+    dni: int
+    fecha_nacimiento: date
+
+@router.put("/usuarios/me")
+def actualizar_usuario(data: ActualizarUsuarioRequest, db: Session = Depends(get_db)):
+    user = db.query(models.Usuario).filter(models.Usuario.id == data.usuario_id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    if not data.nombre.strip():
+        raise HTTPException(status_code=400, detail="El nombre es un campo obligatorio")
+    if not data.apellido.strip():
+        raise HTTPException(status_code=400, detail="El apellido es un campo obligatorio")
+
+    user.nombre = data.nombre.strip()
+    user.apellido = data.apellido.strip()
+    user.dni = data.dni
+    user.fecha_nacimiento = data.fecha_nacimiento
+    db.commit()
+
+    return {"mensaje": "Modificación exitosa"}

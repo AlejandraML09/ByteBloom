@@ -261,9 +261,15 @@ export default function Navbar() {
               <span>Mis créditos</span>
             </li>
             <li className='user-sidebar__item'>
+            <Link
+              to='/mis-datos'
+              className='user-sidebar__item-link'
+              onClick={() => setSidebarOpen(false)}
+            >
               <span className='user-sidebar__item-icon'>👤</span>
               <span>Mis datos</span>
-            </li>
+            </Link>
+          </li>
           </ul>
         </nav>
 
