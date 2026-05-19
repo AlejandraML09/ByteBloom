@@ -88,7 +88,7 @@ export const DIST = [
 ]
 
 export const ZONAS = {
-  superior: 'Tren superior',
-  medio: 'Zona media',
-  inferior: 'Tren inferior',
+  1: 'Tren superior',
+  2: 'Zona media',
+  3: 'Tren inferior',
 }

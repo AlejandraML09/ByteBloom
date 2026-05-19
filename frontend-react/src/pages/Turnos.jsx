@@ -31,7 +31,6 @@ export default function Turnos() {
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
   const { msg, visible, showToast } = useToast()
-  const [precioTurno, setPrecioTurno] = useState(20000)
   const today = useMemo(() => {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
@@ -59,11 +58,6 @@ export default function Turnos() {
   }
     if (status === 'failure') showToast('✗ El pago fue rechazado. Intentá de nuevo.')
     if (status === 'pending') showToast('⏳ Tu pago está pendiente de confirmación.')
-  }, [])
-  useEffect(() => {
-    client.get('/api/precios').then(({ data }) => {
-      if (data?.precio) setPrecioTurno(data.precio)
-    })
   }, [])
 
   function getOcupados(fecha, hora) {
@@ -120,10 +114,13 @@ export default function Turnos() {
         showToast('No se pudo obtener el link de pago.')
         return
       }
+      const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
+      const usuarioId = stored ? JSON.parse(stored)?.id : null
       await reservarTurnos({
         zona,
         turnos: shifts.map((s) => ({ fecha: fmtDate(s.diaDate), hora: s.slot })),
         medioPago,
+        usuarioId,
       })
 
       const affectedMonths = [...new Set(shifts.map((s) => toMes(s.diaDate)))]
