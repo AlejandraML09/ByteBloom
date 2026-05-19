@@ -228,17 +228,17 @@ def upgrade():
     )
     VALUES
     (
-        'Tren superior',
+        'superior',
         'Ejercicios de tren superior',
         20000
     ),
     (
-        'Zona media',
+        'medio',
         'Ejercicios de core y abdomen',
         15000
     ),
     (
-        'Tren inferior',
+        'inferior',
         'Ejercicios de piernas',
         30000
     );
