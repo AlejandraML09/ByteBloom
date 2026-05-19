@@ -537,59 +537,12 @@
   vertical-align: middle;
 }
 
-<<<<<<< HEAD
-/* ── Botones de formulario ── */
-.btn-crear-form {
-  width: 100%;
-  padding: 12px 16px;
-  font-size: 14px;
-  margin-top: 1rem;
-}
-
-.btn-crear-form:disabled {
-  background: var(--border);
-  border-color: var(--border);
-  color: var(--text-muted);
-  cursor: not-allowed;
-}
-
-.btn-eliminar-form {
-  padding: 8px 12px;
-  font-size: 12px;
-  background: #FEE8E8;
-  color: var(--danger);
-  border-color: #F5BBBB;
-}
-
-.btn-eliminar-form:hover {
-  background: #F5BBBB;
-  border-color: var(--danger);
-  color: var(--white);
-}
-
-/* ── Responsive ── */
-@media (max-width: 820px) {
-  .stats-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .admin-main {
-    padding: 1.25rem;
-  }
-  .admin-nav {
-    padding: 0 1.25rem;
-  }
-  .section-tabs {
-    padding: 0 1rem;
-    overflow-x: auto;
-  }
-=======
 /* ── Formularios (CrearTab / EliminarTab) ── */
 .create-form {
   padding: 1.25rem 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
->>>>>>> refs/remotes/origin/main
 }
 
 .form-grid {
