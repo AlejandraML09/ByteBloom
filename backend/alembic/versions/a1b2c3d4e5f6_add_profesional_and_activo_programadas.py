@@ -18,6 +18,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade():
+    op.execute("COMMIT")
     op.execute("""
     ALTER TYPE rol_usuario ADD VALUE IF NOT EXISTS 'profesional';
 
