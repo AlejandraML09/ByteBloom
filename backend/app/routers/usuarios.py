@@ -5,6 +5,9 @@ from datetime import date
 from app.database import SessionLocal
 from app import models
 from typing import Optional
+import secrets
+import resend
+import os
 
 router = APIRouter()
 
@@ -159,17 +162,56 @@ def actualizar_usuario(data: ActualizarUsuarioRequest, db: Session = Depends(get
 
     user.nombre = data.nombre.strip()
     user.apellido = data.apellido.strip()
+    user.dni = data.dni
     user.fecha_nacimiento = data.fecha_nacimiento
-
-    # Solo actualizar dni si cambió
-    if data.dni and data.dni != user.dni:
-        existe = db.query(models.Usuario).filter(
-            models.Usuario.dni == data.dni,
-            models.Usuario.id != data.usuario_id
-        ).first()
-        if existe:
-            raise HTTPException(status_code=400, detail="El DNI ya está registrado por otro usuario")
-        user.dni = data.dni
-
     db.commit()
+
     return {"mensaje": "Modificación exitosa"}
+
+    #lo nuevo de registrar cliente:
+
+    resend.api_key = os.getenv("RESEND_API_KEY")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173/")
+
+class RegistrarPacienteRequest(BaseModel):
+    nombre: str
+    apellido: str
+    email: str
+    dni: int | None = None
+
+@router.post("/secretario/registrar-paciente")
+def registrar_paciente_secretario(data: RegistrarPacienteRequest, db: Session = Depends(get_db)):
+    email_lower = data.email.lower().strip()
+
+    if db.query(models.Usuario).filter(models.Usuario.email == email_lower).first():
+        raise HTTPException(status_code=400, detail="Email ya registrado")
+
+    password_generada = secrets.token_urlsafe(10)
+
+    nuevo = models.Usuario(
+        nombre=data.nombre,
+        apellido=data.apellido,
+        email=email_lower,
+        dni=data.dni,
+        fecha_nacimiento=date(2000, 1, 1),  # placeholder, puede actualizar en su perfil
+        rol=models.RolUsuario.usuario.value,
+    )
+    nuevo.set_password(password_generada)
+    db.add(nuevo)
+    db.commit()
+    db.refresh(nuevo)
+
+    resend.Emails.send({
+        "from": "onboarding@resend.dev",
+        "to": email_lower,
+        "subject": "Bienvenido a Endereza2 - Tu contraseña",
+        "html": f"""
+            <p>Hola {data.nombre},</p>
+            <p>Tu cuenta fue creada en Endereza2.</p>
+            <p>Tu contraseña temporal es: <strong>{password_generada}</strong></p>
+            <p>Te recomendamos cambiarla desde tu perfil una vez que ingreses.</p>
+            <p><a href="{FRONTEND_URL}login">Iniciar sesión</a></p>
+        """
+    })
+
+    return {"id": nuevo.id, "email": nuevo.email}
