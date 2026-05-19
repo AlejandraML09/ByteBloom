@@ -146,10 +146,15 @@ export default function Navbar() {
             </button>
           </div>
         ) : (
-          <Link to='/login' className='btn-login-nav'>
-            Iniciar sesión
-          </Link>
-        )}
+            <div className='nav-auth-buttons'>
+              <Link to='/registro' className='btn-registro-nav'>
+                Registrarse
+              </Link>
+              <Link to='/login' className='btn-login-nav'>
+                Iniciar sesión
+              </Link>
+            </div>
+          )}
 
         <button
           className={`nav-hamburger${open ? ' open' : ''}`}
@@ -188,14 +193,22 @@ export default function Navbar() {
             </button>
           </div>
         ) : (
-          <Link
-            to='/login'
-            className='btn-login-nav'
-            style={{ alignSelf: 'flex-start' }}
-            onClick={() => setOpen(false)}
-          >
-            Iniciar sesión
-          </Link>
+          <div className='nav-auth-buttons' style={{ alignSelf: 'flex-start' }}>
+            <Link
+              to='/registro'
+              className='btn-registro-nav'
+              onClick={() => setOpen(false)}
+            >
+              Registrarse
+            </Link>
+            <Link
+              to='/login'
+              className='btn-login-nav'
+              onClick={() => setOpen(false)}
+            >
+              Iniciar sesión
+            </Link>
+          </div>
         )}
       </nav>
 
@@ -248,9 +261,15 @@ export default function Navbar() {
               <span>Mis créditos</span>
             </li>
             <li className='user-sidebar__item'>
+            <Link
+              to='/mis-datos'
+              className='user-sidebar__item-link'
+              onClick={() => setSidebarOpen(false)}
+            >
               <span className='user-sidebar__item-icon'>👤</span>
               <span>Mis datos</span>
-            </li>
+            </Link>
+          </li>
           </ul>
         </nav>
 

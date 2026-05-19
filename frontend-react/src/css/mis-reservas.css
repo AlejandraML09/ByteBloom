@@ -230,10 +230,34 @@
   border: 1px solid #6ee7b7;
 }
 
+.mr-item-badge--pendiente {
+  background: #fef9ec;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.mr-item-badge--confirmada {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #6ee7b7;
+}
+
 .mr-item-badge--cancelada {
-  background: #fef2f2;
-  color: var(--danger);
-  border: 1px solid #fca5a5;
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+}
+
+.mr-item-badge--asistio {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.mr-item-badge--ausente {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
 }
 
 /* ── Empty state ── */
