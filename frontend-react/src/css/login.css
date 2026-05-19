@@ -278,3 +278,18 @@ body {
   cursor: pointer;
   text-decoration: none;
 }
+body, html {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.login-page {
+  flex: 1;
+}

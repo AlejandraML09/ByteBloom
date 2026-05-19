@@ -34,7 +34,8 @@ class Usuario(Base):
         nullable=False,
         default=RolUsuario.usuario
     )
-
+    reset_token = Column(String(255), nullable=True)
+    reset_token_expira = Column(DateTime(timezone=True), nullable=True)
     def set_password(self, plain_password: str):
         """Hash and store the password using bcrypt."""
         self.password = bcrypt.hashpw(
