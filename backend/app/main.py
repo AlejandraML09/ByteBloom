@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from app.routers import usuarios, turnos, pagos, servicios, clases, zonas
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import SessionLocal
-from app.models import Usuario, Clase, Configuracion, ZonaEnum
+from app.models import Usuario, Clase, Configuracion, ZonaEnum, RolEnum
 from app import models
 from enum import Enum
 
@@ -26,7 +26,7 @@ def seed_initial_data():
     db = SessionLocal()
     try:
         if db.query(Usuario).count() == 0:
-            admin = Usuario(email="admin@test.com", rol="admin")
+            admin = Usuario(email="admin@test.com", rol=RolEnum.admin)
             admin.set_password("admin123")
             db.add(admin)
 
