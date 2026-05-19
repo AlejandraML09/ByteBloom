@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
@@ -17,11 +17,19 @@ function getUsuario() {
   }
 }
 
-function isProxima(fecha) {
+const ESTADO_CONFIG = {
+  pendiente: { label: 'Pendiente', css: 'pendiente' },
+  confirmada: { label: 'Confirmada', css: 'confirmada' },
+  cancelada: { label: 'Cancelada', css: 'cancelada' },
+  asistio: { label: 'Asistió', css: 'asistio' },
+  ausente: { label: 'Ausente', css: 'ausente' },
+}
+
+function isProxima(reserva) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  const turnoDate = new Date(fecha + 'T00:00:00')
-  return turnoDate >= today
+  const fechaDate = new Date(reserva.fecha + 'T00:00:00')
+  return fechaDate >= today && reserva.estado !== 'cancelada'
 }
 
 function CalendarIcon({ size = 20 }) {
@@ -164,10 +172,12 @@ const TABS = [
   { id: 'inferior', label: ZONA_LABELS.inferior },
 ]
 
+const fmt = (n) => `$${Number(n).toLocaleString('es-AR')}`
+
 export default function MisReservas() {
   const navigate = useNavigate()
   const usuario = getUsuario()
-  const [turnos, setTurnos] = useState([])
+  const [reservas, setReservas] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('todas')
 
@@ -177,15 +187,30 @@ export default function MisReservas() {
       return
     }
     getMisTurnos(usuario.id)
-      .then(setTurnos)
-      .catch(() => setTurnos([]))
+      .then(setReservas)
+      .catch(() => setReservas([]))
       .finally(() => setLoading(false))
   }, [])
 
-  const proximas = turnos.filter((t) => isProxima(t.fecha))
-  const completadas = turnos.filter((t) => !isProxima(t.fecha))
+  // Sort: upcoming first (asc by fecha), then past (desc by fecha)
+  const sorted = useMemo(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const upcoming = reservas
+      .filter((r) => new Date(r.fecha + 'T00:00:00') >= today)
+      .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora.localeCompare(b.hora))
+    const past = reservas
+      .filter((r) => new Date(r.fecha + 'T00:00:00') < today)
+      .sort((a, b) => b.fecha.localeCompare(a.fecha) || b.hora.localeCompare(a.hora))
+    return [...upcoming, ...past]
+  }, [reservas])
 
-  const filtered = activeTab === 'todas' ? turnos : turnos.filter((t) => t.zona === activeTab)
+  const proximas = useMemo(() => reservas.filter(isProxima), [reservas])
+  const completadas = useMemo(
+    () => reservas.filter((r) => !isProxima(r) && r.estado !== 'cancelada'),
+    [reservas]
+  )
+  const filtered = activeTab === 'todas' ? sorted : sorted.filter((r) => r.zona === activeTab)
 
   const nombreCompleto = usuario
     ? [usuario.nombre, usuario.apellido].filter(Boolean).join(' ') || usuario.email
@@ -208,7 +233,7 @@ export default function MisReservas() {
               <CalendarIcon size={22} />
             </div>
             <div>
-              <div className='mr-stat-number'>{turnos.length}</div>
+              <div className='mr-stat-number'>{reservas.length}</div>
               <div className='mr-stat-label'>Reservas totales</div>
             </div>
           </div>
@@ -283,31 +308,36 @@ export default function MisReservas() {
           </div>
         ) : (
           <div className='mr-list'>
-            {filtered.map((turno) => {
-              const proxima = isProxima(turno.fecha)
+            {filtered.map((r) => {
+              const proxima = isProxima(r)
+              const estadoCfg = ESTADO_CONFIG[r.estado] ?? { label: r.estado, css: 'pendiente' }
               return (
-                <div key={turno.id} className='mr-item'>
+                <div key={r.id} className='mr-item'>
                   <div className={`mr-item-icon${proxima ? '' : ' mr-item-icon--completada'}`}>
-                    <BodyIcon zona={turno.zona} />
+                    <BodyIcon zona={r.zona} />
                   </div>
                   <div className='mr-item-info'>
                     <div className='mr-item-fecha'>
-                      {fmtLargo(turno.fecha)} · {turno.hora}–{nextHour(turno.hora)}
+                      {fmtLargo(r.fecha)} · {r.hora}–{nextHour(r.hora)}
                     </div>
                     <div className='mr-item-meta'>
-                      <span>{ZONA_LABELS[turno.zona] ?? turno.zona}</span>
-                      {turno.medio_pago && (
+                      <span>{ZONA_LABELS[r.zona] ?? r.zona}</span>
+                      {r.medio_pago && (
                         <>
                           <span className='mr-item-meta-dot' />
-                          <span>{turno.medio_pago}</span>
+                          <span>{r.medio_pago}</span>
+                        </>
+                      )}
+                      {r.precio_pagado != null && (
+                        <>
+                          <span className='mr-item-meta-dot' />
+                          <span>{fmt(r.precio_pagado)}</span>
                         </>
                       )}
                     </div>
                   </div>
-                  <span
-                    className={`mr-item-badge${proxima ? ' mr-item-badge--proxima' : ' mr-item-badge--completada'}`}
-                  >
-                    {proxima ? 'Próxima' : 'Completada'}
+                  <span className={`mr-item-badge mr-item-badge--${estadoCfg.css}`}>
+                    {estadoCfg.label}
                   </span>
                 </div>
               )
@@ -315,7 +345,6 @@ export default function MisReservas() {
           </div>
         )}
 
-        {/* Nueva reserva CTA */}
         <Link to='/turnos' className='mr-cta'>
           <div className='mr-cta-left'>
             <CalendarIcon size={20} />

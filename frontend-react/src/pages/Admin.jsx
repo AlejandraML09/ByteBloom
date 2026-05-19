@@ -7,6 +7,7 @@ import { PacientesTab } from '../components/admin/PacientesTab'
 import { CuposTab } from '../components/admin/CuposTab'
 import { CancelarTab } from '../components/admin/CancelarTab'
 import { CrearTab } from '../components/admin/CrearTab'
+import { ProgramarTab } from '../components/admin/ProgramarTab'
 import { AsistenciaTab } from '../components/admin/AsistenciaTab'
 import { PriceTab } from '../components/admin/PriceTab'
 import { EliminarTab } from '../components/admin/EliminarTab'
@@ -30,15 +31,16 @@ function initOcupados() {
 }
 
 const TABS = [
-  { id: 'turnos',      label: 'Turnos del día',          roles: ['admin'] },
-  { id: 'pacientes',   label: 'Pacientes',                roles: ['admin'] },
-  { id: 'cupos',       label: 'Gestionar cupos',          roles: ['admin'] },
-  { id: 'asistencia',  label: 'Asistencia',               roles: ['secretario'] },
-  { id: 'crear',       label: 'Crear clase',              roles: ['admin', 'secretario'] },
-  { id: 'cancelar',    label: 'Cancelar clase',           roles: ['admin', 'secretario'] },
-  { id: 'eliminar',    label: 'Eliminar por profesional', roles: ['admin'] },
-  { id: 'precios',     label: 'Modificar precio',         roles: ['admin'] },
-  { id: 'secretarios', label: 'Secretarios',              roles: ['admin'] },
+  { id: 'turnos', label: 'Turnos del día', roles: ['admin'] },
+  { id: 'pacientes', label: 'Pacientes', roles: ['admin'] },
+  { id: 'cupos', label: 'Gestionar cupos', roles: ['admin'] },
+  { id: 'asistencia', label: 'Asistencia', roles: ['secretario'] },
+  { id: 'crear', label: 'Crear clase', roles: ['admin', 'secretario'] },
+  { id: 'programar', label: 'Programar clases', roles: ['admin', 'secretario'] },
+  { id: 'cancelar', label: 'Cancelar clase', roles: ['admin', 'secretario'] },
+  { id: 'eliminar', label: 'Eliminar por profesional', roles: ['admin'] },
+  { id: 'precios', label: 'Modificar precio', roles: ['admin'] },
+  { id: 'secretarios', label: 'Secretarios', roles: ['admin'] },
 ]
 
 const TAB_HEADERS = {
@@ -91,7 +93,8 @@ export default function Admin() {
   useEffect(() => {
     const cargarClases = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/clases`)
+        // Para la pestaña de precios usamos directamente la respuesta del backend
+        const res = await fetch(`${API_URL}/api/cupos`)
         if (res.ok) {
           const data = await res.json()
           if (data.length > 0) setUpcomingClasses(data)
@@ -110,7 +113,7 @@ export default function Admin() {
         if (res.ok) {
           const data = await res.json()
           setCuposClasses(data)
-          setCuposInput(Object.fromEntries(data.map((clase) => [clase.id, clase.cupo_max])))
+          setCuposInput(Object.fromEntries(data.map((clase) => [clase.id, clase.cupo_maximo])))
         }
       } catch {
         console.log('No se pudieron cargar los cupos desde el backend')
@@ -198,7 +201,7 @@ export default function Admin() {
       const res = await fetch(`${API_URL}/api/clases-cancelar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ zona: clase.zona, fecha: clase.fecha, hora: clase.hora }),
+        body: JSON.stringify({ clase_programada_id: claseId }),
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok) { showToast(body.detail || 'Error al cancelar clase'); return }
@@ -209,11 +212,51 @@ export default function Admin() {
     }
   }
 
-  async function eliminarClasesPorProfesional(email) {
-    const res = await fetch(
-      `${API_URL}/api/clases/por-profesional/${encodeURIComponent(email)}`,
-      { method: 'DELETE' }
+  async function crearClasesProgramadas(datos) {
+    const res = await fetch(`${API_URL}/api/clases/programadas`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos),
+    })
+    const body = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(body.detail || 'Error al programar las clases.')
+    showToast(
+      `${body.creadas} clase${body.creadas !== 1 ? 's' : ''} programada${body.creadas !== 1 ? 's' : ''} creada${body.creadas !== 1 ? 's' : ''} correctamente`
     )
+    // Refrescar datos relevantes (cupos, clases para cancelar y precios)
+    try {
+      const r1 = await fetch(`${API_URL}/api/cupos`)
+      if (r1.ok) {
+        const d1 = await r1.json()
+        setCuposClasses(d1)
+        setCuposInput(Object.fromEntries(d1.map((clase) => [clase.id, clase.cupo_maximo])))
+          setUpcomingClasses(d1)
+      }
+    } catch {}
+
+    try {
+      const r2 = await fetch(`${API_URL}/api/clases-cancelar`)
+      if (r2.ok) {
+        const d2 = await r2.json()
+        setClasesParaCancelar(d2)
+      }
+    } catch {}
+
+    try {
+      const r3 = await fetch(`${API_URL}/api/precios`)
+      if (r3.ok) {
+        const d3 = await r3.json()
+        setPrecio(d3.precio ?? 0)
+      }
+    } catch {}
+
+    return body
+  }
+
+  async function eliminarClasesPorProfesional(email) {
+    const res = await fetch(`${API_URL}/api/clases/por-profesional/${encodeURIComponent(email)}`, {
+      method: 'DELETE',
+    })
     const body = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(body.detail || 'Error al eliminar las clases.')
     showToast(`Clases de ${email} canceladas correctamente`)
@@ -235,11 +278,22 @@ export default function Admin() {
       const res = await fetch(`${API_URL}/api/cupos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ zona: clase.zona, fecha: clase.fecha, hora: clase.hora, nuevo_cupo: nuevoCupo }),
+        body: JSON.stringify({
+          zona_id: clase.zona_id,
+          fecha: clase.fecha,
+          hora: clase.hora,
+          nuevo_cupo: nuevoCupo,
+        }),
       })
       const body = await res.json().catch(() => ({}))
-      if (!res.ok) { showToast(body.detail || 'Error al modificar cupo'); return }
-      setCuposClasses((prev) => prev.map((c) => (c.id === claseId ? { ...c, cupo_max: nuevoCupo } : c)))
+      if (!res.ok) {
+        showToast(body.detail || 'Error al modificar cupo')
+        return
+      }
+
+      setCuposClasses((prev) =>
+        prev.map((c) => (c.id === claseId ? { ...c, cupo_maximo: nuevoCupo } : c))
+      )
       setCuposInput((prev) => ({ ...prev, [claseId]: nuevoCupo }))
       showToast('Modificación exitosa')
     } catch {
@@ -247,31 +301,66 @@ export default function Admin() {
     }
   }
 
-  function modificarPrecio() {
+  function modificarPrecio(zonaId = null) {
     const nuevoPrecio = parseInt(priceInput, 10)
-    if (!nuevoPrecio || nuevoPrecio <= 0) { showToast('Ingresá un precio válido'); return }
-    setPrecio(nuevoPrecio)
-    setPriceInput('')
+    if (!nuevoPrecio || nuevoPrecio <= 0) {
+      showToast('Ingresá un precio válido')
+      return
+    }
+
+    const body = { nuevo_precio: nuevoPrecio }
+    if (zonaId !== null && zonaId !== undefined) {
+      body.zona_id = zonaId
+    }
+
     fetch(`${API_URL}/api/precios`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nuevo_precio: nuevoPrecio }),
+      body: JSON.stringify(body),
     })
       .then(async (res) => {
         if (!res.ok) {
-          const body = await res.json().catch(() => ({}))
-          showToast(body.detail || 'Error al guardar en backend')
+          const respBody = await res.json().catch(() => ({}))
+          showToast(respBody.detail || 'Error al guardar en backend')
           return
         }
-        showToast('Modificación exitosa')
+        showToast('Precio actualizado exitosamente')
+        setPrecio(nuevoPrecio)
+        setPriceInput('')
+
+        // Refrescar datos después de actualizar el precio
+        try {
+          const resPrecios = await fetch(`${API_URL}/api/precios`)
+          if (resPrecios.ok) {
+            const dataPrecios = await resPrecios.json()
+            setPrecio(dataPrecios.precio ?? 0)
+          }
+
+          const resCupos = await fetch(`${API_URL}/api/cupos`)
+          if (resCupos.ok) {
+            const dataCupos = await resCupos.json()
+            setUpcomingClasses(dataCupos)
+          }
+        } catch {
+          console.log('No se pudieron refrescar los datos después de actualizar precio')
+        }
       })
-      .catch(() => showToast('Guardado local, backend no disponible'))
+      .catch(() => {
+        showToast('Guardado local, backend no disponible')
+      })
   }
 
-  function logout() {
-    localStorage.removeItem('usuario')
-    localStorage.removeItem('ks_user')
-    navigate('/login')
+  async function logout() {
+    try {
+      await fetch(`${API_URL}/logout`, { method: 'POST' })
+    } catch (err) {
+      console.log('Backend no disponible')
+    } finally {
+      localStorage.removeItem('usuario')
+      localStorage.removeItem('ks_user')
+      sessionStorage.clear()
+      navigate('/login')
+    }
   }
 
   const currentHeader = TAB_HEADERS[activeTab] ?? { title: '', desc: '' }
@@ -345,8 +434,12 @@ export default function Admin() {
             onSave={guardarAsistencia}
           />
         )}
-        {activeTab === 'crear'       && <CrearTab onCrear={crearClase} />}
-        {activeTab === 'cancelar'    && (
+
+        {activeTab === 'crear' && <CrearTab onCrear={crearClase} />}
+
+        {activeTab === 'programar' && <ProgramarTab onProgramar={crearClasesProgramadas} />}
+
+        {activeTab === 'cancelar' && (
           <CancelarTab
             classes={clasesParaCancelar}
             onCancelar={cancelarClase}
@@ -354,8 +447,10 @@ export default function Admin() {
             onFilterChange={setFilterCancelarDate}
           />
         )}
-        {activeTab === 'eliminar'    && <EliminarTab onEliminar={eliminarClasesPorProfesional} />}
-        {activeTab === 'precios'     && (
+
+        {activeTab === 'eliminar' && <EliminarTab onEliminar={eliminarClasesPorProfesional} />}
+
+        {activeTab === 'precios' && (
           <PriceTab
             classes={upcomingClasses}
             priceValue={priceInput}
