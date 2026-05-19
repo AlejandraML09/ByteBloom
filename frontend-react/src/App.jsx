@@ -8,7 +8,9 @@ import Login from './pages/Login'
 import Admin from './pages/Admin'
 import Registro from './pages/Registro'
 import RecuperarContrasena from './pages/RecuperarContrasena'
+import MisReservas from './pages/MisReservas'
 import ScrollToTop from './components/ScrollToTop'
+import RestablecerContrasena from './pages/RestablecerContrasena'
 
 export default function App() {
   return (
@@ -24,6 +26,8 @@ export default function App() {
         <Route path='/admin' element={<Admin />} />
         <Route path='/registro' element={<Registro />} />
         <Route path='/recuperar-contrasena' element={<RecuperarContrasena />} />
+        <Route path='/mis-reservas' element={<MisReservas />} />
+        <Route path='/restablecer-password' element={<RestablecerContrasena />} />
         <Route path='*' element={<Navigate to='/' replace />} />
       </Routes>
     </BrowserRouter>

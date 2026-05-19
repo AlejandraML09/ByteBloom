@@ -15,7 +15,7 @@ import DiscountModal from '../components/turnos/Discountmodal'
 import '../css/turnos.css'
 
 const MAX_SHIFTS = 3
-const PRECIO_TURNO = 20000
+
 
 function toMes(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
@@ -31,7 +31,6 @@ export default function Turnos() {
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
   const { msg, visible, showToast } = useToast()
-
   const today = useMemo(() => {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
@@ -49,6 +48,16 @@ export default function Turnos() {
     } finally {
       setLoadingSlots(false)
     }
+  }, [])
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const status = params.get('status')
+    if (status === 'approved') {
+     const cantidad = parseInt(params.get('cantidad')) || 1
+     showToast(`✓ ${cantidad} turno${cantidad > 1 ? 's' : ''} confirmado${cantidad > 1 ? 's' : ''}`)
+  }
+    if (status === 'failure') showToast('✗ El pago fue rechazado. Intentá de nuevo.')
+    if (status === 'pending') showToast('⏳ Tu pago está pendiente de confirmación.')
   }, [])
 
   function getOcupados(fecha, hora) {
@@ -93,9 +102,10 @@ export default function Turnos() {
         const { data } = await client.post('/api/crear-preferencia', null, {
           params: {
             servicio_id: 1,
-            precio: PRECIO_TURNO,
+            precio:  precioTurno ,
             titulo: `Clase ${zona}`,
-          },
+            cantidad: shifts.length 
+          }
         })
         if (data?.init_point) {
           window.location.href = data.init_point
@@ -104,10 +114,13 @@ export default function Turnos() {
         showToast('No se pudo obtener el link de pago.')
         return
       }
+      const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
+      const usuarioId = stored ? JSON.parse(stored)?.id : null
       await reservarTurnos({
         zona,
         turnos: shifts.map((s) => ({ fecha: fmtDate(s.diaDate), hora: s.slot })),
         medioPago,
+        usuarioId,
       })
 
       const affectedMonths = [...new Set(shifts.map((s) => toMes(s.diaDate)))]

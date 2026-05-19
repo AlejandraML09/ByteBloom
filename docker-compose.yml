@@ -17,18 +17,33 @@ services:
 
   migrate:
     image: python:3.12-slim
-    network_mode: host
     working_dir: /app
     volumes:
       - ./backend:/app
       - pip-cache:/root/.cache/pip
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5433/bytebloom
+      DATABASE_URL: postgresql://postgres:postgres@db-bytebloom:5432/bytebloom
     command: sh -c "pip install -r requirements.txt -q && alembic upgrade head"
     depends_on:
       db-bytebloom:
         condition: service_healthy
     restart: "no"
+
+  backend:
+    image: python:3.12-slim
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+      - pip-cache:/root/.cache/pip
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db-bytebloom:5432/bytebloom
+    command: sh -c "pip install -r requirements.txt -q && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    ports:
+      - "8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: on-failure
 
   adminer:
     image: adminer

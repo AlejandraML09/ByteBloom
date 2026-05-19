@@ -2,6 +2,9 @@ import mpLogo from '../../assets/MP_RGB_HANDSHAKE_color_horizontal.png'
 import cuentaDniLogo from '../../assets/cuenta_dni.png'
 import modoLogo from '../../assets/modo_logo.png'
 
+// ─── Cambiar a true cuando los créditos estén implementados en el backend ───
+const CREDITS_ENABLED = false
+
 const METHODS = [
   {
     id: 'mercadopago',
@@ -123,6 +126,18 @@ const METHODS = [
       </svg>
     ),
   },
+  {
+    id: 'credito_favor',
+    label: 'Crédito a favor',
+    disabled: !CREDITS_ENABLED,
+    logo: (
+      <svg viewBox="0 0 48 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="46" height="28" rx="4" fill="#0c2340" stroke="#38bdf8" strokeWidth="1.5" />
+        <circle cx="24" cy="15" r="8" fill="none" stroke="#38bdf8" strokeWidth="1.5" />
+        <text x="24" y="19.5" textAnchor="middle" fill="#38bdf8" fontFamily="Arial,sans-serif" fontWeight="800" fontSize="11">★</text>
+      </svg>
+    ),
+  },
 ]
 
 export function PaymentSelector({ selected, onSelect }) {
@@ -132,17 +147,33 @@ export function PaymentSelector({ selected, onSelect }) {
         <span className='step-number'>3</span> Medios de pago
       </div>
       <div className='payment-row'>
-        {METHODS.map(({ id, label, logo }) => (
+        {METHODS.map(({ id, label, logo, disabled }) => (
           <button
             key={id}
-            className={`payment-btn${selected === id ? ' selected' : ''}`}
-            onClick={() => onSelect(id)}
+            className={`payment-btn${selected === id ? ' selected' : ''}${disabled ? ' disabled' : ''}`}
+            onClick={() => !disabled && onSelect(id)}
+            aria-disabled={disabled}
+            title={disabled ? 'Próximamente disponible' : undefined}
           >
-            <div className='payment-logo'>{logo}</div>
-            <span className='payment-label'>{label}</span>
+            <div className='payment-logo' style={disabled ? { opacity: 0.4 } : undefined}>
+              {logo}
+            </div>
+            <span className='payment-label' style={disabled ? { opacity: 0.4 } : undefined}>
+              {label}
+            </span>
+            {disabled && (
+              <span className='payment-badge-soon'>Pronto</span>
+            )}
           </button>
         ))}
       </div>
+
+      {!CREDITS_ENABLED && (
+        <p className='payment-credits-notice'>
+          Los créditos por cancelación de clases estarán disponibles próximamente.
+          Cada punto equivale a una clase.
+        </p>
+      )}
     </div>
   )
 }

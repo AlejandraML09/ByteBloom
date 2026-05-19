@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from typing import Optional
 from app.database import SessionLocal
 from app import models
 
@@ -29,6 +30,7 @@ class ReservaRequest(BaseModel):
     zona: str
     turnos: list[TurnoItem]
     medio_pago: str
+    usuario_id: Optional[int] = None
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -76,8 +78,31 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
                 hora=item.hora,
                 zona=data.zona,
                 medio_pago=data.medio_pago,
+                usuario_id=data.usuario_id,
             )
         )
 
     db.commit()
     return {"ok": True, "reservados": len(data.turnos)}
+
+
+@router.get("/mis-turnos")
+def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
+    """Returns all turnos for a given user, sorted newest first."""
+    turnos = (
+        db.query(models.Turno)
+        .filter(models.Turno.usuario_id == usuario_id)
+        .order_by(models.Turno.fecha.desc(), models.Turno.hora.desc())
+        .all()
+    )
+    return [
+        {
+            "id": t.id,
+            "fecha": t.fecha,
+            "hora": t.hora,
+            "zona": t.zona,
+            "medio_pago": t.medio_pago,
+            "created_at": t.created_at.isoformat() if t.created_at else None,
+        }
+        for t in turnos
+    ]

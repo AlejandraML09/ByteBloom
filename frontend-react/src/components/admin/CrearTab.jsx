@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { ZONAS } from '../../constants/admin'
+import { profesionales } from '../../constants/profesionales'
 
 const INITIAL_FORM = {
-  zona: '',
+  zona_id: -1,
   fecha: '',
   hora: '',
-  cupo_max: '',
+  cupo_maximo: 0,
+  profesional_email: '',
 }
 
 export function CrearTab({ onCrear }) {
@@ -16,11 +18,12 @@ export function CrearTab({ onCrear }) {
 
   const validate = () => {
     const newErrors = {}
-    if (!form.zona) newErrors.zona = 'Seleccioná una zona.'
+    if (!form.zona_id) newErrors.zona_id = 'Seleccioná una zona.'
     if (!form.fecha) newErrors.fecha = 'Ingresá una fecha.'
     if (!form.hora) newErrors.hora = 'Ingresá un horario.'
-    if (!form.cupo_max || isNaN(form.cupo_max) || Number(form.cupo_max) < 1)
-      newErrors.cupo_max = 'Ingresá un cupo máximo válido.'
+    if (!form.cupo_maximo || isNaN(form.cupo_maximo) || Number(form.cupo_maximo) < 1)
+      newErrors.cupo_maximo = 'Ingresá un cupo máximo válido.'
+    if (!form.profesional_email) newErrors.profesional_email = 'Seleccioná un profesional.'
     return newErrors
   }
 
@@ -41,10 +44,11 @@ export function CrearTab({ onCrear }) {
     setSuccessMsg('')
     try {
       await onCrear({
-        zona: form.zona,
+        zona_id: Number(form.zona_id),
         fecha: form.fecha,
         hora: form.hora,
-        cupo_max: Number(form.cupo_max),
+        cupo_maximo: Number(form.cupo_maximo),
+        profesional_email: form.profesional_email || null,
       })
       setSuccessMsg('Clase creada exitosamente.')
       setForm(INITIAL_FORM)
@@ -71,23 +75,44 @@ export function CrearTab({ onCrear }) {
 
         <div className='form-grid'>
           <div className='form-group'>
-            <label htmlFor='zona'>Zona</label>
+            <label htmlFor='zona_id'>Zona</label>
             <select
-              id='zona'
-              name='zona'
-              value={form.zona}
+              id='zona_id'
+              name='zona_id'
+              value={form.zona_id}
               onChange={handleChange}
-              className={errors.zona ? 'input-error' : ''}
+              className={errors.zona_id ? 'input-error' : ''}
             >
               <option value=''>Seleccioná una zona</option>
               {Object.entries(ZONAS).map(([key, label]) => (
-                <option key={key} value={key}>
+                <option key={key} value={parseInt(key)}>
                   {label}
                 </option>
               ))}
             </select>
-            {errors.zona && <span className='field-error'>{errors.zona}</span>}
+            {errors.zona_id && <span className="field-error">{errors.zona_id}</span>}
           </div>
+
+          <div className="form-group">
+            <label htmlFor="profesional_email">Profesional</label>
+            <select
+              id="profesional_email"
+              name="profesional_email"
+              value={form.profesional_email}
+              onChange={handleChange}
+              className={errors.profesional_email ? 'input-error' : ''}
+            >
+              <option value="">Sin asignar</option>
+              {profesionales.map((p) => (
+                <option key={p.email} value={p.email}>
+                  {p.name} — {p.title}
+                </option>
+              ))}
+            </select>
+            {errors.profesional_email && (
+              <span className="field-error">{errors.profesional_email}</span>
+            )}
+          </div>          
 
           <div className='form-group'>
             <label htmlFor='fecha'>Fecha</label>
@@ -116,18 +141,18 @@ export function CrearTab({ onCrear }) {
           </div>
 
           <div className='form-group'>
-            <label htmlFor='cupo_max'>Cupo máximo</label>
+            <label htmlFor='cupo_maximo'>Cupo máximo</label>
             <input
-              id='cupo_max'
+              id='cupo_maximo'
               type='number'
-              name='cupo_max'
+              name='cupo_maximo'
               min='1'
               placeholder='Ej: 10'
-              value={form.cupo_max}
+              value={form.cupo_maximo}
               onChange={handleChange}
-              className={errors.cupo_max ? 'input-error' : ''}
+              className={errors.cupo_maximo ? 'input-error' : ''}
             />
-            {errors.cupo_max && <span className='field-error'>{errors.cupo_max}</span>}
+            {errors.cupo_maximo && <span className='field-error'>{errors.cupo_maximo}</span>}
           </div>
         </div>
 
@@ -136,7 +161,6 @@ export function CrearTab({ onCrear }) {
             className='btn-action'
             onClick={handleSubmit}
             disabled={loading}
-            style={{ backgroundColor: '#2e7d32', color: 'white' }}
           >
             {loading ? 'Creando...' : 'Crear clase'}
           </button>

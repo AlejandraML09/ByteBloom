@@ -2,26 +2,24 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, field_validator
 from datetime import datetime, date
 from app.database import SessionLocal
-from app.models import Clase, Configuracion, ZonaEnum
+from app.models import Clase, ClaseProgramada, Configuracion, ZonaEnum
 
 router = APIRouter(prefix="/api/clases", tags=["clases"])
 
 
 class CrearClaseRequest(BaseModel):
-    zona: str
+    zona_id: int
     fecha: str  # formato: YYYY-MM-DD
     hora: str  # formato: HH:MM
-    cupo_max: int
+    cupo_maximo: int
+    profesional_email: str | None = None
 
-    @field_validator("zona")
+    @field_validator("zona_id")
     @classmethod
     def zona_no_vacia(cls, v):
-        if not v.strip():
-            raise ValueError("La zona no puede estar vacía.")
-        zonas_validas = [z.value for z in ZonaEnum]
-        if v.strip() not in zonas_validas:
-            raise ValueError(f"Zona inválida. Opciones: {zonas_validas}")
-        return v.strip()
+        if v < 1:
+            raise ValueError("La zona no puede ser menor a 1.")
+        return v
 
     @field_validator("fecha")
     @classmethod
@@ -43,23 +41,28 @@ class CrearClaseRequest(BaseModel):
             raise ValueError("El horario debe tener formato HH:MM.")
         return v
 
-    @field_validator("cupo_max")
+    @field_validator("cupo_maximo")
     @classmethod
     def cupo_positivo(cls, v):
         if v < 1:
             raise ValueError("El cupo máximo debe ser al menos 1.")
         return v
+    
+    @field_validator("profesional_email")
+    @classmethod
+    def email_valido(cls, v):
+        if v is None:
+            return v
+        if "@" not in v:
+            raise ValueError("El email del profesional no es válido.")
+        return v.strip().lower()
 
 
 class ClaseResponse(BaseModel):
     id: int
-    zona: str
-    fecha: date
-    hora: str
-    cupo_max: int
-    inscritos: int
-    cancelada: int
-
+    zona_id: int
+    cupo_maximo: int
+    profesional_email: str | None = None
     class Config:
         from_attributes = True
 
@@ -68,25 +71,61 @@ class ClaseResponse(BaseModel):
 async def crear_clase(body: CrearClaseRequest):
     db = SessionLocal()
     try:
-        config = db.query(Configuracion).filter(Configuracion.id == 1).first()
-        precio = config.precio if config else 0
-
+        print(f"Recibido request para crear clase: {body}")
         nueva_clase = Clase(
-            zona=body.zona,
-            fecha=body.fecha,
-            hora=body.hora,
-            cupo_max=body.cupo_max,
-            inscritos=0,
-            cancelada=0,
+            zona_id=body.zona_id,
+            cupo_maximo=body.cupo_maximo,
+            profesional_email=body.profesional_email,
         )
+        print(f"Creando clase con zona_id={body.zona_id}, cupo_maximo={body.cupo_maximo}, profesional_email={body.profesional_email}")
         db.add(nueva_clase)
         db.commit()
         db.refresh(nueva_clase)
-        return nueva_clase
-    except Exception:
+        print(f"Clase creada con ID={nueva_clase.id}")
+        nueva_clase_programada = ClaseProgramada(
+            clase_id=nueva_clase.id,
+            fecha=body.fecha,
+            hora=body.hora,
+            cupo_disponible=body.cupo_maximo
+        )
+        print(f"Programando clase con ID={nueva_clase_programada.clase_id}, fecha={body.fecha}, hora={body.hora}, cupo_disponible={body.cupo_maximo}")
+        db.add(nueva_clase_programada)
+        db.commit()
+        db.refresh(nueva_clase_programada)
+        print(f"Clase programada con ID={nueva_clase_programada.id}")
+        return ClaseResponse(
+            id=nueva_clase.id,
+            zona_id=nueva_clase.zona_id,
+            cupo_maximo=nueva_clase.cupo_maximo,
+            profesional_email=nueva_clase.profesional_email
+        )
+    except Exception as e:
         db.rollback()
+        print(f"Error al crear la clase: {e}")
         raise HTTPException(
             status_code=500, detail="Error interno al guardar la clase."
         )
+    finally:
+        db.close()
+
+@router.delete("/por-profesional/{email}", status_code=200)
+async def eliminar_clases_de_profesional(email: str):
+    db = SessionLocal()
+    try:
+        clases = db.query(Clase).filter(
+            Clase.profesional_email == email.strip().lower(),
+            Clase.cancelada == 0
+        ).all()
+        if not clases:
+            raise HTTPException(status_code=404, detail="No se encontraron clases para ese profesional.")
+        for clase in clases:
+            clase.cancelada = 1  # soft delete, no borra el registro
+        db.commit()
+        return {"eliminadas": len(clases), "profesional_email": email}
+    except HTTPException:
+        raise
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Error al eliminar las clases.")
     finally:
         db.close()
