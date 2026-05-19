@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from datetime import date
 from app.database import SessionLocal
 from app import models
+from typing import Optional
 
 router = APIRouter()
 
@@ -48,7 +49,7 @@ def registrar(data: UsuarioRequest, db: Session = Depends(get_db)):
         email=email_lower,
         fecha_nacimiento=data.fecha_nacimiento,
         dni=data.dni,
-        rol=models.RolEnum.usuario.value,
+        rol=models.RolUsuario.usuario.value,
     )
     nuevo.set_password(data.password)  # Hash the password
     db.add(nuevo)
@@ -85,6 +86,8 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
         "apellido": user.apellido,
         "email": user.email,
         "rol": user.rol,
+        "dni": user.dni,
+        "fecha_nacimiento": str(user.fecha_nacimiento) if user.fecha_nacimiento else "",
     }
 
 @router.post("/crear-secretario")
@@ -102,7 +105,7 @@ def crear_secretario(data: UsuarioRequest, db: Session = Depends(get_db)):
         nombre=data.nombre,
         apellido=data.apellido,
         fecha_nacimiento=data.fecha_nacimiento,
-        rol=models.RolEnum.secretario.value
+        rol=models.RolUsuario.secretario.value
     )
     nuevo_secretario.set_password(data.password)
     db.add(nuevo_secretario)
@@ -121,7 +124,7 @@ def crear_secretario(data: UsuarioRequest, db: Session = Depends(get_db)):
 @router.get("/secretarios")
 def listar_secretarios(db: Session = Depends(get_db)):
     secretarios = db.query(models.Usuario).filter(
-        models.Usuario.rol == models.RolEnum.secretario.value
+        models.Usuario.rol == models.RolUsuario.secretario.value
     ).all()
     
     return [
@@ -134,3 +137,39 @@ def listar_secretarios(db: Session = Depends(get_db)):
         }
         for secretario in secretarios
     ]
+
+class ActualizarUsuarioRequest(BaseModel):
+    usuario_id: int
+    nombre: str
+    apellido: str
+    dni: int
+    fecha_nacimiento: date
+
+@router.put("/usuarios/me")
+def actualizar_usuario(data: ActualizarUsuarioRequest, db: Session = Depends(get_db)):
+    user = db.query(models.Usuario).filter(models.Usuario.id == data.usuario_id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    if not data.nombre.strip():
+        raise HTTPException(status_code=400, detail="El nombre es un campo obligatorio")
+    if not data.apellido.strip():
+        raise HTTPException(status_code=400, detail="El apellido es un campo obligatorio")
+
+    user.nombre = data.nombre.strip()
+    user.apellido = data.apellido.strip()
+    user.fecha_nacimiento = data.fecha_nacimiento
+
+    # Solo actualizar dni si cambió
+    if data.dni and data.dni != user.dni:
+        existe = db.query(models.Usuario).filter(
+            models.Usuario.dni == data.dni,
+            models.Usuario.id != data.usuario_id
+        ).first()
+        if existe:
+            raise HTTPException(status_code=400, detail="El DNI ya está registrado por otro usuario")
+        user.dni = data.dni
+
+    db.commit()
+    return {"mensaje": "Modificación exitosa"}

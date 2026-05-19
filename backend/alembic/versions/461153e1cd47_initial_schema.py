@@ -57,7 +57,11 @@ def upgrade():
         fecha_nacimiento DATE NOT NULL,
 
         rol rol_usuario NOT NULL
-            DEFAULT 'usuario'
+            DEFAULT 'usuario',
+               
+        reset_token VARCHAR(255),
+
+        reset_token_expira TIMESTAMP WITH TIME ZONE
     );
 
     -- ======================================================
