@@ -38,12 +38,6 @@ def upgrade():
         'ausente'
     );
 
-    CREATE TYPE estado_clase_programada AS ENUM (
-        'disponible',
-        'cancelada',
-        'finalizada'
-    );
-
     -- ======================================================
     -- TABLA: usuarios
     -- ======================================================
@@ -93,10 +87,6 @@ def upgrade():
 
         zona_id BIGINT NOT NULL,
 
-        nombre VARCHAR(100) NOT NULL,
-
-        descripcion TEXT,
-
         cupo_maximo INTEGER NOT NULL
             CHECK (cupo_maximo > 0),
 
@@ -112,29 +102,6 @@ def upgrade():
     );
 
     -- ======================================================
-    -- TABLA: horarios_clase
-    -- ======================================================
-
-    CREATE TABLE horarios_clase (
-        id BIGSERIAL PRIMARY KEY,
-
-        clase_id BIGINT NOT NULL,
-
-        dia_semana SMALLINT NOT NULL
-            CHECK (dia_semana BETWEEN 1 AND 7),
-
-        horario TIME NOT NULL,
-
-        activo BOOLEAN NOT NULL
-            DEFAULT TRUE,
-
-        CONSTRAINT fk_horario_clase
-            FOREIGN KEY (clase_id)
-            REFERENCES clases(id)
-            ON DELETE CASCADE
-    );
-
-    -- ======================================================
     -- TABLA: clases_programadas
     -- ======================================================
 
@@ -143,24 +110,14 @@ def upgrade():
 
         clase_id BIGINT NOT NULL,
 
-        horario_id BIGINT NOT NULL,
-
         fecha DATE NOT NULL,
 
         hora TIME NOT NULL,
-
-        cupo_total INTEGER NOT NULL
-            CHECK (cupo_total > 0),
-
+               
         cupo_disponible INTEGER NOT NULL
             CHECK (
                 cupo_disponible >= 0
-                AND cupo_disponible <= cupo_total
             ),
-
-        estado estado_clase_programada
-            NOT NULL
-            DEFAULT 'disponible',
 
         fecha_creacion TIMESTAMP NOT NULL
             DEFAULT NOW(),
@@ -168,12 +125,7 @@ def upgrade():
         CONSTRAINT fk_clase_programada_clase
             FOREIGN KEY (clase_id)
             REFERENCES clases(id)
-            ON DELETE CASCADE,
-
-        CONSTRAINT fk_clase_programada_horario
-            FOREIGN KEY (horario_id)
-            REFERENCES horarios_clase(id)
-            ON DELETE RESTRICT
+            ON DELETE CASCADE
     );
 
     -- ======================================================
@@ -249,9 +201,6 @@ def upgrade():
 
     CREATE INDEX idx_clases_zona
     ON clases(zona_id);
-
-    CREATE INDEX idx_horarios_clase
-    ON horarios_clase(clase_id);
 
     CREATE INDEX idx_clases_programadas_fecha
     ON clases_programadas(fecha);
@@ -335,8 +284,6 @@ def downgrade():
     DROP INDEX IF EXISTS idx_clases_programadas_clase;
     DROP INDEX IF EXISTS idx_clases_programadas_fecha;
 
-    DROP INDEX IF EXISTS idx_horarios_clase;
-
     DROP INDEX IF EXISTS idx_clases_zona;
 
     DROP INDEX IF EXISTS idx_usuarios_dni;
@@ -353,8 +300,6 @@ def downgrade():
 
     DROP TABLE IF EXISTS clases_programadas;
 
-    DROP TABLE IF EXISTS horarios_clase;
-
     DROP TABLE IF EXISTS clases;
 
     DROP TABLE IF EXISTS zonas;
@@ -366,8 +311,6 @@ def downgrade():
     -- ======================================================
 
     DROP TYPE IF EXISTS estado_reserva;
-
-    DROP TYPE IF EXISTS estado_clase_programada;
 
     DROP TYPE IF EXISTS rol_usuario;
     """)

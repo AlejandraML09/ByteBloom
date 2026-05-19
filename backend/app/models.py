@@ -70,13 +70,18 @@ class Clase(Base):
     __tablename__ = "clases"
 
     id = Column(Integer, primary_key=True, index=True)
-    zona = Column(SQLEnum(ZonaEnum), nullable=False, index=True)
-    fecha = Column(Date, nullable=False, index=True)
-    hora = Column(String(5), nullable=False)
-    cupo_max = Column(Integer, nullable=False, default=5)
-    inscritos = Column(Integer, default=0)
-    cancelada = Column(Integer, default=0)
+    zona_id = Column(Integer, nullable=False, index=True)
+    cupo_maximo = Column(Integer, nullable=False, default=5)
+    activo = Column(Boolean, nullable=False, default=1)  # 1 para activo, 0 para inactivo
     profesional_email = Column(String(100), nullable=True)
+
+class ClaseProgramada(Base):
+    __tablename__ = "clases_programadas"
+    id = Column(Integer, primary_key=True, index=True)
+    clase_id = Column(Integer, nullable=False, index=True)
+    fecha = Column(String(10), nullable=False)  # "YYYY-MM-DD"
+    hora = Column(String(5), nullable=False)  # "HH:MM"
+    cupo_disponible = Column(Integer, nullable=False, default=0)
 
 
 class Configuracion(Base):

@@ -54,7 +54,7 @@ def obtener_clases_sin_inscriptos(db: Session = Depends(get_db)):
     """Obtiene las próximas clases programadas sin inscriptos o con pocos"""
     clases = (
         db.query(models.Clase)
-        .filter(models.Clase.inscritos == 0, models.Clase.fecha >= date.today())
+        .filter(models.Clase.fecha >= date.today())
         .order_by(models.Clase.fecha, models.Clase.hora)
         .all()
     )
