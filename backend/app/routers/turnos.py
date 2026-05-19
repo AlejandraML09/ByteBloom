@@ -58,6 +58,7 @@ def get_disponibilidad(mes: str, db: Session = Depends(get_db)):
             "cupo_maximo": c.cupo_maximo,
             "zona_id": z.id,
             "zona_nombre": z.nombre,
+            "precio": float(z.precio),
         }
         for cp, c, z in rows
     ]

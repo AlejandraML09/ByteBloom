@@ -311,28 +311,49 @@ export default function Admin() {
     }
   }
 
-  function modificarPrecio() {
+  function modificarPrecio(zonaId = null) {
     const nuevoPrecio = parseInt(priceInput, 10)
     if (!nuevoPrecio || nuevoPrecio <= 0) {
       showToast('Ingresá un precio válido')
       return
     }
 
-    setPrecio(nuevoPrecio)
-    setPriceInput('')
+    const body = { nuevo_precio: nuevoPrecio }
+    if (zonaId !== null && zonaId !== undefined) {
+      body.zona_id = zonaId
+    }
 
     fetch(`${API_URL}/api/precios`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nuevo_precio: nuevoPrecio }),
+      body: JSON.stringify(body),
     })
       .then(async (res) => {
         if (!res.ok) {
-          const body = await res.json().catch(() => ({}))
-          showToast(body.detail || 'Error al guardar en backend')
+          const respBody = await res.json().catch(() => ({}))
+          showToast(respBody.detail || 'Error al guardar en backend')
           return
         }
-        showToast('Modificación exitosa')
+        showToast('Precio actualizado exitosamente')
+        setPrecio(nuevoPrecio)
+        setPriceInput('')
+
+        // Refrescar datos después de actualizar el precio
+        try {
+          const resPrecios = await fetch(`${API_URL}/api/precios`)
+          if (resPrecios.ok) {
+            const dataPrecios = await resPrecios.json()
+            setPrecio(dataPrecios.precio ?? 0)
+          }
+
+          const resCupos = await fetch(`${API_URL}/api/cupos`)
+          if (resCupos.ok) {
+            const dataCupos = await resCupos.json()
+            setUpcomingClasses(dataCupos)
+          }
+        } catch {
+          console.log('No se pudieron refrescar los datos después de actualizar precio')
+        }
       })
       .catch(() => {
         showToast('Guardado local, backend no disponible')

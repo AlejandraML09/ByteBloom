@@ -66,7 +66,7 @@ def modificar_precios(data: ModificarPrecioRequest, db: Session = Depends(get_db
         zona.precio = data.nuevo_precio
     else:
         # Actualiza todas las zonas
-        db.query(Zona).update({"precio": data.nuevo_precio})
+        db.query(Zona).update({Zona.precio: data.nuevo_precio})
 
     db.commit()
     return {"mensaje": "Precios actualizados correctamente."}

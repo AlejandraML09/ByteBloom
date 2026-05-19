@@ -26,6 +26,7 @@ class ClaseProgramadaResponse(BaseModel):
     hora: str
     cupo_maximo: int
     cupo_disponible: int
+    precio: float
 
     class Config:
         from_attributes = True
@@ -70,6 +71,7 @@ def _rows_to_response(rows):
             hora=str(cp.hora)[:5],  # TIME gives "HH:MM:SS", truncate to "HH:MM"
             cupo_maximo=c.cupo_maximo,
             cupo_disponible=cp.cupo_disponible,
+            precio=float(z.precio),
         )
         for cp, c, z in rows
     ]
