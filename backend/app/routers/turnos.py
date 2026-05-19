@@ -30,6 +30,9 @@ class ReservaRequest(BaseModel):
     usuario_id: Optional[int] = None
 
 
+# ── Endpoints ─────────────────────────────────────────────────────────────────
+
+
 @router.get("/disponibilidad")
 def get_disponibilidad(mes: str, db: Session = Depends(get_db)):
     """
