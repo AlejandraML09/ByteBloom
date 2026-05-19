@@ -1,5 +1,3 @@
-import { ZONAS } from '../../constants/admin'
-
 export function PriceTab({ classes, priceValue, onPriceChange, onModifyPrice, currentPrice }) {
   return (
     <div className='card'>
@@ -88,11 +86,11 @@ export function PriceTab({ classes, priceValue, onPriceChange, onModifyPrice, cu
               ) : (
                 classes.map((clase) => (
                   <tr key={clase.id} style={{ borderBottom: '1px solid #EAE4F2' }}>
-                    <td style={{ padding: '10px 12px' }}>{ZONAS[clase.zona] ?? clase.zona}</td>
+                    <td style={{ padding: '10px 12px' }}>{clase.zona_nombre ?? clase.zona}</td>
                     <td style={{ padding: '10px 12px' }}>{clase.fecha}</td>
                     <td style={{ padding: '10px 12px' }}>{clase.hora}</td>
-                    <td style={{ padding: '10px 12px' }}>{clase.cupo_max}</td>
-                    <td style={{ padding: '10px 12px' }}>{clase.inscritos}</td>
+                    <td style={{ padding: '10px 12px' }}>{clase.cupo_maximo}</td>
+                    <td style={{ padding: '10px 12px' }}>{clase.cupo_maximo - clase.cupo_disponible}</td>
                   </tr>
                 ))
               )}

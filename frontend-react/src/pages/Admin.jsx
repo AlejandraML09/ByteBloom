@@ -87,7 +87,8 @@ export default function Admin() {
   useEffect(() => {
     const cargarClases = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/clases`)
+        // Para la pestaña de precios usamos directamente la respuesta del backend
+        const res = await fetch(`${API_URL}/api/cupos`)
         if (res.ok) {
           const data = await res.json()
           if (data.length > 0) setUpcomingClasses(data)
@@ -224,6 +225,33 @@ export default function Admin() {
     showToast(
       `${body.creadas} clase${body.creadas !== 1 ? 's' : ''} programada${body.creadas !== 1 ? 's' : ''} creada${body.creadas !== 1 ? 's' : ''} correctamente`
     )
+    // Refrescar datos relevantes (cupos, clases para cancelar y precios)
+    try {
+      const r1 = await fetch(`${API_URL}/api/cupos`)
+      if (r1.ok) {
+        const d1 = await r1.json()
+        setCuposClasses(d1)
+        setCuposInput(Object.fromEntries(d1.map((clase) => [clase.id, clase.cupo_maximo])))
+          setUpcomingClasses(d1)
+      }
+    } catch {}
+
+    try {
+      const r2 = await fetch(`${API_URL}/api/clases-cancelar`)
+      if (r2.ok) {
+        const d2 = await r2.json()
+        setClasesParaCancelar(d2)
+      }
+    } catch {}
+
+    try {
+      const r3 = await fetch(`${API_URL}/api/precios`)
+      if (r3.ok) {
+        const d3 = await r3.json()
+        setPrecio(d3.precio ?? 0)
+      }
+    } catch {}
+
     return body
   }
 
@@ -274,7 +302,7 @@ export default function Admin() {
       }
 
       setCuposClasses((prev) =>
-        prev.map((c) => (c.id === claseId ? { ...c, cupo_max: nuevoCupo } : c))
+        prev.map((c) => (c.id === claseId ? { ...c, cupo_maximo: nuevoCupo } : c))
       )
       setCuposInput((prev) => ({ ...prev, [claseId]: nuevoCupo }))
       showToast('Modificación exitosa')
