@@ -103,8 +103,9 @@ function IconDiscount() {
   )
 }
 
-export function SummaryPanel({ zona, shifts, medioPago, onConfirm, confirmando ,precioTurno}) {
-  const subtotal = shifts.length * precioTurno 
+export function SummaryPanel({ zona, shifts, medioPago, onConfirm, confirmando }) {
+  const precioTurno = zona?.precio ?? 0
+  const subtotal = shifts.length * precioTurno
   const discountPct = shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
   const discount = Math.round((subtotal * discountPct) / 100)
   const total = subtotal - discount
@@ -126,7 +127,9 @@ export function SummaryPanel({ zona, shifts, medioPago, onConfirm, confirmando ,
             <div className='summary-v2-row'>
               <IconZona />
               <span className='summary-v2-row-label'>Zona</span>
-              <span className='summary-v2-row-value'>{zona ? ZONA_LABELS[zona] : '—'}</span>
+              <span className='summary-v2-row-value'>
+                {zona ? (ZONA_LABELS[zona.nombre] ?? zona.nombre) : '—'}
+              </span>
             </div>
 
             {shifts.map((s, i) => (

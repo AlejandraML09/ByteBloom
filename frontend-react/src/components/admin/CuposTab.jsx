@@ -43,16 +43,16 @@ export function CuposTab({
             ) : (
               filteredClasses.map((clase) => (
                 <tr key={clase.id}>
-                  <td>{clase.zona}</td>
+                  <td>{clase.zona_nombre}</td>
                   <td>{clase.fecha}</td>
                   <td>{clase.hora}</td>
-                  <td>{clase.cupo_max}</td>
+                  <td>{clase.cupo_maximo}</td>
                   <td>
                     <input
                       className='cupo-input'
                       type='number'
                       min='1'
-                      value={cuposInput[clase.id] ?? clase.cupo_max}
+                      value={cuposInput[clase.id] ?? clase.cupo_maximo}
                       onChange={(e) => onInputChange(clase.id, e.target.value)}
                     />
                   </td>
