@@ -360,10 +360,17 @@ export default function Admin() {
       })
   }
 
-  function logout() {
-    localStorage.removeItem('usuario')
-    localStorage.removeItem('ks_user')
-    navigate('/login')
+  async function logout() {
+    try {
+      await fetch(`${API_URL}/logout`, { method: 'POST' })
+    } catch (err) {
+      console.log('Backend no disponible')
+    } finally {
+      localStorage.removeItem('usuario')
+      localStorage.removeItem('ks_user')
+      sessionStorage.clear()
+      navigate('/login')
+    }
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
