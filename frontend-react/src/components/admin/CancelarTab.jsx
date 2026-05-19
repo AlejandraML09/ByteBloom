@@ -39,12 +39,12 @@ export function CancelarTab({ classes, onCancelar, filterDate, onFilterChange })
             ) : (
               filteredClasses.map((clase) => (
                 <tr key={clase.id}>
-                  <td>{clase.zona}</td>
+                  <td>{clase.zona_nombre}</td>
                   <td>{clase.fecha}</td>
                   <td>{clase.hora}</td>
-                  <td>${clase.precio}</td>
-                  <td>{clase.cupo_max}</td>
-                  <td>{clase.inscritos}</td>
+                  <td>—</td>
+                  <td>{clase.cupo_maximo}</td>
+                  <td>{clase.cupo_maximo - clase.cupo_disponible}</td>
                   <td>
                     <button
                       className='btn-action'

@@ -3,11 +3,12 @@ from fastapi.params import Depends
 from pydantic import BaseModel, field_validator
 from datetime import datetime, date
 
-from requests import Session
+from sqlalchemy.orm import Session
 from app.database import SessionLocal
-from app.models import  Zona, ZonaEnum
+from app.models import Zona, ZonaEnum
 
 router = APIRouter(prefix="/api", tags=["zonas"])
+
 
 # 📦 Dependencia DB
 def get_db():
@@ -24,6 +25,7 @@ class ZonaResponse(BaseModel):
     descripcion: str | None = None
     precio: int
     activo: bool
+
     class Config:
         from_attributes = True
 

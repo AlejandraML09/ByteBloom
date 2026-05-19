@@ -7,6 +7,7 @@ import { PacientesTab } from '../components/admin/PacientesTab'
 import { CuposTab } from '../components/admin/CuposTab'
 import { CancelarTab } from '../components/admin/CancelarTab'
 import { CrearTab } from '../components/admin/CrearTab'
+import { ProgramarTab } from '../components/admin/ProgramarTab'
 import { AsistenciaTab } from '../components/admin/AsistenciaTab'
 import { PriceTab } from '../components/admin/PriceTab'
 import { EliminarTab } from '../components/admin/EliminarTab'
@@ -30,15 +31,16 @@ function initOcupados() {
 }
 
 const TABS = [
-  { id: 'turnos',         label: 'Turnos del día',   roles: ['admin'] },
-  { id: 'pacientes',   label: 'Pacientes',               roles: ['admin'] },
-  { id: 'cupos',           label: 'Gestionar cupos',   roles: ['admin'] },
-  { id: 'asistencia', label: 'Asistencia',             roles: ['secretario'] },
-  { id: 'crear',           label: 'Crear clase',           roles: ['admin', 'secretario'] },
-  { id: 'cancelar',     label: 'Cancelar clase',     roles: ['admin', 'secretario'] },
-  { id: 'eliminar',   label: 'Eliminar por profesional',    roles: ['admin'] },
-  { id: 'precios',       label: 'Modificar precio', roles: ['admin'] },
-  { id: 'secretarios', label: 'Secretarios',     roles: ['admin'] },
+  { id: 'turnos', label: 'Turnos del día', roles: ['admin'] },
+  { id: 'pacientes', label: 'Pacientes', roles: ['admin'] },
+  { id: 'cupos', label: 'Gestionar cupos', roles: ['admin'] },
+  { id: 'asistencia', label: 'Asistencia', roles: ['secretario'] },
+  { id: 'crear', label: 'Crear clase', roles: ['admin', 'secretario'] },
+  { id: 'programar', label: 'Programar clases', roles: ['admin', 'secretario'] },
+  { id: 'cancelar', label: 'Cancelar clase', roles: ['admin', 'secretario'] },
+  { id: 'eliminar', label: 'Eliminar por profesional', roles: ['admin'] },
+  { id: 'precios', label: 'Modificar precio', roles: ['admin'] },
+  { id: 'secretarios', label: 'Secretarios', roles: ['admin'] },
 ]
 
 // Leer usuario UNA sola vez, fuera del componente no es posible con hooks,
@@ -104,7 +106,7 @@ export default function Admin() {
         if (res.ok) {
           const data = await res.json()
           setCuposClasses(data)
-          setCuposInput(Object.fromEntries(data.map((clase) => [clase.id, clase.cupo_max])))
+          setCuposInput(Object.fromEntries(data.map((clase) => [clase.id, clase.cupo_maximo])))
         }
       } catch {
         console.log('No se pudieron cargar los cupos desde el backend')
@@ -195,11 +197,7 @@ export default function Admin() {
       const res = await fetch(`${API_URL}/api/clases-cancelar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          zona: clase.zona,
-          fecha: clase.fecha,
-          hora: clase.hora,
-        }),
+        body: JSON.stringify({ clase_programada_id: claseId }),
       })
 
       const body = await res.json().catch(() => ({}))
@@ -215,11 +213,24 @@ export default function Admin() {
     }
   }
 
-  async function eliminarClasesPorProfesional(email) {
-    const res = await fetch(
-      `${API_URL}/api/clases/por-profesional/${encodeURIComponent(email)}`,
-      { method: 'DELETE' }
+  async function crearClasesProgramadas(datos) {
+    const res = await fetch(`${API_URL}/api/clases/programadas`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos),
+    })
+    const body = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(body.detail || 'Error al programar las clases.')
+    showToast(
+      `${body.creadas} clase${body.creadas !== 1 ? 's' : ''} programada${body.creadas !== 1 ? 's' : ''} creada${body.creadas !== 1 ? 's' : ''} correctamente`
     )
+    return body
+  }
+
+  async function eliminarClasesPorProfesional(email) {
+    const res = await fetch(`${API_URL}/api/clases/por-profesional/${encodeURIComponent(email)}`, {
+      method: 'DELETE',
+    })
     const body = await res.json().catch(() => ({}))
     if (!res.ok) {
       throw new Error(body.detail || 'Error al eliminar las clases.')
@@ -249,7 +260,7 @@ export default function Admin() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          zona: clase.zona,
+          zona_id: clase.zona_id,
           fecha: clase.fecha,
           hora: clase.hora,
           nuevo_cupo: nuevoCupo,
@@ -309,15 +320,15 @@ export default function Admin() {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <>
-      <AdminNav 
-        user={user} 
-        activeTab={activeTab} 
+      <AdminNav
+        user={user}
+        activeTab={activeTab}
         setActiveTab={setActiveTab}
         visibleTabs={visibleTabs}
         onLogout={logout}
       />
-      
-      <div className="admin-container">
+
+      <div className='admin-container'>
         {activeTab === 'turnos' && (
           <TurnosTab
             turnos={turnosFiltrados}
@@ -356,6 +367,8 @@ export default function Admin() {
 
         {activeTab === 'crear' && <CrearTab onCrear={crearClase} />}
 
+        {activeTab === 'programar' && <ProgramarTab onProgramar={crearClasesProgramadas} />}
+
         {activeTab === 'cancelar' && (
           <CancelarTab
             classes={clasesParaCancelar}
@@ -365,9 +378,7 @@ export default function Admin() {
           />
         )}
 
-        {activeTab === 'eliminar' && (
-          <EliminarTab onEliminar={eliminarClasesPorProfesional} />
-        )}
+        {activeTab === 'eliminar' && <EliminarTab onEliminar={eliminarClasesPorProfesional} />}
 
         {activeTab === 'precios' && (
           <PriceTab

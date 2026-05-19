@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import cast, String as SAString
 from pydantic import BaseModel
 from datetime import date
 from app.database import SessionLocal
@@ -8,38 +9,6 @@ from app import models
 router = APIRouter(prefix="/api", tags=["servicios"])
 
 
-# 📦 Schemas
-class ClaseResponse(BaseModel):
-    id: int
-    zona: str
-    fecha: date
-    hora: str
-    cupo_max: int
-    inscritos: int
-    cancelada: int
-
-    class Config:
-        from_attributes = True
-
-
-class ModificarPrecioRequest(BaseModel):
-    nuevo_precio: int
-
-
-class ModificarCupoRequest(BaseModel):
-    zona: str
-    fecha: str
-    hora: str
-    nuevo_cupo: int
-
-
-class CancelarClaseRequest(BaseModel):
-    zona: str
-    fecha: str
-    hora: str
-
-
-# 📦 Dependencia DB
 def get_db():
     db = SessionLocal()
     try:
@@ -48,153 +17,142 @@ def get_db():
         db.close()
 
 
-# 📋 GET: Obtener próximas clases sin inscriptos
-@router.get("/clases", response_model=list[ClaseResponse])
-def obtener_clases_sin_inscriptos(db: Session = Depends(get_db)):
-    """Obtiene las próximas clases programadas sin inscriptos o con pocos"""
-    clases = (
-        db.query(models.Clase)
-        .filter(models.Clase.fecha >= date.today())
-        .order_by(models.Clase.fecha, models.Clase.hora)
-        .all()
+class ClaseProgramadaResponse(BaseModel):
+    id: int
+    clase_id: int
+    zona_id: int
+    zona_nombre: str
+    fecha: str
+    hora: str
+    cupo_maximo: int
+    cupo_disponible: int
+
+    class Config:
+        from_attributes = True
+
+
+class ModificarCupoRequest(BaseModel):
+    zona_id: int
+    fecha: str
+    hora: str
+    nuevo_cupo: int
+
+
+class CancelarClaseRequest(BaseModel):
+    clase_programada_id: int
+
+
+def _query_clases_programadas(db: Session, solo_sin_inscritos: bool = False):
+    q = (
+        db.query(models.ClaseProgramada, models.Clase, models.Zona)
+        .join(models.Clase, models.ClaseProgramada.clase_id == models.Clase.id)
+        .join(models.Zona, models.Clase.zona_id == models.Zona.id)
+        .filter(
+            models.ClaseProgramada.fecha >= date.today(),
+            models.ClaseProgramada.activo == True,
+            models.Clase.activo == True,
+        )
     )
-    return clases
+    if solo_sin_inscritos:
+        # No registrations yet: cupo_disponible equals cupo_maximo
+        q = q.filter(models.ClaseProgramada.cupo_disponible == models.Clase.cupo_maximo)
+    return q.order_by(models.ClaseProgramada.fecha, models.ClaseProgramada.hora).all()
 
 
-# 📋 GET: Obtener clases sin inscriptos para cupo
-@router.get("/cupos", response_model=list[ClaseResponse])
+def _rows_to_response(rows):
+    return [
+        ClaseProgramadaResponse(
+            id=cp.id,
+            clase_id=cp.clase_id,
+            zona_id=z.id,
+            zona_nombre=z.nombre,
+            fecha=str(cp.fecha),
+            hora=str(cp.hora)[:5],  # TIME gives "HH:MM:SS", truncate to "HH:MM"
+            cupo_maximo=c.cupo_maximo,
+            cupo_disponible=cp.cupo_disponible,
+        )
+        for cp, c, z in rows
+    ]
+
+
+@router.get("/clases", response_model=list[ClaseProgramadaResponse])
+def obtener_clases(db: Session = Depends(get_db)):
+    """Upcoming scheduled classes with availability."""
+    return _rows_to_response(_query_clases_programadas(db))
+
+
+@router.get("/cupos", response_model=list[ClaseProgramadaResponse])
 def obtener_clases_para_cupos(db: Session = Depends(get_db)):
-    """Obtiene todas las clases sin inscriptos para gestión de cupos"""
-    clases = (
-        db.query(models.Clase)
-        .filter(models.Clase.inscritos == 0)
-        .order_by(models.Clase.fecha, models.Clase.hora)
-        .all()
-    )
-    return clases
+    """Upcoming scheduled classes that have no bookings yet."""
+    return _rows_to_response(_query_clases_programadas(db, solo_sin_inscritos=True))
 
 
-# 🔧 POST: Modificar cupo de una clase
 @router.post("/cupos")
 def modificar_cupo(data: ModificarCupoRequest, db: Session = Depends(get_db)):
-    """Modifica el cupo máximo de una clase que aún no tiene inscriptos"""
+    """Update cupo_disponible for a scheduled class (only if no bookings yet)."""
     if data.nuevo_cupo <= 0:
-        raise HTTPException(status_code=400, detail="El cupo debe ser mayor a 0")
+        raise HTTPException(status_code=400, detail="El cupo debe ser mayor a 0.")
 
-    try:
-        fecha_obj = date.fromisoformat(data.fecha)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Fecha inválida")
-
-    clase = (
-        db.query(models.Clase)
+    cp = (
+        db.query(models.ClaseProgramada)
+        .join(models.Clase, models.ClaseProgramada.clase_id == models.Clase.id)
         .filter(
-            models.Clase.zona == data.zona,
-            models.Clase.fecha == fecha_obj,
-            models.Clase.hora == data.hora,
-            models.Clase.inscritos == 0,
+            models.ClaseProgramada.fecha == data.fecha,
+            models.ClaseProgramada.hora == data.hora,
+            models.Clase.zona_id == data.zona_id,
+            models.ClaseProgramada.activo == True,
+            models.Clase.activo == True,
+            models.ClaseProgramada.cupo_disponible == models.Clase.cupo_maximo,
         )
         .first()
     )
 
-    if not clase:
+    if not cp:
         raise HTTPException(
             status_code=404,
-            detail="No se encontró una clase sin inscriptos para los datos ingresados",
+            detail="No se encontró una clase sin inscriptos para los datos ingresados.",
         )
 
-    clase.cupo_max = data.nuevo_cupo
+    cp.cupo_disponible = data.nuevo_cupo
+    # Also update cupo_maximo on the clase template
+    clase = db.query(models.Clase).filter(models.Clase.id == cp.clase_id).first()
+    clase.cupo_maximo = data.nuevo_cupo
     db.commit()
 
     return {
         "mensaje": "Modificación exitosa",
-        "id": clase.id,
-        "zona": clase.zona,
-        "fecha": clase.fecha.isoformat(),
-        "hora": clase.hora,
-        "nuevo_cupo": clase.cupo_max,
+        "clase_programada_id": cp.id,
+        "nuevo_cupo": data.nuevo_cupo,
     }
 
 
-# 🔧 POST: Modificar precio global
-@router.post("/precios")
-def modificar_precio(data: ModificarPrecioRequest, db: Session = Depends(get_db)):
-    """Modifica el precio único global en la tabla configuracion"""
-    if data.nuevo_precio <= 0:
-        raise HTTPException(status_code=400, detail="El precio debe ser mayor a 0")
-
-    config = db.query(models.Configuracion).filter(models.Configuracion.id == 1).first()
-    if not config:
-        config = models.Configuracion(id=1, precio=data.nuevo_precio)
-        db.add(config)
-    else:
-        config.precio = data.nuevo_precio
-
-    db.commit()
-
-    return {
-        "mensaje": "Precio actualizado exitosamente",
-        "nuevo_precio": data.nuevo_precio,
-    }
-
-
-# 📊 GET: Obtener precio actual
-@router.get("/precios")
-def obtener_precios(db: Session = Depends(get_db)):
-    """Obtiene el precio global desde configuracion"""
-    config = db.query(models.Configuracion).filter(models.Configuracion.id == 1).first()
-    return {"precio": config.precio if config else 0}
-
-
-# 🚫 GET: Obtener clases disponibles para cancelar
-@router.get("/clases-cancelar", response_model=list[ClaseResponse])
+@router.get("/clases-cancelar", response_model=list[ClaseProgramadaResponse])
 def obtener_clases_cancelar(db: Session = Depends(get_db)):
-    """Obtiene todas las clases no canceladas."""
-    clases = (
-        db.query(models.Clase)
-        .filter(models.Clase.cancelada == 0, models.Clase.fecha >= date.today())
-        .order_by(models.Clase.fecha, models.Clase.hora)
-        .all()
-    )
-    return clases
+    """Upcoming active scheduled classes available for cancellation."""
+    return _rows_to_response(_query_clases_programadas(db))
 
 
-# 🚫 POST: Cancelar una clase
 @router.post("/clases-cancelar")
 def cancelar_clase(data: CancelarClaseRequest, db: Session = Depends(get_db)):
-    """Cancela una clase que aún no está cancelada."""
-    try:
-        fecha_obj = date.fromisoformat(data.fecha)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Fecha inválida")
-
-    clase = (
-        db.query(models.Clase)
-        .filter(
-            models.Clase.zona == data.zona,
-            models.Clase.fecha == fecha_obj,
-            models.Clase.hora == data.hora,
-        )
+    """Cancel a specific scheduled class instance."""
+    cp = (
+        db.query(models.ClaseProgramada)
+        .filter(models.ClaseProgramada.id == data.clase_programada_id)
         .first()
     )
 
-    if not clase:
+    if not cp:
+        raise HTTPException(status_code=404, detail="Clase programada no encontrada.")
+
+    if not cp.activo:
         raise HTTPException(
-            status_code=404, detail="No se encontró una clase con los datos ingresados"
+            status_code=400, detail="La clase ya se encuentra cancelada."
         )
 
-    if clase.cancelada:
-        raise HTTPException(
-            status_code=400, detail="La clase ingresada ya se encuentra cancelada"
-        )
-
-    clase.cancelada = 1
+    cp.activo = False
     db.commit()
 
     return {
-        "mensaje": "La clase ha sido cancelada exitosamente",
-        "id": clase.id,
-        "zona": clase.zona,
-        "fecha": clase.fecha.isoformat(),
-        "hora": clase.hora,
+        "mensaje": "Clase cancelada exitosamente.",
+        "clase_programada_id": cp.id,
     }

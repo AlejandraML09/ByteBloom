@@ -6,24 +6,23 @@ from app.database import SessionLocal
 from app import models
 from typing import Optional
 
-router = APIRouter()
+router = APIRouter(tags=["usuarios"])
 
 
-# 📦 Schema para recibir datos en JSON
 class UsuarioRequest(BaseModel):
     nombre: str
     apellido: str
     email: str
     fecha_nacimiento: date
     password: str
-    dni: int | None = None
+    dni: int
+
 
 class LoginRequest(BaseModel):
     email: str
     password: str
 
 
-# 📦 Dependencia DB
 def get_db():
     db = SessionLocal()
     try:
@@ -32,16 +31,14 @@ def get_db():
         db.close()
 
 
-# 📝 Registro de usuario
 @router.post("/registro/")
 def registrar(data: UsuarioRequest, db: Session = Depends(get_db)):
     email_lower = data.email.lower()
-    existe = (
-        db.query(models.Usuario).filter(models.Usuario.email == email_lower).first()
-    )
-
-    if existe:
+    if db.query(models.Usuario).filter(models.Usuario.email == email_lower).first():
         raise HTTPException(status_code=400, detail="Email ya registrado")
+
+    if db.query(models.Usuario).filter(models.Usuario.dni == data.dni).first():
+        raise HTTPException(status_code=400, detail="DNI ya registrado")
 
     nuevo = models.Usuario(
         nombre=data.nombre,
@@ -49,9 +46,9 @@ def registrar(data: UsuarioRequest, db: Session = Depends(get_db)):
         email=email_lower,
         fecha_nacimiento=data.fecha_nacimiento,
         dni=data.dni,
-        rol=models.RolUsuario.usuario.value,
+        rol=models.RolUsuario.usuario,
     )
-    nuevo.set_password(data.password)  # Hash the password
+    nuevo.set_password(data.password)
     db.add(nuevo)
     db.commit()
     db.refresh(nuevo)
@@ -59,26 +56,16 @@ def registrar(data: UsuarioRequest, db: Session = Depends(get_db)):
     return {"id": nuevo.id, "email": nuevo.email}
 
 
-# 🔐 Login
 @router.post("/login")
 def login(data: LoginRequest, db: Session = Depends(get_db)):
     email_lower = data.email.lower()
-    print(f"Intentando login con: {email_lower}")
-    user = db.query(models.Usuario).filter(
-        models.Usuario.email == email_lower
-    ).first()
+    user = db.query(models.Usuario).filter(models.Usuario.email == email_lower).first()
 
     if not user:
-        print(f"Usuario no encontrado: {email_lower}")
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-    print(f"Usuario encontrado: {user.email}, contraseña BD: {user.password[:20]}...")
-
     if not user.check_password(data.password):
-        print(f"Contraseña incorrecta para {email_lower}")
         raise HTTPException(status_code=401, detail="Contraseña incorrecta")
-
-    print(f"Login exitoso para {user.email}")
 
     return {
         "id": user.id,
@@ -90,22 +77,23 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
         "fecha_nacimiento": str(user.fecha_nacimiento) if user.fecha_nacimiento else "",
     }
 
+
 @router.post("/crear-secretario")
 def crear_secretario(data: UsuarioRequest, db: Session = Depends(get_db)):
     email_lower = data.email.lower()
-    existe = db.query(models.Usuario).filter(
-        models.Usuario.email == email_lower
-    ).first()
-
-    if existe:
+    if db.query(models.Usuario).filter(models.Usuario.email == email_lower).first():
         raise HTTPException(status_code=400, detail="Email ya registrado")
+
+    if db.query(models.Usuario).filter(models.Usuario.dni == data.dni).first():
+        raise HTTPException(status_code=400, detail="DNI ya registrado")
 
     nuevo_secretario = models.Usuario(
         email=email_lower,
         nombre=data.nombre,
         apellido=data.apellido,
         fecha_nacimiento=data.fecha_nacimiento,
-        rol=models.RolUsuario.secretario.value
+        dni=data.dni,
+        rol=models.RolUsuario.secretario,
     )
     nuevo_secretario.set_password(data.password)
     db.add(nuevo_secretario)
@@ -118,24 +106,79 @@ def crear_secretario(data: UsuarioRequest, db: Session = Depends(get_db)):
         "nombre": nuevo_secretario.nombre,
         "apellido": nuevo_secretario.apellido,
         "rol": nuevo_secretario.rol,
-        "message": "Secretario creado exitosamente"
+        "message": "Secretario creado exitosamente",
     }
+
 
 @router.get("/secretarios")
 def listar_secretarios(db: Session = Depends(get_db)):
-    secretarios = db.query(models.Usuario).filter(
-        models.Usuario.rol == models.RolUsuario.secretario.value
-    ).all()
-    
+    secretarios = (
+        db.query(models.Usuario)
+        .filter(models.Usuario.rol == models.RolUsuario.secretario)
+        .all()
+    )
+
     return [
         {
-            "id": secretario.id,
-            "email": secretario.email,
-            "nombre": secretario.nombre,
-            "apellido": secretario.apellido,
-            "rol": secretario.rol
+            "id": s.id,
+            "email": s.email,
+            "nombre": s.nombre,
+            "apellido": s.apellido,
+            "rol": s.rol,
         }
-        for secretario in secretarios
+        for s in secretarios
+    ]
+
+
+@router.post("/crear-profesional")
+def crear_profesional(data: UsuarioRequest, db: Session = Depends(get_db)):
+    email_lower = data.email.lower()
+    if db.query(models.Usuario).filter(models.Usuario.email == email_lower).first():
+        raise HTTPException(status_code=400, detail="Email ya registrado")
+
+    if db.query(models.Usuario).filter(models.Usuario.dni == data.dni).first():
+        raise HTTPException(status_code=400, detail="DNI ya registrado")
+
+    nuevo_profesional = models.Usuario(
+        email=email_lower,
+        nombre=data.nombre,
+        apellido=data.apellido,
+        fecha_nacimiento=data.fecha_nacimiento,
+        dni=data.dni,
+        rol=models.RolUsuario.profesional,
+    )
+    nuevo_profesional.set_password(data.password)
+    db.add(nuevo_profesional)
+    db.commit()
+    db.refresh(nuevo_profesional)
+
+    return {
+        "id": nuevo_profesional.id,
+        "email": nuevo_profesional.email,
+        "nombre": nuevo_profesional.nombre,
+        "apellido": nuevo_profesional.apellido,
+        "rol": nuevo_profesional.rol,
+        "message": "Profesional creado exitosamente",
+    }
+
+
+@router.get("/profesionales")
+def listar_profesionales(db: Session = Depends(get_db)):
+    profesionales = (
+        db.query(models.Usuario)
+        .filter(models.Usuario.rol == models.RolUsuario.profesional)
+        .all()
+    )
+
+    return [
+        {
+            "id": p.id,
+            "email": p.email,
+            "nombre": p.nombre,
+            "apellido": p.apellido,
+            "rol": p.rol,
+        }
+        for p in profesionales
     ]
 
 class ActualizarUsuarioRequest(BaseModel):
