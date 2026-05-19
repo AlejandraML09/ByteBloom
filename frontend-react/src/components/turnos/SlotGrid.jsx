@@ -1,6 +1,12 @@
 const MAX_DOTS = 10
 
-export function SlotGrid({ selectedDay, selectedSlot, onSlotSelect, clases }) {
+export function SlotGrid({
+  selectedDay,
+  selectedSlot,
+  onSlotSelect,
+  clases,
+  bookedClaseIds = new Set(),
+}) {
   if (!selectedDay) {
     return (
       <div className='empty-state'>
@@ -43,7 +49,9 @@ export function SlotGrid({ selectedDay, selectedSlot, onSlotSelect, clases }) {
     <div className='slots-grid'>
       {clases.map((clase) => {
         const isFull = clase.cupo_disponible <= 0
+        const isBooked = bookedClaseIds.has(clase.id)
         const isSelected = selectedSlot === clase.hora
+        const disabled = isFull || isBooked
         const taken = clase.cupo_maximo - clase.cupo_disponible
         const dots = Math.min(clase.cupo_maximo, MAX_DOTS)
         const takenDots = Math.round((taken / clase.cupo_maximo) * dots)
@@ -51,8 +59,8 @@ export function SlotGrid({ selectedDay, selectedSlot, onSlotSelect, clases }) {
         return (
           <button
             key={clase.id}
-            className={`slot-btn${isFull ? ' full' : ''}${isSelected ? ' selected' : ''}`}
-            disabled={isFull}
+            className={`slot-btn${isFull ? ' full' : ''}${isBooked ? ' booked' : ''}${isSelected ? ' selected' : ''}`}
+            disabled={disabled}
             onClick={() => onSlotSelect(clase.hora)}
           >
             <span className='slot-time'>{clase.hora}</span>
@@ -64,16 +72,20 @@ export function SlotGrid({ selectedDay, selectedSlot, onSlotSelect, clases }) {
             <div
               className='slot-cupos'
               style={{
-                color: isFull
-                  ? 'var(--text-muted)'
-                  : clase.cupo_disponible <= 2
-                    ? 'var(--danger)'
-                    : 'var(--primary-dark)',
+                color: isBooked
+                  ? 'var(--primary)'
+                  : isFull
+                    ? 'var(--text-muted)'
+                    : clase.cupo_disponible <= 2
+                      ? 'var(--danger)'
+                      : 'var(--primary-dark)',
               }}
             >
-              {isFull
-                ? 'Sin cupos'
-                : `${clase.cupo_disponible} lugar${clase.cupo_disponible === 1 ? '' : 'es'}`}
+              {isBooked
+                ? 'Ya reservado'
+                : isFull
+                  ? 'Sin cupos'
+                  : `${clase.cupo_disponible} lugar${clase.cupo_disponible === 1 ? '' : 'es'}`}
             </div>
           </button>
         )

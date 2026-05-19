@@ -177,6 +177,7 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
     return [
         {
             "id": r.id,
+            "clase_programada_id": r.clase_programada_id,
             "fecha": str(cp.fecha),
             "hora": str(cp.hora)[:5],
             "zona": z.nombre,

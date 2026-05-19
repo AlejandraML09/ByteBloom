@@ -9,7 +9,7 @@ import { MonthCalendar } from '../components/turnos/MonthCalendar'
 import { SlotGrid } from '../components/turnos/SlotGrid'
 import { PaymentSelector } from '../components/turnos/PaymentSelector'
 import { SummaryPanel } from '../components/turnos/SummaryPanel'
-import { getDisponibilidad, reservarTurnos } from '../api/turnos'
+import { getDisponibilidad, reservarTurnos, getMisTurnos } from '../api/turnos'
 import { fmtDate, fmtDiaLargo, nextHour } from '../utils/dates'
 import DiscountModal from '../components/turnos/Discountmodal'
 import '../css/turnos.css'
@@ -29,6 +29,8 @@ export default function Turnos() {
   const [medioPago, setMedioPago] = useState(null)
   // clasesDelMes: { "YYYY-MM": [claseProgramada, ...] }
   const [clasesDelMes, setClasesDelMes] = useState({})
+  // Set of clase_programada_id values the logged-in user has already booked (non-cancelled)
+  const [bookedClaseIds, setBookedClaseIds] = useState(new Set())
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
   const { msg, visible, showToast } = useToast()
@@ -37,6 +39,24 @@ export default function Turnos() {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
     return d
+  }, [])
+
+  const refreshBookedIds = useCallback(async () => {
+    const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
+    const usuario = stored ? JSON.parse(stored) : null
+    if (!usuario?.id) return
+    try {
+      const reservas = await getMisTurnos(usuario.id)
+      setBookedClaseIds(
+        new Set(reservas.filter((r) => r.estado !== 'cancelada').map((r) => r.clase_programada_id))
+      )
+    } catch {
+      // silently ignore — booking checks will still protect server-side
+    }
+  }, [])
+
+  useEffect(() => {
+    refreshBookedIds()
   }, [])
 
   const fetchDisponibilidad = useCallback(async (displayDate) => {
@@ -152,6 +172,7 @@ export default function Turnos() {
         )
       )
 
+      refreshBookedIds()
       showToast(
         `✓ ${shifts.length} turno${shifts.length > 1 ? 's' : ''} confirmado${shifts.length > 1 ? 's' : ''}`
       )
@@ -210,6 +231,7 @@ export default function Turnos() {
                 selectedSlot={slot}
                 onSlotSelect={setSlot}
                 clases={clasesDelDia}
+                bookedClaseIds={bookedClaseIds}
               />
               {canAddMore && (
                 <button className='btn-add-shift' onClick={addShift}>
