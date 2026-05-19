@@ -1,15 +1,13 @@
 import { useState, useMemo, useEffect } from 'react'
 import { fmtDate, MESES_ES } from '../../utils/dates'
-import { HORARIOS } from '../../constants/turnos'
 
 const DIAS_HEADER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
-const MAX_PER_SLOT = 5
 
 export function MonthCalendar({
   selectedDay,
   onDaySelect,
   today,
-  getOcupados,
+  getClasesForDay,
   bookedDays,
   onMonthChange,
 }) {
@@ -19,15 +17,11 @@ export function MonthCalendar({
     return new Date(today.getFullYear(), today.getMonth() + monthOffset, 1)
   }, [today, monthOffset])
 
-  // Notify parent whenever the displayed month changes
   useEffect(() => {
     onMonthChange?.(displayDate)
   }, [displayDate])
 
-  const prevDisabled = useMemo(() => {
-    return monthOffset <= 0
-  }, [monthOffset])
-
+  const prevDisabled = monthOffset <= 0
   const monthLabel = `${MESES_ES[displayDate.getMonth()]} ${displayDate.getFullYear()}`
 
   const calendarDays = useMemo(() => {
@@ -75,13 +69,15 @@ export function MonthCalendar({
           const isPast = d < today
           const isToday = fmtDate(d) === fmtDate(today)
           const isSelected = selectedDay && fmtDate(d) === fmtDate(selectedDay)
-          const isWeekend = d.getDay() === 0 || d.getDay() === 6
           const isBooked = bookedDays?.has(fmtDate(d))
-          const disabled = isPast || isWeekend || isBooked
 
-          const totalOcupados = disabled ? 0 : HORARIOS.reduce((s, h) => s + getOcupados(d, h), 0)
-          const maxCapacity = HORARIOS.length * MAX_PER_SLOT
-          const pct = Math.min(100, Math.round((totalOcupados / maxCapacity) * 100))
+          const clases = isPast || isBooked ? [] : (getClasesForDay?.(d) ?? [])
+          const hasAvailable = clases.some((c) => c.cupo_disponible > 0)
+          const disabled = isPast || isBooked || !hasAvailable
+
+          const totalMax = clases.reduce((s, c) => s + c.cupo_maximo, 0)
+          const totalTaken = clases.reduce((s, c) => s + (c.cupo_maximo - c.cupo_disponible), 0)
+          const pct = totalMax > 0 ? Math.min(100, Math.round((totalTaken / totalMax) * 100)) : 0
 
           return (
             <button
