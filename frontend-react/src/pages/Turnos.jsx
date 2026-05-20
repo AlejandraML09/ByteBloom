@@ -18,6 +18,85 @@ import '../css/turnos.css'
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 const fmtPrecio = (n) => `$${Number(n).toLocaleString('es-AR')}`
 
+const PROMO_BENEFITS = [
+  {
+    icon: (
+      <svg
+        width='20'
+        height='20'
+        viewBox='0 0 24 24'
+        fill='none'
+        stroke='currentColor'
+        strokeWidth='1.8'
+        strokeLinecap='round'
+        strokeLinejoin='round'
+      >
+        <path d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2' />
+        <circle cx='9' cy='7' r='4' />
+        <path d='M23 21v-2a4 4 0 0 0-3-3.87' />
+        <path d='M16 3.13a4 4 0 0 1 0 7.75' />
+      </svg>
+    ),
+    title: 'Más clases por mes',
+    desc: 'Organizá tus días y asistí cuando lo necesites.',
+  },
+  {
+    icon: (
+      <svg
+        width='20'
+        height='20'
+        viewBox='0 0 24 24'
+        fill='none'
+        stroke='currentColor'
+        strokeWidth='1.8'
+        strokeLinecap='round'
+        strokeLinejoin='round'
+      >
+        <polygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2' />
+      </svg>
+    ),
+    title: 'Mejor precio',
+    desc: 'Ahorrá en comparación a reservas sueltas.',
+  },
+  {
+    icon: (
+      <svg
+        width='20'
+        height='20'
+        viewBox='0 0 24 24'
+        fill='none'
+        stroke='currentColor'
+        strokeWidth='1.8'
+        strokeLinecap='round'
+        strokeLinejoin='round'
+      >
+        <circle cx='12' cy='12' r='10' />
+        <polyline points='12 6 12 12 16 14' />
+      </svg>
+    ),
+    title: 'Flexibilidad total',
+    desc: 'Elegí tus horarios cada mes según tu disponibilidad.',
+  },
+  {
+    icon: (
+      <svg
+        width='20'
+        height='20'
+        viewBox='0 0 24 24'
+        fill='none'
+        stroke='currentColor'
+        strokeWidth='1.8'
+        strokeLinecap='round'
+        strokeLinejoin='round'
+      >
+        <path d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' />
+      </svg>
+    ),
+    title: 'Acompañamiento continuo',
+    desc: 'Un plan pensado para tu recuperación y bienestar.',
+  },
+]
+
 function AbonoPromo({ zonaSeleccionada }) {
   const [minPrecio, setMinPrecio] = useState(null)
 
@@ -33,33 +112,49 @@ function AbonoPromo({ zonaSeleccionada }) {
 
   return (
     <div className='abono-promo'>
-      <div className='abono-promo-badge'>✦ Beneficio exclusivo</div>
-      <h3 className='abono-promo-title'>¿Querés aprovechar más tu tratamiento?</h3>
-      <p className='abono-promo-text'>
-        Convertite en abonada y disfrutá sesiones garantizadas, prioridad en los horarios y
-        acompañamiento continuo en tu zona de trabajo.
-      </p>
-      {precio != null && (
-        <div className='abono-promo-price'>
-          Desde <strong>{fmtPrecio(precio)}</strong>/mes
-        </div>
-      )}
-      <Link to='/quiero-ser-abonado' className='abono-promo-cta'>
-        Quiero ser abonada
-        <svg
-          width='14'
-          height='14'
-          viewBox='0 0 24 24'
-          fill='none'
-          stroke='currentColor'
-          strokeWidth='2.5'
-          strokeLinecap='round'
-          strokeLinejoin='round'
-        >
-          <line x1='5' y1='12' x2='19' y2='12' />
-          <polyline points='12 5 19 12 12 19' />
-        </svg>
-      </Link>
+      <div className='abono-promo-top'>
+        <div className='abono-promo-badge'>¡Más conveniente!</div>
+        <h3 className='abono-promo-title'>¿Querés aprovechar más tu tratamiento?</h3>
+        <p className='abono-promo-sub'>
+          Convertite en abonado y disfrutá de todos estos beneficios.
+        </p>
+        <ul className='abono-promo-benefits'>
+          {PROMO_BENEFITS.map((b) => (
+            <li key={b.title} className='abono-promo-benefit'>
+              <span className='abono-promo-benefit-icon'>{b.icon}</span>
+              <div>
+                <span className='abono-promo-benefit-title'>{b.title}</span>
+                <span className='abono-promo-benefit-desc'>{b.desc}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className='abono-promo-footer'>
+        {precio != null && (
+          <div className='abono-promo-price'>
+            Desde <strong>{fmtPrecio(precio)}</strong>
+            <span className='abono-promo-price-mes'>/mes</span>
+          </div>
+        )}
+        <Link to='/quiero-ser-abonado' className='abono-promo-cta'>
+          Quiero ser abonado
+          <svg
+            width='14'
+            height='14'
+            viewBox='0 0 24 24'
+            fill='none'
+            stroke='currentColor'
+            strokeWidth='2.5'
+            strokeLinecap='round'
+            strokeLinejoin='round'
+          >
+            <line x1='5' y1='12' x2='19' y2='12' />
+            <polyline points='12 5 19 12 12 19' />
+          </svg>
+        </Link>
+        <p className='abono-promo-more'>Conocé más sobre nuestros planes</p>
+      </div>
     </div>
   )
 }

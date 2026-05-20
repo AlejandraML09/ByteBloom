@@ -110,22 +110,18 @@ export default function QuieroSerAbonado() {
     return d
   }, [])
 
-  const fetchDisponibilidad = useCallback(
-    async (displayDate) => {
-      if (!zona) return
-      const mes = toMes(displayDate)
-      setLoadingSlots(true)
-      try {
-        const data = await getDisponibilidad(mes)
-        setClasesDelMes((prev) => ({ ...prev, [mes]: data }))
-      } catch {
-        // ignore
-      } finally {
-        setLoadingSlots(false)
-      }
-    },
-    [zona]
-  )
+  const fetchDisponibilidad = useCallback(async (displayDate) => {
+    const mes = toMes(displayDate)
+    setLoadingSlots(true)
+    try {
+      const data = await getDisponibilidad(mes)
+      setClasesDelMes((prev) => ({ ...prev, [mes]: data }))
+    } catch {
+      // ignore
+    } finally {
+      setLoadingSlots(false)
+    }
+  }, [])
 
   function getClasesForDay(date) {
     if (!zona) return []
