@@ -11,7 +11,7 @@ const METHODS = [
     logo: <img src={mpLogo} alt='MercadoPago' />,
   },
   {
-    id: 'Credito/Débito',
+    id: 'credito',
     label: 'Crédito/Débito',
     logo: (
       <svg viewBox='0 0 48 30' fill='none' xmlns='http://www.w3.org/2000/svg'>
