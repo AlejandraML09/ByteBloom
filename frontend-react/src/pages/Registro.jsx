@@ -39,6 +39,14 @@ export default function Registro() {
     if (!form.dni) return 'El DNI es obligatorio.'
     if (!/^\d{7,8}$/.test(form.dni)) return 'El DNI debe tener 7 u 8 dígitos.'
     if (!form.fechaNacimiento) return 'La fecha de nacimiento es obligatoria.'
+    const hoy = new Date()
+    const nacimiento = new Date(form.fechaNacimiento)
+    const edad = hoy.getFullYear() - nacimiento.getFullYear()
+    const cumplioEsteAnio =
+      hoy.getMonth() > nacimiento.getMonth() ||
+      (hoy.getMonth() === nacimiento.getMonth() && hoy.getDate() >= nacimiento.getDate())
+    const edadReal = cumplioEsteAnio ? edad : edad - 1
+    if (edadReal < 14) return 'Debés tener al menos 14 años para registrarte.'
     if (form.password.length < 6) return 'La contraseña debe tener al menos 6 caracteres.'
     if (form.password !== form.confirmarPassword) return 'Las contraseñas no coinciden.'
     return ''
