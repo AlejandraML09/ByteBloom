@@ -72,18 +72,30 @@ export default function Turnos() {
     }
   }, [])
 
-  useEffect(() => {
+ useEffect(() => {
+  const run = async () => {
     const params = new URLSearchParams(window.location.search)
     const status = params.get('status')
     if (status === 'approved') {
       const cantidad = parseInt(params.get('cantidad')) || 1
-      showToast(
-        `✓ ${cantidad} turno${cantidad > 1 ? 's' : ''} confirmado${cantidad > 1 ? 's' : ''}`
-      )
+      const pending = localStorage.getItem('pending_shifts')
+      if (pending) {
+        try {
+          const { zonaId, turnos, medioPago, usuarioId } = JSON.parse(pending)
+          await reservarTurnos({ zonaId, turnos, medioPago, usuarioId })
+          localStorage.removeItem('pending_shifts')
+          refreshBookedIds()
+        } catch (err) {
+          console.error('Error al reservar tras pago:', err)
+        }
+      }
+      showToast(`✓ ${cantidad} turno${cantidad > 1 ? 's' : ''} confirmado${cantidad > 1 ? 's' : ''}`)
     }
     if (status === 'failure') showToast('✗ El pago fue rechazado. Intentá de nuevo.')
     if (status === 'pending') showToast('⏳ Tu pago está pendiente de confirmación.')
-  }, [])
+  }
+  run()
+}, [])
 
   // Returns all classes for a given day filtered by the selected zona
   function getClasesForDay(date) {
@@ -145,9 +157,17 @@ export default function Turnos() {
           },
         })
         if (data?.init_point) {
-          window.location.href = data.init_point
-          return
-        }
+  const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
+  const usuarioId = stored ? JSON.parse(stored)?.id : null
+  localStorage.setItem('pending_shifts', JSON.stringify({
+    zonaId: zona.id,
+    turnos: shifts.map((s) => ({ fecha: fmtDate(s.diaDate), hora: s.slot })),
+    medioPago,
+    usuarioId,
+  }))
+  window.location.href = data.init_point
+  return
+}
         showToast('No se pudo obtener el link de pago.')
         return
       }
