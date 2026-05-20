@@ -81,9 +81,12 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
 @router.post("/crear-secretario")
 def crear_secretario(data: UsuarioRequest, db: Session = Depends(get_db)):
     email_lower = data.email.lower()
+    
+    # Validar email único
     if db.query(models.Usuario).filter(models.Usuario.email == email_lower).first():
         raise HTTPException(status_code=400, detail="Email ya registrado")
 
+    # Validar DNI único
     if db.query(models.Usuario).filter(models.Usuario.dni == data.dni).first():
         raise HTTPException(status_code=400, detail="DNI ya registrado")
 
@@ -91,8 +94,8 @@ def crear_secretario(data: UsuarioRequest, db: Session = Depends(get_db)):
         email=email_lower,
         nombre=data.nombre,
         apellido=data.apellido,
-        fecha_nacimiento=data.fecha_nacimiento,
         dni=data.dni,
+        fecha_nacimiento=data.fecha_nacimiento,
         rol=models.RolUsuario.secretario,
     )
     nuevo_secretario.set_password(data.password)
@@ -216,3 +219,21 @@ def actualizar_usuario(data: ActualizarUsuarioRequest, db: Session = Depends(get
 
     db.commit()
     return {"mensaje": "Modificación exitosa"}
+
+@router.delete("/secretarios/{secretario_id}")
+def eliminar_secretario(secretario_id: int, db: Session = Depends(get_db)):
+    secretario = db.query(models.Usuario).filter(
+        models.Usuario.id == secretario_id,
+        models.Usuario.rol == models.RolUsuario.secretario
+    ).first()
+
+    if not secretario:
+        raise HTTPException(status_code=404, detail="Secretario no encontrado")
+
+    # Verificar si tiene turnos o registros asociados
+    # Si es necesario, primero elimina esos registros
+    
+    db.delete(secretario)
+    db.commit()
+
+    return {"message": "Secretario eliminado exitosamente"}

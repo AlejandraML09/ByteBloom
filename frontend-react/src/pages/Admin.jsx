@@ -43,19 +43,27 @@ const TABS = [
   { id: 'secretarios', label: 'Secretarios', roles: ['admin'] },
 ]
 
-// Leer usuario UNA sola vez, fuera del componente no es posible con hooks,
-// así que lo hacemos antes de los hooks pero dentro del componente.
+const TAB_HEADERS = {
+  turnos:      { title: 'Turnos del día',          desc: 'Consultá y gestioná los turnos de hoy.' },
+  pacientes:   { title: 'Pacientes',               desc: 'Historial completo de pacientes del sistema.' },
+  cupos:       { title: 'Gestionar cupos',         desc: 'Ajustá el cupo máximo de cada clase.' },
+  asistencia:  { title: 'Asistencia',              desc: 'Marcá la presencia de cada paciente.' },
+  crear:       { title: 'Crear clase',             desc: 'Completá los datos para agregar una nueva clase.' },
+  cancelar:    { title: 'Cancelar clase',          desc: 'Seleccioná una clase activa para cancelarla.' },
+  eliminar:    { title: 'Eliminar por profesional',desc: 'Cancelá todas las clases futuras de un profesional.' },
+  precios:     { title: 'Modificar precio',        desc: 'Aplicá un nuevo precio a las próximas clases sin inscriptos.' },
+  secretarios: { title: 'Secretarios',             desc: 'Gestioná los usuarios secretarios del sistema.' },
+}
+
 export default function Admin() {
   const navigate = useNavigate()
   const today = fmtDate(new Date())
 
-  // ── Lectura unificada del usuario ──────────────────────────────────────────
   const storedUser = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
   const user = storedUser ? JSON.parse(storedUser) : null
 
   const visibleTabs = TABS.filter((t) => t.roles.includes(user?.rol))
 
-  // ── Hooks ──────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState(visibleTabs[0]?.id ?? 'crear')
   const [filterDate, setFilterDate] = useState(today)
   const [filterCuposDate, setFilterCuposDate] = useState('')
@@ -76,14 +84,12 @@ export default function Admin() {
   const [priceInput, setPriceInput] = useState('')
   const [upcomingClasses, setUpcomingClasses] = useState([])
 
-  // ── Guarda de rol ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!user || !['admin', 'secretario'].includes(user.rol)) {
       navigate('/login')
     }
   }, [])
 
-  // ── Carga de datos desde backend ───────────────────────────────────────────
   useEffect(() => {
     const cargarClases = async () => {
       try {
@@ -146,7 +152,6 @@ export default function Admin() {
     cargarClasesCancelar()
   }, [])
 
-  // ── Datos derivados ────────────────────────────────────────────────────────
   const turnos = useMemo(() => buildTurnos(), [])
 
   const turnosFiltrados = turnos.map((t) => ({
@@ -162,7 +167,6 @@ export default function Admin() {
     return acc + Math.max(0, cuposMax[h] - occ)
   }, 0)
 
-  // ── Funciones ──────────────────────────────────────────────────────────────
   function showToast(msg) {
     setToastMsg(msg)
     setToastVisible(true)
@@ -193,20 +197,14 @@ export default function Admin() {
   async function cancelarClase(claseId) {
     const clase = clasesParaCancelar.find((c) => c.id === claseId)
     if (!clase) return
-
     try {
       const res = await fetch(`${API_URL}/api/clases-cancelar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clase_programada_id: claseId }),
       })
-
       const body = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        showToast(body.detail || 'Error al cancelar clase')
-        return
-      }
-
+      if (!res.ok) { showToast(body.detail || 'Error al cancelar clase'); return }
       setClasesParaCancelar((prev) => prev.filter((c) => c.id !== claseId))
       showToast('La clase ha sido cancelada exitosamente')
     } catch {
@@ -260,9 +258,7 @@ export default function Admin() {
       method: 'DELETE',
     })
     const body = await res.json().catch(() => ({}))
-    if (!res.ok) {
-      throw new Error(body.detail || 'Error al eliminar las clases.')
-    }
+    if (!res.ok) throw new Error(body.detail || 'Error al eliminar las clases.')
     showToast(`Clases de ${email} canceladas correctamente`)
     return body
   }
@@ -276,13 +272,8 @@ export default function Admin() {
   async function modificarCupo(claseId) {
     const clase = cuposClasses.find((c) => c.id === claseId)
     if (!clase) return
-
     const nuevoCupo = parseInt(cuposInput[claseId], 10)
-    if (!nuevoCupo || nuevoCupo <= 0) {
-      showToast('Ingresá un cupo válido')
-      return
-    }
-
+    if (!nuevoCupo || nuevoCupo <= 0) { showToast('Ingresá un cupo válido'); return }
     try {
       const res = await fetch(`${API_URL}/api/cupos`, {
         method: 'POST',
@@ -294,7 +285,6 @@ export default function Admin() {
           nuevo_cupo: nuevoCupo,
         }),
       })
-
       const body = await res.json().catch(() => ({}))
       if (!res.ok) {
         showToast(body.detail || 'Error al modificar cupo')
@@ -373,18 +363,45 @@ export default function Admin() {
     }
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-  return (
-    <>
-      <AdminNav
-        user={user}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        visibleTabs={visibleTabs}
-        onLogout={logout}
-      />
+  const currentHeader = TAB_HEADERS[activeTab] ?? { title: '', desc: '' }
 
-      <div className='admin-container'>
+  return (
+    <div className='admin-page'>
+      {/* Navbar solo con logo + badge + perfil */}
+      <AdminNav user={user} onLogout={logout} />
+
+      {/* Header con gradiente igual que área de usuario */}
+      <div className='page-header'>
+        <h1>{currentHeader.title}</h1>
+        <p>{currentHeader.desc}</p>
+      </div>
+
+      {/* Stats — solo en turnos */}
+      {activeTab === 'turnos' && (
+        <div className='admin-main' style={{ paddingBottom: 0 }}>
+          <AdminStatsRow
+            statTurnos={statTurnos}
+            presentes={presentes}
+            totalLibres={totalLibres}
+          />
+        </div>
+      )}
+
+      {/* Tabs de navegación */}
+      <div className='section-tabs'>
+        {visibleTabs.map((tab) => (
+          <button
+            key={tab.id}
+            className={`sec-tab${activeTab === tab.id ? ' active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Contenido */}
+      <div className='admin-main'>
         {activeTab === 'turnos' && (
           <TurnosTab
             turnos={turnosFiltrados}
@@ -394,9 +411,7 @@ export default function Admin() {
             onFilterChange={setFilterDate}
           />
         )}
-
         {activeTab === 'pacientes' && <PacientesTab pacientes={PACIENTES} />}
-
         {activeTab === 'cupos' && (
           <CuposTab
             classes={cuposClasses}
@@ -407,7 +422,6 @@ export default function Admin() {
             onFilterChange={setFilterCuposDate}
           />
         )}
-
         {activeTab === 'asistencia' && (
           <AsistenciaTab
             turnos={turnos}
@@ -445,11 +459,10 @@ export default function Admin() {
             currentPrice={precio}
           />
         )}
-
         {activeTab === 'secretarios' && <SecretariosTab />}
       </div>
 
       <div className={`admin-toast${toastVisible ? ' show' : ''}`}>{toastMsg}</div>
-    </>
+    </div>
   )
 }
