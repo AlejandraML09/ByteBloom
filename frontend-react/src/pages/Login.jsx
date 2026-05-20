@@ -38,10 +38,7 @@ export default function Login() {
         dni: data.dni,
         fecha_nacimiento: data.fecha_nacimiento,
       }
-
-      console.log('Usuario a guardar:', usuarioActivo)
       localStorage.setItem('usuario', JSON.stringify(usuarioActivo))
-      console.log('Usuario guardado en localStorage')
 
       navigate(data.rol === 'admin' || data.rol === 'secretario' ? '/admin' : '/')
     } catch (err) {

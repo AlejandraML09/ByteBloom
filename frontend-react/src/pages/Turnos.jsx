@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import Toast, { useToast } from '../components/Toast'
@@ -166,6 +167,49 @@ function toMes(date) {
 }
 
 export default function Turnos() {
+  const navigate = useNavigate()
+
+  const storedUser = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
+  const user = storedUser ? JSON.parse(storedUser) : null
+
+  // ✅ SI NO HAY SESIÓN, MOSTRAR PANTALLA DE BIENVENIDA CON NAVBAR Y FOOTER
+  if (!user) {
+    return (
+      <div style={{ background: 'linear-gradient(135deg, var(--danger) 0%, var(--danger-dark) 100%)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <Navbar />
+        <div className='welcome-container' style={{ background: 'none', flex: 1 }}>
+          <div className='welcome-content'>
+            <div className='welcome-header'>
+              <h1 style={{ color: 'var(--danger-muted)' }}>Bienvenido a ByteBloom</h1>
+              <p style={{ color: 'var(--danger-muted)' }}>Accedé a tu cuenta o crea una nueva para comenzar</p>
+            </div>
+
+            <div className='welcome-buttons'>
+              <button
+                onClick={() => navigate('/login')}
+                className='welcome-btn login'
+              >
+                <span className='welcome-btn-icon'>🔐</span>
+                <h3 style={{ color: 'var(--danger-muted)' }}>Iniciar Sesión</h3>
+                <p style={{ color: 'var(--danger-muted)' }}>¿Ya tenés cuenta?</p>
+              </button>
+
+              <button
+                onClick={() => navigate('/registro')}
+                className='welcome-btn register'
+              >
+                <span className='welcome-btn-icon'>✨</span>
+                <h3 style={{ color: 'var(--danger-muted)' }}>Crear Cuenta</h3>
+                <p style={{ color: 'var(--danger-muted)' }}>Nuevos en ByteBloom?</p>
+              </button>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    )
+  }
+
   // zona is the full zona object { id, nombre, precio, descripcion, activo }
   const [zona, setZona] = useState(null)
   const [diaDate, setDiaDate] = useState(null)
@@ -282,12 +326,13 @@ export default function Turnos() {
     try {
       if (['mercadopago', 'credito', 'debito'].includes(medioPago)) {
         const { data } = await client.post('/api/crear-preferencia', null, {
-          params: {
-            servicio_id: zona?.id ?? 1,
-            precio: zona?.precio ?? 0,
-            titulo: `Clase ${zona?.nombre ?? ''}`,
-            cantidad: shifts.length,
-          },
+          params:
+            {
+              servicio_id: zona?.id ?? 1,
+              precio: zona?.precio ?? 0,
+              titulo: `Clase ${zona?.nombre ?? ''}`,
+              cantidad: shifts.length,
+            },
         })
         if (data?.init_point) {
           window.location.href = data.init_point
