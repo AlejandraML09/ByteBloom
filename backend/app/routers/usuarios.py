@@ -1,3 +1,5 @@
+import secrets
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -5,13 +7,16 @@ from datetime import date
 from app.database import SessionLocal
 from app import models
 from typing import Optional
-import secrets
+import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import os
 
 router = APIRouter(tags=["usuarios"])
+
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5174/")
+GMAIL_USER = os.getenv("GMAIL_USER")
+GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD")
 
 
 class UsuarioRequest(BaseModel):
@@ -84,15 +89,35 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     }
 
 
-@router.post("/crear-secretario")
-def crear_secretario(data: UsuarioRequest, db: Session = Depends(get_db)):
+class CrearSecretarioRequest(BaseModel):
+    nombre: str
+    apellido: str
+    email: str
+    fecha_nacimiento: date
+    dni: str
+
+
+def enviar_mail(destinatario: str, asunto: str, cuerpo_html: str):
+    """Reutilizada de auth.py"""
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = asunto
+    msg["From"] = GMAIL_USER
+    msg["To"] = destinatario
+    msg.attach(MIMEText(cuerpo_html, "html"))
+
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login(GMAIL_USER, GMAIL_PASSWORD)
+        server.sendmail(GMAIL_USER, destinatario, msg.as_string())
+
+
+@router.post("/api/usuarios/crear-secretario")
+def crear_secretario(data: CrearSecretarioRequest, db: Session = Depends(get_db)):
     email_lower = data.email.lower()
 
     # Validar email único
     if db.query(models.Usuario).filter(models.Usuario.email == email_lower).first():
         raise HTTPException(status_code=400, detail="Email ya registrado")
 
-    # Validar DNI único
     if db.query(models.Usuario).filter(models.Usuario.dni == data.dni).first():
         raise HTTPException(status_code=400, detail="DNI ya registrado")
 
@@ -104,18 +129,46 @@ def crear_secretario(data: UsuarioRequest, db: Session = Depends(get_db)):
         fecha_nacimiento=data.fecha_nacimiento,
         rol=models.RolUsuario.secretario,
     )
-    nuevo_secretario.set_password(data.password)
+
+    # ✅ GENERAR TOKEN PARA RESTABLECIMIENTO (mismo flujo que usuarios)
+    token = secrets.token_urlsafe(32)
+    nuevo_secretario.reset_token = token
+    nuevo_secretario.reset_token_expira = datetime.now(timezone.utc) + timedelta(hours=24)
+
+    # ✅ GENERAR CONTRASEÑA TEMPORAL
+    temp_password = secrets.token_urlsafe(12)
+    nuevo_secretario.set_password(temp_password)
+
     db.add(nuevo_secretario)
     db.commit()
     db.refresh(nuevo_secretario)
+
+    # ✅ ENVIAR EMAIL (reutilizando enviar_mail)
+    enlace = f"{FRONTEND_URL}restablecer-password?token={token}"
+
+    try:
+        enviar_mail(
+            destinatario=email_lower,
+            asunto="ByteBloom - Completa tu registro como secretario",
+            cuerpo_html=f"""
+                <p>Hola {nuevo_secretario.nombre},</p>
+                <p>Tu cuenta como secretario en ByteBloom ha sido creada.</p>
+                <p><strong>Contraseña temporal: {temp_password}</strong></p>
+                <p><a href="{enlace}">Hacé clic acá para establecer tu contraseña definitiva</a></p>
+                <p>El enlace expira en 24 horas.</p>
+                <p>Si tienes dudas, contactá a soporte.</p>
+            """
+        )
+    except Exception as e:
+        print(f"Error enviando email: {e}")
 
     return {
         "id": nuevo_secretario.id,
         "email": nuevo_secretario.email,
         "nombre": nuevo_secretario.nombre,
         "apellido": nuevo_secretario.apellido,
-        "rol": nuevo_secretario.rol,
-        "message": "Secretario creado exitosamente",
+        "rol": str(nuevo_secretario.rol),
+        "message": "Secretario creado. Email de restablecimiento enviado.",
     }
 
 

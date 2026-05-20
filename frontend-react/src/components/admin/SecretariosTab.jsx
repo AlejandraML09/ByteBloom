@@ -39,7 +39,7 @@ export default function SecretariosTab() {
     setLoading(true)
 
     try {
-      const response = await client.post('/crear-secretario', {
+      const response = await client.post('/api/usuarios/crear-secretario', {
         nombre: form.nombre,
         apellido: form.apellido,
         email: form.email,
@@ -143,18 +143,6 @@ export default function SecretariosTab() {
               value={form.fecha_nacimiento}
               onChange={handleChange}
               max={new Date().toISOString().split('T')[0]}
-              required
-            />
-          </div>
-
-          <div className='form-group'>
-            <label>Contraseña</label>
-            <input
-              type='password'
-              name='password'
-              placeholder='Mínimo 6 caracteres'
-              value={form.password}
-              onChange={handleChange}
               required
             />
           </div>

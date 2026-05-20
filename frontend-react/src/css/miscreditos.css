@@ -1,0 +1,179 @@
+.misc-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg,   --danger-border, #c3cfe2 100%);
+  padding: 2rem;
+}
+
+.misc-header {
+  max-width: 800px;
+  margin: 0 auto 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.misc-back {
+  background: white;
+  border: none;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--primary-dark);
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.misc-back:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.misc-header h1 {
+  font-size: 2rem;
+  color: var(--text-main);
+  margin: 0;
+  flex: 1;
+}
+
+.misc-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.creditos-card {
+  background: white;
+  border-radius: 16px;
+  padding: 3rem 2rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.creditos-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.creditos-card h2 {
+  font-size: 1.5rem;
+  color: var(--text-main);
+  margin: 0 0 2rem 0;
+  font-weight: 600;
+}
+
+.creditos-amount {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  padding: 2rem;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  border-radius: 12px;
+}
+
+.creditos-number {
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: white;
+  font-family: 'DM Serif Display', serif;
+}
+
+.creditos-label {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+.creditos-description {
+  font-size: 1rem;
+  color: var(--text-muted);
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.creditos-info {
+  background: #f9fafb;
+  border-left: 4px solid var(--primary);
+  padding: 1.5rem;
+  border-radius: 8px;
+  text-align: left;
+  margin-bottom: 2rem;
+}
+
+.creditos-info h3 {
+  margin: 0 0 1rem 0;
+  color: var(--text-main);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.creditos-info ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.creditos-info li {
+  color: var(--text-muted);
+  padding: 0.5rem 0;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+}
+
+.creditos-info li::before {
+  content: '✓';
+  color: var(--primary);
+  font-weight: bold;
+  margin-right: 0.75rem;
+}
+
+.creditos-btn-comprar {
+  background: var(--primary-dark);
+  border: none;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--danger-tint);
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.creditos-btn-comprar:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.creditos-btn-comprar:active {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .misc-container {
+    padding: 1rem;
+  }
+
+  .misc-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .misc-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .creditos-card {
+    padding: 2rem 1rem;
+  }
+
+  .creditos-number {
+    font-size: 2.5rem;
+  }
+
+  .creditos-amount {
+    padding: 1.5rem;
+  }
+}

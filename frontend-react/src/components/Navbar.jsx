@@ -257,8 +257,14 @@ export default function Navbar() {
               </Link>
             </li>
             <li className='user-sidebar__item'>
-              <span className='user-sidebar__item-icon'>💳</span>
-              <span>Mis créditos</span>
+              <Link
+                to='/mis-creditos'
+                className='user-sidebar__item-link'
+                onClick={() => setSidebarOpen(false)}
+              >
+                <span className='user-sidebar__item-icon'>💳</span>
+                <span>Mis créditos</span>
+              </Link>
             </li>
             <li className='user-sidebar__item'>
             <Link
