@@ -12,6 +12,10 @@ export const HORARIOS = [
   '15:00',
   '16:00',
   '17:00',
+  '18:00',
+  '19:00',
+  '20:00',
+  '21:00',
 ]
 
 export const ZONA_LABELS = {
@@ -27,7 +31,7 @@ const iconStyle = {
 }
 
 export const zonasInfoMap = {
-  superior:{
+  superior: {
     name: 'Tren superior',
     sub: 'Hombros, brazos, cuello y espalda alta',
     icon: <img src={iconsuperior} alt='Tren superior' style={iconStyle} />,
@@ -41,7 +45,7 @@ export const zonasInfoMap = {
     name: 'Tren inferior',
     sub: 'Caderas, rodillas, tobillos y pies',
     icon: <img src={iconinferior} alt='Tren inferior' style={iconStyle} />,
-  }
+  },
 }
 
 export const OBRAS_SOCIALES = ['OSDE', 'Swiss Medical', 'IOMA', 'PAMI', 'Galeno', 'Particular']

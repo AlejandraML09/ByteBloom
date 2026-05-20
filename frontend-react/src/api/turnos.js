@@ -1,31 +1,42 @@
 import client from './client'
 
 /**
- * Returns occupancy counts for every slot in a given month.
+ * Returns scheduled classes for a given month.
  * @param {string} mes - "YYYY-MM"
- * @returns {Promise<Record<string, number>>} e.g. { "2026-05-13_10:00": 2, ... }
+ * @returns {Promise<Array>} array of clase_programada objects
  */
 export async function getDisponibilidad(mes) {
   const { data } = await client.get('/turnos/disponibilidad', { params: { mes } })
   return data
 }
 
+// Maps frontend payment keys to the names stored in medios_pago table
+const MEDIO_PAGO_DB = {
+  efectivo: 'Efectivo',
+  transferencia: 'Transferencia',
+  cuentadni: 'Efectivo',
+  modo: 'Transferencia',
+  mercadopago: 'Mercado Pago',
+  debito: 'Mercado Pago',
+  credito: 'Mercado Pago',
+}
+
 /**
  * Books one or more shifts.
- * @param {{ zona: string, turnos: {fecha: string, hora: string}[], medioPago: string, usuarioId?: number }} payload
+ * @param {{ zonaId: number, turnos: {fecha: string, hora: string}[], medioPago: string, usuarioId?: number }} payload
  */
-export async function reservarTurnos({ zona, turnos, medioPago, usuarioId }) {
+export async function reservarTurnos({ zonaId, turnos, medioPago, usuarioId }) {
   const { data } = await client.post('/turnos/reservar', {
-    zona,
+    zona_id: zonaId,
     turnos,
-    medio_pago: medioPago,
+    medio_pago: MEDIO_PAGO_DB[medioPago] ?? medioPago,
     usuario_id: usuarioId ?? null,
   })
   return data
 }
 
 /**
- * Returns all turnos for the logged-in user.
+ * Returns all reservas for the logged-in user.
  * @param {number} usuarioId
  */
 export async function getMisTurnos(usuarioId) {
