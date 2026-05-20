@@ -106,18 +106,18 @@ export default function Login() {
               </button>
             </div>
             <div className='forgot-hint'>
-              <Link to='/recuperar-contrasena'>¿Olvidaste tu contraseña?</Link>
+              <Link to='/recuperar-contrasena'>
+                ¿Olvidaste tu contraseña?
+              </Link>
             </div>
-            <button className='btn-login' onClick={doLogin}></button>
-              <div className="forgot-hint">
-                <Link to="/recuperar-contrasena">¿Olvidaste tu contraseña?</Link>
-              </div>
-            <button className="btn-login" onClick={doLogin}>
+            <button className='btn-login' onClick={doLogin}>
               Ingresar
             </button>
 
               <div className="register-hint">
-                <Link to="/registro">¿No tenés cuenta? Registrate</Link>
+                <Link to="/registro">
+                  ¿No tenés cuenta? Registrate
+                </Link>
               </div>
 
           </div>
