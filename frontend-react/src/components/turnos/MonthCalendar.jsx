@@ -83,6 +83,7 @@ export function MonthCalendar({
           const clases = isPast || isBooked ? [] : (getClasesForDay?.(d) ?? [])
           const hasAvailable = clases.some((c) => c.cupo_disponible > 0)
 
+          const isWeekend = d.getDay() === 0 || d.getDay() === 6
           const weekKey = getISOWeekKey(d)
           const isWeekBlocked = blockedWeekKeys?.has(weekKey) ?? false
 
@@ -90,7 +91,7 @@ export function MonthCalendar({
           const totalTaken = clases.reduce((s, c) => s + (c.cupo_maximo - c.cupo_disponible), 0)
           const pct = totalMax > 0 ? Math.min(100, Math.round((totalTaken / totalMax) * 100)) : 0
 
-          const disabled = isPast || isBooked || !hasAvailable || isWeekBlocked
+          const disabled = isPast || isWeekend || isBooked || !hasAvailable || isWeekBlocked
 
           return (
             <button
