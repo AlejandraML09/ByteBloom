@@ -42,7 +42,10 @@ export default function MisDatos() {
       setError('El apellido es un campo obligatorio.')
       return
     }
-
+    if (dni && String(dni).length < 7) {
+      setError('El DNI debe tener al menos 7 dígitos.')
+      return
+    }
     setCargando(true)
     try {
       await client.put('/usuarios/me', {
