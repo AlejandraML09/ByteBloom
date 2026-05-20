@@ -72,40 +72,39 @@ export default function Login() {
               />
             </div>
 
-            <div
-              style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
-              className='form-group'
-            >
+            <div className='form-group'>
               <label>Contraseña</label>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                placeholder='Contraseña'
-                value={pass}
-                onChange={(e) => setPass(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && doLogin()}
-                required
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  paddingRight: '45px',
-                  boxSizing: 'border-box',
-                }}
-              />
-              <button
-                type='button'
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute',
-                  right: '8px',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '18px',
-                  padding: '0',
-                }}
-              >
-                {showPassword ? '👁️' : '👁️‍🗨️'}
-              </button>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder='Contraseña'
+                  value={pass}
+                  onChange={(e) => setPass(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && doLogin()}
+                  required
+                  style={{
+                    width: '100%',
+                    paddingRight: '40px',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <button
+                  type='button'
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '18px',
+                    padding: '0',
+                    lineHeight: '1',
+                  }}
+                >
+                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                </button>
+              </div>
             </div>
             <div className='forgot-hint'>
               <Link to='/recuperar-contrasena'>¿Olvidaste tu contraseña?</Link>
