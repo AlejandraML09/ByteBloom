@@ -231,3 +231,416 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
         )
 
     return {"ok": True, "abono_id": abono_id}
+
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
+
+
+def _target_month():
+    """Returns (year, month) for the active enrollment period."""
+    today = date_type.today()
+    if today.day <= 10:
+        return today.year, today.month
+    if today.month == 12:
+        return today.year + 1, 1
+    return today.year, today.month + 1
+
+
+def _get_efectivo_id(db):
+    mp = db.execute(
+        text("SELECT id FROM medios_pago WHERE nombre = 'Efectivo' LIMIT 1")
+    ).fetchone()
+    if not mp:
+        raise HTTPException(
+            status_code=500, detail="Medio de pago 'Efectivo' no encontrado."
+        )
+    return mp.id
+
+
+# ── GET /abonos/{abono_id}/sesiones ───────────────────────────────────────────
+
+
+@router.get("/{abono_id}/sesiones")
+def get_sesiones_abono(abono_id: int, db: Session = Depends(get_db)):
+    """Devuelve todas las reservas futuras no canceladas asociadas a este abono."""
+    abono = db.execute(
+        text("SELECT id, usuario_id, zona_id FROM abonos WHERE id = :id"),
+        {"id": abono_id},
+    ).fetchone()
+    if not abono:
+        raise HTTPException(status_code=404, detail="Abono no encontrado.")
+
+    today = date_type.today()
+    rows = db.execute(
+        text("""
+            SELECT r.id AS reserva_id,
+                   cp.id AS clase_programada_id,
+                   cp.fecha,
+                   cp.hora
+            FROM reservas r
+            JOIN clases_programadas cp ON cp.id = r.clase_programada_id
+            JOIN clases c              ON c.id  = cp.clase_id
+            WHERE r.usuario_id = :uid
+              AND c.zona_id    = :zid
+              AND cp.fecha     >= :hoy
+              AND r.estado NOT IN ('cancelada'::estado_reserva)
+            ORDER BY cp.fecha, cp.hora
+        """),
+        {"uid": abono.usuario_id, "zid": abono.zona_id, "hoy": today},
+    ).fetchall()
+
+    return [
+        {
+            "reserva_id": r.reserva_id,
+            "clase_programada_id": r.clase_programada_id,
+            "fecha": str(r.fecha),
+            "hora": str(r.hora)[:5],
+        }
+        for r in rows
+    ]
+
+
+# ── POST /abonos/{abono_id}/renovar ───────────────────────────────────────────
+
+
+@router.post("/{abono_id}/renovar")
+def renovar_abono(
+    abono_id: int, medio_pago: str = "Efectivo", db: Session = Depends(get_db)
+):
+    """
+    Crea reservas en el mes objetivo (período de inscripción) replicando los
+    días de la semana y horarios de las reservas existentes del abono.
+    """
+    abono = db.execute(
+        text(
+            "SELECT id, usuario_id, zona_id, monto_mensual, dia_limite_pago FROM abonos WHERE id = :id AND activo = true"
+        ),
+        {"id": abono_id},
+    ).fetchone()
+    if not abono:
+        raise HTTPException(status_code=404, detail="Abono no encontrado o inactivo.")
+
+    target_year, target_month = _target_month()
+
+    # Verificar que no existan reservas en el mes destino para este abono
+    existing = db.execute(
+        text("""
+            SELECT COUNT(*) AS cnt
+            FROM reservas r
+            JOIN clases_programadas cp ON cp.id = r.clase_programada_id
+            JOIN clases c              ON c.id  = cp.clase_id
+            WHERE r.usuario_id                     = :uid
+              AND c.zona_id                        = :zid
+              AND EXTRACT(YEAR  FROM cp.fecha)::int = :yr
+              AND EXTRACT(MONTH FROM cp.fecha)::int = :mo
+              AND r.estado NOT IN ('cancelada'::estado_reserva)
+        """),
+        {
+            "uid": abono.usuario_id,
+            "zid": abono.zona_id,
+            "yr": target_year,
+            "mo": target_month,
+        },
+    ).fetchone()
+
+    if existing.cnt > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Ya tenés reservas para ese mes.",
+        )
+
+    # Obtener patrón: (día de la semana ISO, hora) de todas las reservas no canceladas
+    patrones = db.execute(
+        text("""
+            SELECT DISTINCT
+                EXTRACT(ISODOW FROM cp.fecha)::int AS dow,
+                cp.hora
+            FROM reservas r
+            JOIN clases_programadas cp ON cp.id = r.clase_programada_id
+            JOIN clases c              ON c.id  = cp.clase_id
+            WHERE r.usuario_id = :uid
+              AND c.zona_id    = :zid
+              AND r.estado NOT IN ('cancelada'::estado_reserva)
+            ORDER BY dow, cp.hora
+        """),
+        {"uid": abono.usuario_id, "zid": abono.zona_id},
+    ).fetchall()
+
+    if not patrones:
+        raise HTTPException(
+            status_code=400,
+            detail="No se encontraron sesiones de referencia para renovar.",
+        )
+
+    mp_row = db.execute(
+        text(
+            "SELECT id FROM medios_pago WHERE nombre = :nombre AND activo = true LIMIT 1"
+        ),
+        {"nombre": medio_pago},
+    ).fetchone()
+    mp_id = mp_row.id if mp_row else _get_efectivo_id(db)
+
+    zona = db.execute(
+        text("SELECT precio FROM zonas WHERE id = :id"), {"id": abono.zona_id}
+    ).fetchone()
+
+    nuevas = []
+    sin_cupo = []
+
+    for p in patrones:
+        cp = db.execute(
+            text("""
+                SELECT cp.id
+                FROM clases_programadas cp
+                JOIN clases c ON c.id = cp.clase_id
+                WHERE c.zona_id                         = :zid
+                  AND EXTRACT(YEAR  FROM cp.fecha)::int = :yr
+                  AND EXTRACT(MONTH FROM cp.fecha)::int = :mo
+                  AND EXTRACT(ISODOW FROM cp.fecha)::int = :dow
+                  AND cp.hora         = :hora
+                  AND cp.activo       = true
+                  AND c.activo        = true
+                  AND cp.cupo_disponible > 0
+                ORDER BY cp.fecha
+                LIMIT 1
+            """),
+            {
+                "zid": abono.zona_id,
+                "yr": target_year,
+                "mo": target_month,
+                "dow": p.dow,
+                "hora": p.hora,
+            },
+        ).fetchone()
+
+        if cp:
+            nuevas.append(cp.id)
+        else:
+            sin_cupo.append(f"día {p.dow} {str(p.hora)[:5]}")
+
+    if not nuevas:
+        raise HTTPException(
+            status_code=400,
+            detail="No hay clases con cupo disponible para los horarios de tu abono en ese mes.",
+        )
+
+    try:
+        for cp_id in nuevas:
+            db.execute(
+                text("""
+                    INSERT INTO reservas
+                        (usuario_id, clase_programada_id, medio_pago_id, precio_pagado)
+                    VALUES (:uid, :cpid, :mpid, :precio)
+                    ON CONFLICT DO NOTHING
+                """),
+                {
+                    "uid": abono.usuario_id,
+                    "cpid": cp_id,
+                    "mpid": mp_id,
+                    "precio": float(zona.precio),
+                },
+            )
+            db.execute(
+                text(
+                    "UPDATE clases_programadas SET cupo_disponible = cupo_disponible - 1 WHERE id = :id"
+                ),
+                {"id": cp_id},
+            )
+
+        # Crear pago_abono para el mes destino
+        dia_lim = abono.dia_limite_pago
+        try:
+            fecha_venc = date_type(target_year, target_month, dia_lim)
+        except ValueError:
+            fecha_venc = date_type(target_year, target_month, 28)
+
+        db.execute(
+            text("""
+                INSERT INTO pagos_abono
+                    (abono_id, medio_pago_id, anio, mes, fecha_vencimiento, monto, estado)
+                VALUES (:aid, :mpid, :yr, :mo, :fv, :monto, 'pendiente'::estado_pago_abono)
+                ON CONFLICT (abono_id, anio, mes) DO NOTHING
+            """),
+            {
+                "aid": abono_id,
+                "mpid": mp_id,
+                "yr": target_year,
+                "mo": target_month,
+                "fv": fecha_venc,
+                "monto": float(abono.monto_mensual),
+            },
+        )
+
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Error al renovar. Puede que ya tengas una reserva para alguno de esos slots.",
+        )
+
+    aviso = f"Sin cupo para: {', '.join(sin_cupo)}." if sin_cupo else None
+    return {"ok": True, "renovadas": len(nuevas), "aviso": aviso}
+
+
+# ── POST /abonos/{abono_id}/modificar ─────────────────────────────────────────
+
+
+class ModificarSesionRequest(BaseModel):
+    reserva_id_quitar: int
+    nueva_fecha: str
+    nueva_hora: str
+
+
+@router.post("/{abono_id}/modificar")
+def modificar_sesion_abono(
+    abono_id: int,
+    data: ModificarSesionRequest,
+    db: Session = Depends(get_db),
+):
+    """Cancela una sesión del abono y reserva una nueva, respetando la regla de 1 por semana."""
+    abono = db.execute(
+        text("SELECT id, usuario_id, zona_id FROM abonos WHERE id = :id"),
+        {"id": abono_id},
+    ).fetchone()
+    if not abono:
+        raise HTTPException(status_code=404, detail="Abono no encontrado.")
+
+    # Verificar que la reserva a quitar pertenece a este abono
+    old_r = db.execute(
+        text("""
+            SELECT r.id, r.clase_programada_id
+            FROM reservas r
+            JOIN clases_programadas cp ON cp.id = r.clase_programada_id
+            JOIN clases c              ON c.id  = cp.clase_id
+            WHERE r.id          = :rid
+              AND r.usuario_id  = :uid
+              AND c.zona_id     = :zid
+              AND r.estado NOT IN ('cancelada'::estado_reserva)
+        """),
+        {"rid": data.reserva_id_quitar, "uid": abono.usuario_id, "zid": abono.zona_id},
+    ).fetchone()
+
+    if not old_r:
+        raise HTTPException(
+            status_code=404, detail="Sesión no encontrada o ya cancelada."
+        )
+
+    # Semanas ocupadas por sesiones restantes (excluyendo la que se va a quitar)
+    today = date_type.today()
+    restantes = db.execute(
+        text("""
+            SELECT cp.fecha
+            FROM reservas r
+            JOIN clases_programadas cp ON cp.id = r.clase_programada_id
+            JOIN clases c              ON c.id  = cp.clase_id
+            WHERE r.usuario_id = :uid
+              AND c.zona_id    = :zid
+              AND r.id        != :rid
+              AND cp.fecha    >= :hoy
+              AND r.estado NOT IN ('cancelada'::estado_reserva)
+        """),
+        {
+            "uid": abono.usuario_id,
+            "zid": abono.zona_id,
+            "rid": data.reserva_id_quitar,
+            "hoy": today,
+        },
+    ).fetchall()
+
+    nueva_fecha_obj = date_type.fromisoformat(data.nueva_fecha)
+
+    def iso_week(d):
+        return d.isocalendar()[:2]  # (year, week_number)
+
+    for r in restantes:
+        if iso_week(r.fecha) == iso_week(nueva_fecha_obj):
+            raise HTTPException(
+                status_code=400,
+                detail="Ya tenés una sesión en esa semana del calendario.",
+            )
+
+    # Buscar clase_programada para la nueva fecha/hora
+    new_cp = db.execute(
+        text("""
+            SELECT cp.id, cp.cupo_disponible
+            FROM clases_programadas cp
+            JOIN clases c ON c.id = cp.clase_id
+            WHERE c.zona_id     = :zid
+              AND cp.fecha      = :fecha
+              AND cp.hora       = :hora
+              AND cp.activo     = true
+              AND c.activo      = true
+              AND cp.cupo_disponible > 0
+        """),
+        {"zid": abono.zona_id, "fecha": data.nueva_fecha, "hora": data.nueva_hora},
+    ).fetchone()
+
+    if not new_cp:
+        raise HTTPException(
+            status_code=400, detail="Sin cupo disponible para la nueva fecha y horario."
+        )
+
+    # Verificar que el usuario no tenga ya esa clase reservada
+    dup = db.execute(
+        text("""
+            SELECT id FROM reservas
+            WHERE usuario_id = :uid AND clase_programada_id = :cpid
+              AND estado NOT IN ('cancelada'::estado_reserva)
+        """),
+        {"uid": abono.usuario_id, "cpid": new_cp.id},
+    ).fetchone()
+    if dup:
+        raise HTTPException(
+            status_code=400, detail="Ya tenés una reserva para ese horario."
+        )
+
+    mp_id = _get_efectivo_id(db)
+    zona = db.execute(
+        text("SELECT precio FROM zonas WHERE id = :id"), {"id": abono.zona_id}
+    ).fetchone()
+
+    try:
+        # Cancelar sesión antigua y liberar cupo
+        db.execute(
+            text(
+                "UPDATE reservas SET estado = 'cancelada'::estado_reserva WHERE id = :id"
+            ),
+            {"id": data.reserva_id_quitar},
+        )
+        db.execute(
+            text(
+                "UPDATE clases_programadas SET cupo_disponible = cupo_disponible + 1 WHERE id = :id"
+            ),
+            {"id": old_r.clase_programada_id},
+        )
+
+        # Crear nueva reserva
+        db.execute(
+            text("""
+                INSERT INTO reservas
+                    (usuario_id, clase_programada_id, medio_pago_id, precio_pagado)
+                VALUES (:uid, :cpid, :mpid, :precio)
+            """),
+            {
+                "uid": abono.usuario_id,
+                "cpid": new_cp.id,
+                "mpid": mp_id,
+                "precio": float(zona.precio),
+            },
+        )
+        db.execute(
+            text(
+                "UPDATE clases_programadas SET cupo_disponible = cupo_disponible - 1 WHERE id = :id"
+            ),
+            {"id": new_cp.id},
+        )
+
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400, detail="Error al modificar la sesión. Intentá de nuevo."
+        )
+
+    return {"ok": True}

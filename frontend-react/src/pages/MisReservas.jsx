@@ -1,11 +1,14 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import { getMisTurnos } from '../api/turnos'
-import { getMisAbonos } from '../api/abonos'
+import { getMisTurnos, getDisponibilidad } from '../api/turnos'
+import { getMisAbonos, renovarAbono, getSesionesAbono, modificarSesionAbono } from '../api/abonos'
+import client from '../api/client'
 import { ZONA_LABELS } from '../constants/turnos'
-import { fmtLargo, nextHour } from '../utils/dates'
+import { fmtLargo, fmtDate, fmtDiaLargo, nextHour, getISOWeekKey, MESES_ES } from '../utils/dates'
+import { MonthCalendar } from '../components/turnos/MonthCalendar'
+import { SlotGrid } from '../components/turnos/SlotGrid'
 import '../css/mis-reservas.css'
 
 function getUsuario() {
@@ -239,10 +242,253 @@ function AbonoPagoRow({ pago }) {
   )
 }
 
-function AbonoCard({ abono }) {
+// ── helpers ────────────────────────────────────────────────────────────────
+function toMes(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+}
+
+function getNextMonthName() {
+  const now = new Date()
+  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+  return `${MESES_ES[next.getMonth()].toLowerCase()} ${next.getFullYear()}`
+}
+
+// ── ModificarModal ──────────────────────────────────────────────────────────
+function ModificarModal({ abono, onClose, onSuccess }) {
+  const today = useMemo(() => {
+    const d = new Date()
+    d.setHours(0, 0, 0, 0)
+    return d
+  }, [])
+
+  const [sesiones, setSesiones] = useState([])
+  const [loadingSesiones, setLoadingSesiones] = useState(true)
+  const [selectedReservaId, setSelectedReservaId] = useState(null)
+  const [diaDate, setDiaDate] = useState(null)
+  const [slot, setSlot] = useState(null)
+  const [clasesDelMes, setClasesDelMes] = useState({})
+  const [loadingSlots, setLoadingSlots] = useState(false)
+  const [guardando, setGuardando] = useState(false)
+  const [errorMsg, setErrorMsg] = useState(null)
+
+  useEffect(() => {
+    getSesionesAbono(abono.id)
+      .then(setSesiones)
+      .catch(() => setErrorMsg('No se pudieron cargar las sesiones.'))
+      .finally(() => setLoadingSesiones(false))
+  }, [abono.id])
+
+  const fetchDisponibilidad = useCallback(async (displayDate) => {
+    const mes = toMes(displayDate)
+    setLoadingSlots(true)
+    try {
+      const data = await getDisponibilidad(mes)
+      setClasesDelMes((prev) => ({ ...prev, [mes]: data }))
+    } catch {
+      /* ignore */
+    } finally {
+      setLoadingSlots(false)
+    }
+  }, [])
+
+  // Semanas bloqueadas = semanas de todas las sesiones EXCEPTO la seleccionada para cambiar
+  const blockedWeekKeys = useMemo(() => {
+    return new Set(
+      sesiones
+        .filter((s) => s.reserva_id !== selectedReservaId)
+        .map((s) => getISOWeekKey(new Date(s.fecha + 'T00:00:00')))
+    )
+  }, [sesiones, selectedReservaId])
+
+  function getClasesForDay(date) {
+    const mes = toMes(date)
+    const all = clasesDelMes[mes] ?? []
+    return all.filter((c) => c.fecha === fmtDate(date) && c.zona_id === abono.zona_id)
+  }
+
+  function handleSelectSesion(reservaId) {
+    setSelectedReservaId(reservaId === selectedReservaId ? null : reservaId)
+    setDiaDate(null)
+    setSlot(null)
+  }
+
+  async function handleGuardar() {
+    if (!selectedReservaId || !diaDate || !slot) return
+    setGuardando(true)
+    setErrorMsg(null)
+    try {
+      await modificarSesionAbono(abono.id, selectedReservaId, fmtDate(diaDate), slot)
+      onSuccess()
+    } catch (err) {
+      setErrorMsg(err?.response?.data?.detail || 'No se pudo modificar la sesión.')
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  const canSave = selectedReservaId && diaDate && slot
+
+  return (
+    <div className='ma-modal-overlay' onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className='ma-modal'>
+        <div className='ma-modal-header'>
+          <div>
+            <div className='ma-modal-title'>Modificar sesiones</div>
+            <div className='ma-modal-subtitle'>{ZONA_LABELS[abono.zona] ?? abono.zona}</div>
+          </div>
+          <button className='ma-modal-close' onClick={onClose}>
+            ×
+          </button>
+        </div>
+
+        <div className='ma-modal-body'>
+          {/* Paso 1: elegir sesión a cambiar */}
+          <div className='ma-modal-section-title'>1. Seleccioná la sesión que querés cambiar</div>
+          {loadingSesiones ? (
+            <p className='ma-modal-hint'>Cargando sesiones…</p>
+          ) : sesiones.length === 0 ? (
+            <p className='ma-modal-hint'>
+              No tenés sesiones futuras para modificar. Usá "Renovar" para crear las del próximo
+              mes.
+            </p>
+          ) : (
+            <div className='ma-modal-sesiones'>
+              {sesiones.map((s) => (
+                <button
+                  key={s.reserva_id}
+                  className={`ma-modal-sesion${selectedReservaId === s.reserva_id ? ' selected' : ''}`}
+                  onClick={() => handleSelectSesion(s.reserva_id)}
+                >
+                  <span className='ma-modal-sesion-fecha'>
+                    {fmtDiaLargo(new Date(s.fecha + 'T00:00:00'))}
+                  </span>
+                  <span className='ma-modal-sesion-hora'>
+                    {s.hora} – {nextHour(s.hora)}
+                  </span>
+                  {selectedReservaId === s.reserva_id && (
+                    <span className='ma-modal-sesion-check'>✕ Quitar</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Paso 2: elegir nueva fecha */}
+          {selectedReservaId && (
+            <>
+              <div className='ma-modal-section-title' style={{ marginTop: '1.25rem' }}>
+                2. Elegí la nueva fecha
+                {loadingSlots && (
+                  <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)' }}>
+                    {' '}
+                    · cargando…
+                  </span>
+                )}
+              </div>
+              <MonthCalendar
+                selectedDay={diaDate}
+                onDaySelect={(d) => {
+                  setDiaDate(d)
+                  setSlot(null)
+                }}
+                today={today}
+                getClasesForDay={getClasesForDay}
+                bookedDays={new Set()}
+                onMonthChange={fetchDisponibilidad}
+                blockedWeekKeys={blockedWeekKeys}
+              />
+              <div className='ma-modal-section-title' style={{ marginTop: '1rem' }}>
+                Elegí el horario
+              </div>
+              <SlotGrid
+                selectedDay={diaDate}
+                selectedSlot={slot}
+                onSlotSelect={setSlot}
+                clases={
+                  diaDate
+                    ? (clasesDelMes[toMes(diaDate)]?.filter(
+                        (c) => c.fecha === fmtDate(diaDate) && c.zona_id === abono.zona_id
+                      ) ?? [])
+                    : []
+                }
+                bookedClaseIds={new Set()}
+              />
+            </>
+          )}
+
+          {errorMsg && <p className='ma-modal-error'>{errorMsg}</p>}
+        </div>
+
+        <div className='ma-modal-footer'>
+          <button className='ma-modal-cancel' onClick={onClose}>
+            Cancelar
+          </button>
+          <button
+            className='ma-modal-save'
+            onClick={handleGuardar}
+            disabled={!canSave || guardando}
+          >
+            {guardando ? 'Guardando…' : 'Confirmar cambio'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const RENOVAR_MEDIO_DB = {
+  efectivo: 'Efectivo',
+  transferencia: 'Transferencia',
+  cuentadni: 'Efectivo',
+  modo: 'Transferencia',
+  mercadopago: 'Mercado Pago',
+}
+
+// ── AbonoCard ───────────────────────────────────────────────────────────────
+function AbonoCard({ abono, onModificar, onRenovarDone }) {
   const [expanded, setExpanded] = useState(false)
+  const [renovando, setRenovando] = useState(null) // null | 'confirm' | 'loading'
+  const [renovarMedio, setRenovarMedio] = useState(null)
   const cfg = ESTADO_ABONO_CONFIG[abono.estado] ?? { label: abono.estado, css: 'activo' }
   const pagosVisibles = expanded ? abono.pagos : abono.pagos.slice(0, 3)
+  const nextMonthName = getNextMonthName()
+
+  async function handleRenovar() {
+    if (!renovarMedio) return
+    if (['mercadopago'].includes(renovarMedio)) {
+      setRenovando('loading')
+      try {
+        const { data } = await client.post('/api/crear-preferencia', null, {
+          params: {
+            servicio_id: abono.zona_id ?? 1,
+            precio: abono.monto_mensual ?? 0,
+            titulo: `Renovación abono ${abono.zona}`,
+            cantidad: 1,
+          },
+        })
+        if (data?.init_point) {
+          window.location.href = data.init_point
+          return
+        }
+        onRenovarDone(null, 'No se pudo obtener el link de pago.')
+      } catch {
+        onRenovarDone(null, 'Error al procesar el pago.')
+      } finally {
+        setRenovando(null)
+      }
+      return
+    }
+    setRenovando('loading')
+    try {
+      const res = await renovarAbono(abono.id, RENOVAR_MEDIO_DB[renovarMedio] ?? 'Efectivo')
+      const aviso = res.aviso ? ` ${res.aviso}` : ''
+      onRenovarDone(`Se renovaron ${res.renovadas} sesiones para ${nextMonthName}.${aviso}`)
+    } catch (err) {
+      onRenovarDone(null, err?.response?.data?.detail || 'No se pudo renovar el abono.')
+    } finally {
+      setRenovando(null)
+    }
+  }
 
   return (
     <div className='ma-card'>
@@ -290,6 +536,62 @@ function AbonoCard({ abono }) {
           )}
         </div>
       )}
+
+      {/* Acciones */}
+      {abono.activo && (
+        <div className='ma-card-actions'>
+          {renovando === 'confirm' ? (
+            <div className='ma-renovar-confirm'>
+              <p>
+                ¿Renovar para <strong>{nextMonthName}</strong>? Se buscarán los mismos días de la
+                semana.
+              </p>
+              <div className='ma-renovar-medios'>
+                {[
+                  { id: 'mercadopago', label: 'MercadoPago' },
+                  { id: 'efectivo', label: 'Efectivo / Transf.' },
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    className={`ma-renovar-medio${renovarMedio === m.id ? ' selected' : ''}`}
+                    onClick={() => setRenovarMedio(m.id)}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+              <div className='ma-renovar-btns'>
+                <button className='ma-renovar-ok' onClick={handleRenovar} disabled={!renovarMedio}>
+                  {renovarMedio === 'mercadopago' ? 'Pagar con MP' : 'Confirmar renovación'}
+                </button>
+                <button
+                  className='ma-renovar-cancel'
+                  onClick={() => {
+                    setRenovando(null)
+                    setRenovarMedio(null)
+                  }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : renovando === 'loading' ? (
+            <p className='ma-action-loading'>Renovando…</p>
+          ) : (
+            <>
+              <button className='ma-action-btn' onClick={() => setRenovando('confirm')}>
+                ↻ Renovar abono
+              </button>
+              <button
+                className='ma-action-btn ma-action-btn--outline'
+                onClick={() => onModificar(abono)}
+              >
+                ✎ Modificar fechas
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -309,6 +611,13 @@ export default function MisReservas() {
   const [abonos, setAbonos] = useState([])
   const [loadingAbonos, setLoadingAbonos] = useState(false)
   const [abonosLoaded, setAbonosLoaded] = useState(false)
+  const [modificarAbono, setModificarAbono] = useState(null)
+  const [toastMsg, setToastMsg] = useState(null)
+
+  function showAppToast(msg) {
+    setToastMsg(msg)
+    setTimeout(() => setToastMsg(null), 3500)
+  }
 
   useEffect(() => {
     if (!usuario) {
@@ -564,7 +873,21 @@ export default function MisReservas() {
             ) : (
               <div className='ma-list'>
                 {abonos.map((a) => (
-                  <AbonoCard key={a.id} abono={a} />
+                  <AbonoCard
+                    key={a.id}
+                    abono={a}
+                    onModificar={setModificarAbono}
+                    onRenovarDone={(ok, err) => {
+                      showAppToast(err || ok)
+                      if (!err) {
+                        setAbonosLoaded(false)
+                        getMisAbonos(usuario.id)
+                          .then(setAbonos)
+                          .catch(() => {})
+                          .finally(() => setAbonosLoaded(true))
+                      }
+                    }}
+                  />
                 ))}
               </div>
             )}
@@ -573,6 +896,24 @@ export default function MisReservas() {
       </div>
 
       <Footer />
+
+      {modificarAbono && (
+        <ModificarModal
+          abono={modificarAbono}
+          onClose={() => setModificarAbono(null)}
+          onSuccess={() => {
+            setModificarAbono(null)
+            showAppToast('Sesión modificada correctamente.')
+            setAbonosLoaded(false)
+            getMisAbonos(usuario.id)
+              .then(setAbonos)
+              .catch(() => {})
+              .finally(() => setAbonosLoaded(true))
+          }}
+        />
+      )}
+
+      {toastMsg && <div className='ma-toast'>{toastMsg}</div>}
     </div>
   )
 }

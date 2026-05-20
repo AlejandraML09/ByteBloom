@@ -11,8 +11,11 @@ export function MonthCalendar({
   bookedDays,
   onMonthChange,
   blockedWeekKeys,
+  defaultMonthOffset = 0,
+  minMonthOffset = 0,
+  maxMonthOffset = null,
 }) {
-  const [monthOffset, setMonthOffset] = useState(0)
+  const [monthOffset, setMonthOffset] = useState(defaultMonthOffset)
 
   const displayDate = useMemo(() => {
     return new Date(today.getFullYear(), today.getMonth() + monthOffset, 1)
@@ -22,7 +25,8 @@ export function MonthCalendar({
     onMonthChange?.(displayDate)
   }, [displayDate])
 
-  const prevDisabled = monthOffset <= 0
+  const prevDisabled = monthOffset <= minMonthOffset
+  const nextDisabled = maxMonthOffset !== null && monthOffset >= maxMonthOffset
   const monthLabel = `${MESES_ES[displayDate.getMonth()]} ${displayDate.getFullYear()}`
 
   const calendarDays = useMemo(() => {
@@ -52,7 +56,11 @@ export function MonthCalendar({
           &#8249;
         </button>
         <span className='week-label'>{monthLabel}</span>
-        <button className='week-arrow' onClick={() => setMonthOffset((o) => o + 1)}>
+        <button
+          className='week-arrow'
+          disabled={nextDisabled}
+          onClick={() => setMonthOffset((o) => o + 1)}
+        >
           &#8250;
         </button>
       </div>
