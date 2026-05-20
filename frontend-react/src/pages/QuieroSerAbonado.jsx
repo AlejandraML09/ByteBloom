@@ -223,7 +223,7 @@ export default function QuieroSerAbonado() {
         <div className='sa-header-badge'>
           <StarIcon size={14} /> Plan abono
         </div>
-        <h1>Quiero ser abonada</h1>
+        <h1>Quiero ser abonado</h1>
         <p>Elegí tu zona y hasta {MAX_SHIFTS} fechas de sesión — una por semana</p>
       </div>
 
