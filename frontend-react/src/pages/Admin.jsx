@@ -43,7 +43,7 @@ const TABS = [
   { id: 'eliminar', label: 'Eliminar por profesional', roles: ['admin'] },
   { id: 'precios', label: 'Modificar precio', roles: ['admin'] },
   { id: 'secretarios', label: 'Secretarios', roles: ['admin'] },
-  { id: 'registrar-paciente', label: 'Registrar paciente', roles: ['secretario'] },
+  { id: 'registrar-paciente', label: 'Registrar cliente', roles: ['secretario'] },
 ]
 
 const TAB_HEADERS = {
@@ -55,7 +55,8 @@ const TAB_HEADERS = {
   cancelar:    { title: 'Cancelar clase',          desc: 'Seleccioná una clase activa para cancelarla.' },
   eliminar:    { title: 'Eliminar por profesional',desc: 'Cancelá todas las clases futuras de un profesional.' },
   precios:     { title: 'Modificar precio',        desc: 'Aplicá un nuevo precio a las próximas clases sin inscriptos.' },
-  secretarios: { title: 'Secretarios',             desc: 'Gestioná los usuarios secretarios del sistema.' },
+  secretarios: { title: 'Secretarios', desc: 'Gestioná los usuarios secretarios del sistema.' },
+  'registrar-paciente': { title: 'Registrar cliente', desc: 'Registrá un nuevo cliente en el sistema.' },
 }
 
 export default function Admin() {

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import '../../css/login.css'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -32,7 +33,7 @@ export function RegistrarClienteTab({ onToast }) {
 
     setCargando(true)
     try {
-      const res = await fetch(`${API_URL}/secretario/registrar-paciente`, {
+      const res = await fetch(`${API_URL}/secretario/registrar-cliente`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -56,7 +57,7 @@ export function RegistrarClienteTab({ onToast }) {
 
       setForm({ nombre: '', apellido: '', dni: '', email: '' })
       setExito(true)
-      onToast('Paciente registrado. Se envió la contraseña por mail.')
+      onToast('Cliente registrado. Se envió la contraseña por mail.')
     } catch {
       setError('No se pudo conectar con el servidor.')
     } finally {
@@ -65,15 +66,15 @@ export function RegistrarClienteTab({ onToast }) {
   }
 
   return (
-    <div className='card'>
+    <div className='card' style={{ maxWidth: '560px', margin: '0 auto' }}>
       <div className='card-header'>
         <div>
-          <h3>Registrar paciente</h3>
+          <h3>Registrar cliente</h3>
           <p>Se generará una contraseña automática y se enviará por mail</p>
         </div>
       </div>
 
-      <div style={{ padding: '1.5rem', maxWidth: '480px' }}>
+      <div style={{ padding: '1.5rem', maxWidth: '480px', margin: '0 auto' }}>
         {error && (
           <div className='error-msg show' style={{ marginBottom: '1rem' }}>
             {error}
@@ -96,7 +97,7 @@ export function RegistrarClienteTab({ onToast }) {
         </div>
 
         <div className='form-group'>
-          <label>DNI <span style={{ color: 'var(--gray-t)', fontWeight: 400 }}>(opcional)</span></label>
+          <label>DNI</label>
           <input type='number' name='dni' value={form.dni} onChange={handleChange} placeholder='12345678' />
         </div>
 
@@ -106,12 +107,12 @@ export function RegistrarClienteTab({ onToast }) {
         </div>
 
         <button
-          className='btn-action'
-          style={{ background: 'var(--p)', color: '#fff', borderColor: 'var(--p)', padding: '9px 22px', fontSize: '13px', marginTop: '0.5rem' }}
+          className='btn-nuevo'
+          style={{ marginTop: '0.5rem' }}
           onClick={handleSubmit}
           disabled={cargando}
         >
-          {cargando ? 'Registrando...' : 'Registrar paciente'}
+          {cargando ? 'Registrando...' : 'Registrar cliente'}
         </button>
       </div>
     </div>
