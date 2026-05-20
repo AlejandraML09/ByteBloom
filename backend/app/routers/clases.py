@@ -1,37 +1,76 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from sqlalchemy import cast, String as SAStr
 from pydantic import BaseModel, field_validator
-from datetime import datetime, date
+from typing import Optional
+from datetime import datetime, date as date_type, time as time_type
 from app.database import SessionLocal
-from app.models import Clase, Configuracion, ZonaEnum
+from app.models import Clase, ClaseProgramada, Zona, Usuario
 
 router = APIRouter(prefix="/api/clases", tags=["clases"])
 
 
-class CrearClaseRequest(BaseModel):
-    zona: str
-    fecha: str  # formato: YYYY-MM-DD
-    hora: str  # formato: HH:MM
-    cupo_max: int
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-    @field_validator("zona")
+
+# ── Schemas ───────────────────────────────────────────────────────────────────
+
+
+class CrearClaseRequest(BaseModel):
+    zona_id: int
+    cupo_maximo: int
+    profesional_email: Optional[str] = None
+
+    @field_validator("zona_id")
     @classmethod
-    def zona_no_vacia(cls, v):
-        if not v.strip():
-            raise ValueError("La zona no puede estar vacía.")
-        zonas_validas = [z.value for z in ZonaEnum]
-        if v.strip() not in zonas_validas:
-            raise ValueError(f"Zona inválida. Opciones: {zonas_validas}")
-        return v.strip()
+    def zona_valida(cls, v):
+        if v < 1:
+            raise ValueError("La zona no puede ser menor a 1.")
+        return v
+
+    @field_validator("cupo_maximo")
+    @classmethod
+    def cupo_positivo(cls, v):
+        if v < 1:
+            raise ValueError("El cupo máximo debe ser al menos 1.")
+        return v
+
+    @field_validator("profesional_email")
+    @classmethod
+    def email_valido(cls, v):
+        if v is None:
+            return v
+        if "@" not in v:
+            raise ValueError("El email del profesional no es válido.")
+        return v.strip().lower()
+
+
+class ClaseResponse(BaseModel):
+    id: int
+    zona_id: int
+    cupo_maximo: int
+    profesional_email: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class SlotItem(BaseModel):
+    fecha: str  # "YYYY-MM-DD"
+    hora: str  # "HH:MM"
 
     @field_validator("fecha")
     @classmethod
     def fecha_valida(cls, v):
         try:
-            fecha = datetime.strptime(v, "%Y-%m-%d").date()
+            datetime.strptime(v, "%Y-%m-%d")
         except ValueError:
             raise ValueError("La fecha debe tener formato YYYY-MM-DD.")
-        if fecha < datetime.today().date():
-            raise ValueError("La fecha no puede ser anterior a hoy.")
         return v
 
     @field_validator("hora")
@@ -43,50 +82,130 @@ class CrearClaseRequest(BaseModel):
             raise ValueError("El horario debe tener formato HH:MM.")
         return v
 
-    @field_validator("cupo_max")
-    @classmethod
-    def cupo_positivo(cls, v):
-        if v < 1:
-            raise ValueError("El cupo máximo debe ser al menos 1.")
-        return v
+
+class BulkProgramarRequest(BaseModel):
+    clase_id: int
+    slots: list[SlotItem]
 
 
-class ClaseResponse(BaseModel):
-    id: int
-    zona: str
-    fecha: date
-    hora: str
-    cupo_max: int
-    inscritos: int
-    cancelada: int
-
-    class Config:
-        from_attributes = True
+# ── Endpoints ─────────────────────────────────────────────────────────────────
 
 
 @router.post("", response_model=ClaseResponse, status_code=201)
-async def crear_clase(body: CrearClaseRequest):
-    db = SessionLocal()
-    try:
-        config = db.query(Configuracion).filter(Configuracion.id == 1).first()
-        precio = config.precio if config else 0
+def crear_clase(body: CrearClaseRequest, db: Session = Depends(get_db)):
+    """Creates a clase template (zone + capacity + profesional). No schedule."""
+    if not db.query(Zona).filter(Zona.id == body.zona_id, Zona.activo == True).first():
+        raise HTTPException(status_code=404, detail="Zona no encontrada.")
 
-        nueva_clase = Clase(
-            zona=body.zona,
-            fecha=body.fecha,
-            hora=body.hora,
-            cupo_max=body.cupo_max,
-            inscritos=0,
-            cancelada=0,
+    nueva_clase = Clase(
+        zona_id=body.zona_id,
+        cupo_maximo=body.cupo_maximo,
+        profesional_email=body.profesional_email,
+    )
+    db.add(nueva_clase)
+    db.commit()
+    db.refresh(nueva_clase)
+    return nueva_clase
+
+
+@router.get("/activas")
+def listar_clases_activas(db: Session = Depends(get_db)):
+    """All active clase templates with zone and profesional info."""
+    rows = (
+        db.query(Clase, Zona)
+        .join(Zona, Clase.zona_id == Zona.id)
+        .filter(Clase.activo == True)
+        .order_by(Zona.nombre, Clase.id)
+        .all()
+    )
+    result = []
+    for clase, zona in rows:
+        prof_nombre = None
+        if clase.profesional_email:
+            u = (
+                db.query(Usuario)
+                .filter(Usuario.email == clase.profesional_email)
+                .first()
+            )
+            if u:
+                prof_nombre = f"{u.nombre} {u.apellido}"
+        result.append(
+            {
+                "id": clase.id,
+                "zona_id": clase.zona_id,
+                "zona_nombre": zona.nombre,
+                "cupo_maximo": clase.cupo_maximo,
+                "profesional_email": clase.profesional_email,
+                "profesional_nombre": prof_nombre,
+            }
         )
-        db.add(nueva_clase)
-        db.commit()
-        db.refresh(nueva_clase)
-        return nueva_clase
-    except Exception:
-        db.rollback()
+    return result
+
+
+@router.post("/programadas", status_code=201)
+def crear_clases_programadas_bulk(
+    body: BulkProgramarRequest, db: Session = Depends(get_db)
+):
+    """Bulk-creates clases_programadas for an existing clase, skipping duplicates."""
+    clase = (
+        db.query(Clase).filter(Clase.id == body.clase_id, Clase.activo == True).first()
+    )
+    if not clase:
+        raise HTTPException(status_code=404, detail="Clase no encontrada.")
+
+    if not body.slots:
         raise HTTPException(
-            status_code=500, detail="Error interno al guardar la clase."
+            status_code=400, detail="Debés seleccionar al menos un horario."
         )
-    finally:
-        db.close()
+
+    creadas, omitidas = 0, 0
+    for slot in body.slots:
+        fecha_obj = datetime.strptime(slot.fecha, "%Y-%m-%d").date()
+        hora_obj = datetime.strptime(slot.hora, "%H:%M").time()
+
+        already = (
+            db.query(ClaseProgramada)
+            .filter(
+                ClaseProgramada.clase_id == body.clase_id,
+                ClaseProgramada.fecha == fecha_obj,
+                ClaseProgramada.hora == hora_obj,
+                ClaseProgramada.activo == True,
+            )
+            .first()
+        )
+        if already:
+            omitidas += 1
+            continue
+        db.add(
+            ClaseProgramada(
+                clase_id=body.clase_id,
+                fecha=fecha_obj,
+                hora=hora_obj,
+                cupo_disponible=clase.cupo_maximo,
+            )
+        )
+        db.flush()  # write one at a time — avoids SQLAlchemy batch-insert typing the cols as VARCHAR
+        creadas += 1
+
+    db.commit()
+    return {"creadas": creadas, "omitidas": omitidas}
+
+
+@router.delete("/por-profesional/{email}", status_code=200)
+def eliminar_clases_de_profesional(email: str, db: Session = Depends(get_db)):
+    clases = (
+        db.query(Clase)
+        .filter(
+            Clase.profesional_email == email.strip().lower(),
+            Clase.activo == True,
+        )
+        .all()
+    )
+    if not clases:
+        raise HTTPException(
+            status_code=404, detail="No se encontraron clases para ese profesional."
+        )
+    for clase in clases:
+        clase.activo = False
+    db.commit()
+    return {"eliminadas": len(clases), "profesional_email": email}

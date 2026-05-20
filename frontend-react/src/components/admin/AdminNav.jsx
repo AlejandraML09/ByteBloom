@@ -1,20 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import logo from '../../assets/fulllogo_slogan_sinfondo.png'
-import SecretariosTab from './SecretariosTab'
 
-// Ícono de perfil SVG (mismo que Navbar usuario)
 function UserIcon() {
   return (
-    <svg
-      width='22'
-      height='22'
-      viewBox='0 0 24 24'
-      fill='none'
-      stroke='currentColor'
-      strokeWidth='1.8'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-    >
+    <svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round'>
       <circle cx='12' cy='8' r='4' />
       <path d='M4 20c0-4 3.6-7 8-7s8 3 8 7' />
     </svg>
@@ -23,15 +12,7 @@ function UserIcon() {
 
 function CloseIcon() {
   return (
-    <svg
-      width='20'
-      height='20'
-      viewBox='0 0 24 24'
-      fill='none'
-      stroke='currentColor'
-      strokeWidth='2'
-      strokeLinecap='round'
-    >
+    <svg width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round'>
       <line x1='18' y1='6' x2='6' y2='18' />
       <line x1='6' y1='6' x2='18' y2='18' />
     </svg>
@@ -40,16 +21,7 @@ function CloseIcon() {
 
 function LogoutIcon() {
   return (
-    <svg
-      width='16'
-      height='16'
-      viewBox='0 0 24 24'
-      fill='none'
-      stroke='currentColor'
-      strokeWidth='2'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-    >
+    <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>
       <path d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4' />
       <polyline points='16 17 21 12 16 7' />
       <line x1='21' y1='12' x2='9' y2='12' />
@@ -57,7 +29,7 @@ function LogoutIcon() {
   )
 }
 
-export function AdminNav({ user, activeTab, setActiveTab, visibleTabs, onLogout }) {
+export function AdminNav({ user, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const sidebarRef = useRef(null)
 
@@ -76,9 +48,7 @@ export function AdminNav({ user, activeTab, setActiveTab, visibleTabs, onLogout 
 
   useEffect(() => {
     document.body.style.overflow = sidebarOpen ? 'hidden' : ''
-    return () => {
-      document.body.style.overflow = ''
-    }
+    return () => { document.body.style.overflow = '' }
   }, [sidebarOpen])
 
   return (
@@ -97,19 +67,16 @@ export function AdminNav({ user, activeTab, setActiveTab, visibleTabs, onLogout 
             className='admin-profile-btn'
             onClick={() => setSidebarOpen(true)}
             aria-label='Abrir menú de administrador'
-            title='Ver perfil'
           >
             <UserIcon />
           </button>
         </div>
       </nav>
 
-      {/* Overlay */}
       {sidebarOpen && (
         <div className='sidebar-overlay' onClick={() => setSidebarOpen(false)} aria-hidden='true' />
       )}
 
-      {/* Panel lateral admin */}
       <aside
         ref={sidebarRef}
         className={`user-sidebar${sidebarOpen ? ' user-sidebar--open' : ''}`}
@@ -150,33 +117,12 @@ export function AdminNav({ user, activeTab, setActiveTab, visibleTabs, onLogout 
 
         <button
           className='user-sidebar__logout'
-          onClick={() => {
-            setSidebarOpen(false)
-            onLogout()
-          }}
+          onClick={() => { setSidebarOpen(false); onLogout() }}
         >
           <LogoutIcon />
           <span>Cerrar sesión</span>
         </button>
       </aside>
-
-      <div className="admin-content">
-        <div className="admin-tabs">
-          {visibleTabs.map(tab => (
-            <button
-              key={tab.id}
-              className={`nav-btn ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="admin-tab-content">
-          {/* El contenido se renderiza en Admin.jsx */}
-        </div>
-      </div>
     </>
   )
 }

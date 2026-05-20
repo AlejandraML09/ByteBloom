@@ -7,8 +7,10 @@ import { PacientesTab } from '../components/admin/PacientesTab'
 import { CuposTab } from '../components/admin/CuposTab'
 import { CancelarTab } from '../components/admin/CancelarTab'
 import { CrearTab } from '../components/admin/CrearTab'
+import { ProgramarTab } from '../components/admin/ProgramarTab'
 import { AsistenciaTab } from '../components/admin/AsistenciaTab'
 import { PriceTab } from '../components/admin/PriceTab'
+import { EliminarTab } from '../components/admin/EliminarTab'
 import { HORARIOS, PACIENTES, DIST } from '../constants/admin'
 import { fmtDate, fmtLargo } from '../utils/dates'
 import '../css/admin.css'
@@ -29,29 +31,39 @@ function initOcupados() {
 }
 
 const TABS = [
-  { id: 'turnos',     label: 'Turnos del día',  roles: ['admin'] },
-  { id: 'pacientes',  label: 'Pacientes',        roles: ['admin'] },
-  { id: 'cupos',      label: 'Gestionar cupos',  roles: ['admin'] },
-  { id: 'asistencia', label: 'Asistencia',       roles: ['secretario'] },
-  { id: 'crear',      label: 'Crear clase',      roles: ['admin', 'secretario'] },
-  { id: 'cancelar',   label: 'Cancelar clase',   roles: ['admin', 'secretario'] },
-  { id: 'precios',    label: 'Modificar precio', roles: ['admin'] },
-  { id: 'secretarios', label: 'Secretarios',     roles: ['admin'] },
+  { id: 'turnos', label: 'Turnos del día', roles: ['admin'] },
+  { id: 'pacientes', label: 'Pacientes', roles: ['admin'] },
+  { id: 'cupos', label: 'Gestionar cupos', roles: ['admin'] },
+  { id: 'asistencia', label: 'Asistencia', roles: ['secretario'] },
+  { id: 'crear', label: 'Crear clase', roles: ['admin', 'secretario'] },
+  { id: 'programar', label: 'Programar clases', roles: ['admin', 'secretario'] },
+  { id: 'cancelar', label: 'Cancelar clase', roles: ['admin', 'secretario'] },
+  { id: 'eliminar', label: 'Eliminar por profesional', roles: ['admin'] },
+  { id: 'precios', label: 'Modificar precio', roles: ['admin'] },
+  { id: 'secretarios', label: 'Secretarios', roles: ['admin'] },
 ]
 
-// Leer usuario UNA sola vez, fuera del componente no es posible con hooks,
-// así que lo hacemos antes de los hooks pero dentro del componente.
+const TAB_HEADERS = {
+  turnos:      { title: 'Turnos del día',          desc: 'Consultá y gestioná los turnos de hoy.' },
+  pacientes:   { title: 'Pacientes',               desc: 'Historial completo de pacientes del sistema.' },
+  cupos:       { title: 'Gestionar cupos',         desc: 'Ajustá el cupo máximo de cada clase.' },
+  asistencia:  { title: 'Asistencia',              desc: 'Marcá la presencia de cada paciente.' },
+  crear:       { title: 'Crear clase',             desc: 'Completá los datos para agregar una nueva clase.' },
+  cancelar:    { title: 'Cancelar clase',          desc: 'Seleccioná una clase activa para cancelarla.' },
+  eliminar:    { title: 'Eliminar por profesional',desc: 'Cancelá todas las clases futuras de un profesional.' },
+  precios:     { title: 'Modificar precio',        desc: 'Aplicá un nuevo precio a las próximas clases sin inscriptos.' },
+  secretarios: { title: 'Secretarios',             desc: 'Gestioná los usuarios secretarios del sistema.' },
+}
+
 export default function Admin() {
   const navigate = useNavigate()
   const today = fmtDate(new Date())
 
-  // ── Lectura unificada del usuario ──────────────────────────────────────────
   const storedUser = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
   const user = storedUser ? JSON.parse(storedUser) : null
 
   const visibleTabs = TABS.filter((t) => t.roles.includes(user?.rol))
 
-  // ── Hooks ──────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState(visibleTabs[0]?.id ?? 'crear')
   const [filterDate, setFilterDate] = useState(today)
   const [filterCuposDate, setFilterCuposDate] = useState('')
@@ -72,18 +84,17 @@ export default function Admin() {
   const [priceInput, setPriceInput] = useState('')
   const [upcomingClasses, setUpcomingClasses] = useState([])
 
-  // ── Guarda de rol ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!user || !['admin', 'secretario'].includes(user.rol)) {
       navigate('/login')
     }
   }, [])
 
-  // ── Carga de datos desde backend ───────────────────────────────────────────
   useEffect(() => {
     const cargarClases = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/clases`)
+        // Para la pestaña de precios usamos directamente la respuesta del backend
+        const res = await fetch(`${API_URL}/api/cupos`)
         if (res.ok) {
           const data = await res.json()
           if (data.length > 0) setUpcomingClasses(data)
@@ -102,7 +113,7 @@ export default function Admin() {
         if (res.ok) {
           const data = await res.json()
           setCuposClasses(data)
-          setCuposInput(Object.fromEntries(data.map((clase) => [clase.id, clase.cupo_max])))
+          setCuposInput(Object.fromEntries(data.map((clase) => [clase.id, clase.cupo_maximo])))
         }
       } catch {
         console.log('No se pudieron cargar los cupos desde el backend')
@@ -141,7 +152,6 @@ export default function Admin() {
     cargarClasesCancelar()
   }, [])
 
-  // ── Datos derivados ────────────────────────────────────────────────────────
   const turnos = useMemo(() => buildTurnos(), [])
 
   const turnosFiltrados = turnos.map((t) => ({
@@ -157,7 +167,6 @@ export default function Admin() {
     return acc + Math.max(0, cuposMax[h] - occ)
   }, 0)
 
-  // ── Funciones ──────────────────────────────────────────────────────────────
   function showToast(msg) {
     setToastMsg(msg)
     setToastVisible(true)
@@ -188,29 +197,70 @@ export default function Admin() {
   async function cancelarClase(claseId) {
     const clase = clasesParaCancelar.find((c) => c.id === claseId)
     if (!clase) return
-
     try {
       const res = await fetch(`${API_URL}/api/clases-cancelar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          zona: clase.zona,
-          fecha: clase.fecha,
-          hora: clase.hora,
-        }),
+        body: JSON.stringify({ clase_programada_id: claseId }),
       })
-
       const body = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        showToast(body.detail || 'Error al cancelar clase')
-        return
-      }
-
+      if (!res.ok) { showToast(body.detail || 'Error al cancelar clase'); return }
       setClasesParaCancelar((prev) => prev.filter((c) => c.id !== claseId))
       showToast('La clase ha sido cancelada exitosamente')
     } catch {
       showToast('Error al cancelar clase en backend')
     }
+  }
+
+  async function crearClasesProgramadas(datos) {
+    const res = await fetch(`${API_URL}/api/clases/programadas`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos),
+    })
+    const body = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(body.detail || 'Error al programar las clases.')
+    showToast(
+      `${body.creadas} clase${body.creadas !== 1 ? 's' : ''} programada${body.creadas !== 1 ? 's' : ''} creada${body.creadas !== 1 ? 's' : ''} correctamente`
+    )
+    // Refrescar datos relevantes (cupos, clases para cancelar y precios)
+    try {
+      const r1 = await fetch(`${API_URL}/api/cupos`)
+      if (r1.ok) {
+        const d1 = await r1.json()
+        setCuposClasses(d1)
+        setCuposInput(Object.fromEntries(d1.map((clase) => [clase.id, clase.cupo_maximo])))
+          setUpcomingClasses(d1)
+      }
+    } catch {}
+
+    try {
+      const r2 = await fetch(`${API_URL}/api/clases-cancelar`)
+      if (r2.ok) {
+        const d2 = await r2.json()
+        setClasesParaCancelar(d2)
+      }
+    } catch {}
+
+    try {
+      const r3 = await fetch(`${API_URL}/api/precios`)
+      if (r3.ok) {
+        const d3 = await r3.json()
+        setPrecio(d3.precio ?? 0)
+      }
+    } catch {}
+
+    return body
+  }
+
+  async function eliminarClasesPorProfesional(email) {
+    const res = await fetch(`${API_URL}/api/clases/por-profesional/${encodeURIComponent(email)}`, {
+      method: 'DELETE',
+    })
+    const body = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(body.detail || 'Error al eliminar las clases.')
+    showToast(`Clases de ${email} canceladas correctamente`)
+    return body
   }
 
   function guardarAsistencia() {
@@ -222,25 +272,19 @@ export default function Admin() {
   async function modificarCupo(claseId) {
     const clase = cuposClasses.find((c) => c.id === claseId)
     if (!clase) return
-
     const nuevoCupo = parseInt(cuposInput[claseId], 10)
-    if (!nuevoCupo || nuevoCupo <= 0) {
-      showToast('Ingresá un cupo válido')
-      return
-    }
-
+    if (!nuevoCupo || nuevoCupo <= 0) { showToast('Ingresá un cupo válido'); return }
     try {
       const res = await fetch(`${API_URL}/api/cupos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          zona: clase.zona,
+          zona_id: clase.zona_id,
           fecha: clase.fecha,
           hora: clase.hora,
           nuevo_cupo: nuevoCupo,
         }),
       })
-
       const body = await res.json().catch(() => ({}))
       if (!res.ok) {
         showToast(body.detail || 'Error al modificar cupo')
@@ -248,7 +292,7 @@ export default function Admin() {
       }
 
       setCuposClasses((prev) =>
-        prev.map((c) => (c.id === claseId ? { ...c, cupo_max: nuevoCupo } : c))
+        prev.map((c) => (c.id === claseId ? { ...c, cupo_maximo: nuevoCupo } : c))
       )
       setCuposInput((prev) => ({ ...prev, [claseId]: nuevoCupo }))
       showToast('Modificación exitosa')
@@ -257,28 +301,49 @@ export default function Admin() {
     }
   }
 
-  function modificarPrecio() {
+  function modificarPrecio(zonaId = null) {
     const nuevoPrecio = parseInt(priceInput, 10)
     if (!nuevoPrecio || nuevoPrecio <= 0) {
       showToast('Ingresá un precio válido')
       return
     }
 
-    setPrecio(nuevoPrecio)
-    setPriceInput('')
+    const body = { nuevo_precio: nuevoPrecio }
+    if (zonaId !== null && zonaId !== undefined) {
+      body.zona_id = zonaId
+    }
 
     fetch(`${API_URL}/api/precios`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nuevo_precio: nuevoPrecio }),
+      body: JSON.stringify(body),
     })
       .then(async (res) => {
         if (!res.ok) {
-          const body = await res.json().catch(() => ({}))
-          showToast(body.detail || 'Error al guardar en backend')
+          const respBody = await res.json().catch(() => ({}))
+          showToast(respBody.detail || 'Error al guardar en backend')
           return
         }
-        showToast('Modificación exitosa')
+        showToast('Precio actualizado exitosamente')
+        setPrecio(nuevoPrecio)
+        setPriceInput('')
+
+        // Refrescar datos después de actualizar el precio
+        try {
+          const resPrecios = await fetch(`${API_URL}/api/precios`)
+          if (resPrecios.ok) {
+            const dataPrecios = await resPrecios.json()
+            setPrecio(dataPrecios.precio ?? 0)
+          }
+
+          const resCupos = await fetch(`${API_URL}/api/cupos`)
+          if (resCupos.ok) {
+            const dataCupos = await resCupos.json()
+            setUpcomingClasses(dataCupos)
+          }
+        } catch {
+          console.log('No se pudieron refrescar los datos después de actualizar precio')
+        }
       })
       .catch(() => {
         showToast('Guardado local, backend no disponible')
@@ -298,18 +363,45 @@ export default function Admin() {
     }
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  const currentHeader = TAB_HEADERS[activeTab] ?? { title: '', desc: '' }
+
   return (
-    <>
-      <AdminNav 
-        user={user} 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab}
-        visibleTabs={visibleTabs}
-        onLogout={logout}
-      />
-      
-      <div className="admin-container">
+    <div className='admin-page'>
+      {/* Navbar solo con logo + badge + perfil */}
+      <AdminNav user={user} onLogout={logout} />
+
+      {/* Header con gradiente igual que área de usuario */}
+      <div className='page-header'>
+        <h1>{currentHeader.title}</h1>
+        <p>{currentHeader.desc}</p>
+      </div>
+
+      {/* Stats — solo en turnos */}
+      {activeTab === 'turnos' && (
+        <div className='admin-main' style={{ paddingBottom: 0 }}>
+          <AdminStatsRow
+            statTurnos={statTurnos}
+            presentes={presentes}
+            totalLibres={totalLibres}
+          />
+        </div>
+      )}
+
+      {/* Tabs de navegación */}
+      <div className='section-tabs'>
+        {visibleTabs.map((tab) => (
+          <button
+            key={tab.id}
+            className={`sec-tab${activeTab === tab.id ? ' active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Contenido */}
+      <div className='admin-main'>
         {activeTab === 'turnos' && (
           <TurnosTab
             turnos={turnosFiltrados}
@@ -319,9 +411,7 @@ export default function Admin() {
             onFilterChange={setFilterDate}
           />
         )}
-
         {activeTab === 'pacientes' && <PacientesTab pacientes={PACIENTES} />}
-
         {activeTab === 'cupos' && (
           <CuposTab
             classes={cuposClasses}
@@ -332,7 +422,6 @@ export default function Admin() {
             onFilterChange={setFilterCuposDate}
           />
         )}
-
         {activeTab === 'asistencia' && (
           <AsistenciaTab
             turnos={turnos}
@@ -348,6 +437,8 @@ export default function Admin() {
 
         {activeTab === 'crear' && <CrearTab onCrear={crearClase} />}
 
+        {activeTab === 'programar' && <ProgramarTab onProgramar={crearClasesProgramadas} />}
+
         {activeTab === 'cancelar' && (
           <CancelarTab
             classes={clasesParaCancelar}
@@ -356,6 +447,8 @@ export default function Admin() {
             onFilterChange={setFilterCancelarDate}
           />
         )}
+
+        {activeTab === 'eliminar' && <EliminarTab onEliminar={eliminarClasesPorProfesional} />}
 
         {activeTab === 'precios' && (
           <PriceTab
@@ -366,11 +459,10 @@ export default function Admin() {
             currentPrice={precio}
           />
         )}
-
         {activeTab === 'secretarios' && <SecretariosTab />}
       </div>
 
       <div className={`admin-toast${toastVisible ? ' show' : ''}`}>{toastMsg}</div>
-    </>
+    </div>
   )
 }

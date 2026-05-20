@@ -1,29 +1,38 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { recuperarPassword } from '../api/auth'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 
 export default function RecuperarContrasena() {
   const [email, setEmail] = useState('')
   const [enviado, setEnviado] = useState(false)
-  const [error, setError] = useState(false)
+  const [error, setError] = useState('')
+  const [cargando, setCargando] = useState(false)
 
   async function handleSubmit() {
     if (!email.trim()) return
 
+    setCargando(true)
     try {
-      setError(false)
-      // TODO: conectar con el backend
+      setError('')
+      await recuperarPassword(email)
       setEnviado(true)
-    } catch {
-      setError(true)
+    } catch (err) {
+      const detalle = err.response?.data?.detail
+      if (detalle === 'Email no registrado') {
+        setError('El mail ingresado no está registrado en el sistema.')
+      } else {
+        setError('Ocurrió un error. Intentá de nuevo.')
+      }
+    } finally {
+      setCargando(false)
     }
   }
 
   return (
     <>
       <Navbar />
-
       <div className='login-page'>
         <div className='login-card' id='login-card'>
           <div className='login-body'>
@@ -38,7 +47,7 @@ export default function RecuperarContrasena() {
                   <p>Ingresá tu email y te enviamos un enlace para restablecer tu contraseña.</p>
                 </div>
 
-                {error && <div className='error-msg show'>Ocurrió un error. Intentá de nuevo.</div>}
+                {error && <div className='error-msg show'>{error}</div>}
 
                 <div className='form-group'>
                   <label>Email</label>
@@ -51,8 +60,8 @@ export default function RecuperarContrasena() {
                   />
                 </div>
 
-                <button className='btn-login' onClick={handleSubmit}>
-                  Continuar
+                <button className='btn-login' onClick={handleSubmit} disabled={cargando}>
+                  {cargando ? 'Enviando...' : 'Continuar'}
                 </button>
 
                 <div className='register-hint'>
@@ -63,19 +72,11 @@ export default function RecuperarContrasena() {
               <div className='recuperar-ok'>
                 <div className='recuperar-ok-icon'>✓</div>
                 <h2>¡Revisá tu correo!</h2>
-                <p>
-                  Si el email está registrado, vas a recibir un enlace para restablecer tu
-                  contraseña.
-                </p>
+                <p>Si el email está registrado, vas a recibir un enlace para restablecer tu contraseña.</p>
                 <Link
                   to='/login'
                   className='btn-login'
-                  style={{
-                    display: 'block',
-                    textAlign: 'center',
-                    textDecoration: 'none',
-                    marginTop: '1.5rem',
-                  }}
+                  style={{ display: 'block', textAlign: 'center', textDecoration: 'none', marginTop: '1.5rem' }}
                 >
                   Volver al inicio de sesión
                 </Link>
@@ -84,7 +85,6 @@ export default function RecuperarContrasena() {
           </div>
         </div>
       </div>
-
       <Footer />
     </>
   )

@@ -393,9 +393,18 @@ nav.mobile-menu li.active {
   padding: 13px 20px;
   font-size: 0.9rem;
   color: #2a2a2a;
-  cursor: default; /* sin redirección → cursor normal */
+  cursor: default;
   transition: background 0.15s ease;
   user-select: none;
+}
+
+.user-sidebar__item:has(.user-sidebar__item-link) {
+  cursor: pointer;
+  padding: 0;
+}
+
+.user-sidebar__item:has(.user-sidebar__item-link) .user-sidebar__item-link {
+  padding: 13px 20px;
 }
 
 .user-sidebar__item:hover {
@@ -407,6 +416,16 @@ nav.mobile-menu li.active {
   width: 22px;
   text-align: center;
   flex-shrink: 0;
+}
+
+.user-sidebar__item-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
 }
 
 /* Botón cerrar sesión */
@@ -436,4 +455,25 @@ nav.mobile-menu li.active {
     width: 80vw;
     max-width: 300px;
   }
+}
+.nav-auth-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-registro-nav {
+  padding: 7px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  background: var(--border);
+  color: var(--text-muted);
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-registro-nav:hover {
+  background: var(--primary-tint);
+  color: var(--primary-dark);
 }

@@ -33,10 +33,12 @@ export default function Login() {
         nombre: data.nombre,
         apellido: data.apellido,
         rol: data.rol,
+        dni: data.dni,
+        fecha_nacimiento: data.fecha_nacimiento,
       }
       localStorage.setItem('usuario', JSON.stringify(usuarioActivo))
 
-      navigate(data.rol === 'admin' || data.rol === 'dueño' ? '/admin' : '/turnos')
+      navigate(data.rol === 'admin' || data.rol === 'secretario' ? '/admin' : '/')
 
     } catch (err) {
       console.error('Error completo:', err)
@@ -99,18 +101,18 @@ export default function Login() {
               </button>
             </div>
             <div className='forgot-hint'>
-              <Link to='/recuperar-contrasena'>¿Olvidaste tu contraseña?</Link>
+              <Link to='/recuperar-contrasena'>
+                ¿Olvidaste tu contraseña?
+              </Link>
             </div>
-            <button className='btn-login' onClick={doLogin}></button>
-              <div className="forgot-hint">
-                <Link to="/recuperar-contrasena">¿Olvidaste tu contraseña?</Link>
-              </div>
-            <button className="btn-login" onClick={doLogin}>
+            <button className='btn-login' onClick={doLogin}>
               Ingresar
             </button>
 
               <div className="register-hint">
-                <Link to="/registro">¿No tenés cuenta? Registrate</Link>
+                <Link to="/registro">
+                  ¿No tenés cuenta? Registrate
+                </Link>
               </div>
 
           </div>

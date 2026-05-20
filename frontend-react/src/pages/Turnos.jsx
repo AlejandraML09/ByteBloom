@@ -9,25 +9,28 @@ import { MonthCalendar } from '../components/turnos/MonthCalendar'
 import { SlotGrid } from '../components/turnos/SlotGrid'
 import { PaymentSelector } from '../components/turnos/PaymentSelector'
 import { SummaryPanel } from '../components/turnos/SummaryPanel'
-import { getDisponibilidad, reservarTurnos } from '../api/turnos'
+import { getDisponibilidad, reservarTurnos, getMisTurnos } from '../api/turnos'
 import { fmtDate, fmtDiaLargo, nextHour } from '../utils/dates'
 import DiscountModal from '../components/turnos/Discountmodal'
 import '../css/turnos.css'
 
 const MAX_SHIFTS = 3
-const PRECIO_TURNO = 20000
 
 function toMes(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
 }
 
 export default function Turnos() {
+  // zona is the full zona object { id, nombre, precio, descripcion, activo }
   const [zona, setZona] = useState(null)
   const [diaDate, setDiaDate] = useState(null)
   const [slot, setSlot] = useState(null)
   const [shifts, setShifts] = useState([])
   const [medioPago, setMedioPago] = useState(null)
-  const [disponibilidad, setDisponibilidad] = useState({})
+  // clasesDelMes: { "YYYY-MM": [claseProgramada, ...] }
+  const [clasesDelMes, setClasesDelMes] = useState({})
+  // Set of clase_programada_id values the logged-in user has already booked (non-cancelled)
+  const [bookedClaseIds, setBookedClaseIds] = useState(new Set())
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
   const { msg, visible, showToast } = useToast()
@@ -38,12 +41,30 @@ export default function Turnos() {
     return d
   }, [])
 
+  const refreshBookedIds = useCallback(async () => {
+    const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
+    const usuario = stored ? JSON.parse(stored) : null
+    if (!usuario?.id) return
+    try {
+      const reservas = await getMisTurnos(usuario.id)
+      setBookedClaseIds(
+        new Set(reservas.filter((r) => r.estado !== 'cancelada').map((r) => r.clase_programada_id))
+      )
+    } catch {
+      // silently ignore — booking checks will still protect server-side
+    }
+  }, [])
+
+  useEffect(() => {
+    refreshBookedIds()
+  }, [])
+
   const fetchDisponibilidad = useCallback(async (displayDate) => {
     const mes = toMes(displayDate)
     setLoadingSlots(true)
     try {
       const data = await getDisponibilidad(mes)
-      setDisponibilidad((prev) => ({ ...prev, ...data }))
+      setClasesDelMes((prev) => ({ ...prev, [mes]: data }))
     } catch (err) {
       console.error('Error fetching disponibilidad:', err)
     } finally {
@@ -51,14 +72,39 @@ export default function Turnos() {
     }
   }, [])
 
-  function getOcupados(fecha, hora) {
-    return disponibilidad[`${fmtDate(fecha)}_${hora}`] || 0
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const status = params.get('status')
+    if (status === 'approved') {
+      const cantidad = parseInt(params.get('cantidad')) || 1
+      showToast(
+        `✓ ${cantidad} turno${cantidad > 1 ? 's' : ''} confirmado${cantidad > 1 ? 's' : ''}`
+      )
+    }
+    if (status === 'failure') showToast('✗ El pago fue rechazado. Intentá de nuevo.')
+    if (status === 'pending') showToast('⏳ Tu pago está pendiente de confirmación.')
+  }, [])
+
+  // Returns all classes for a given day filtered by the selected zona
+  function getClasesForDay(date) {
+    if (!zona) return []
+    const mes = toMes(date)
+    const all = clasesDelMes[mes] ?? []
+    const fechaStr = fmtDate(date)
+    return all.filter((c) => c.fecha === fechaStr && c.zona_id === zona.id)
   }
+
+  // Classes for the currently selected day (used by SlotGrid)
+  const clasesDelDia = useMemo(() => {
+    if (!diaDate) return []
+    return getClasesForDay(diaDate)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [diaDate, zona, clasesDelMes])
 
   const bookedDays = useMemo(() => new Set(shifts.map((s) => fmtDate(s.diaDate))), [shifts])
 
-  function handleZonaSelect(id) {
-    setZona(id)
+  function handleZonaSelect(zonaObj) {
+    setZona(zonaObj)
     setDiaDate(null)
     setSlot(null)
     setShifts([])
@@ -92,9 +138,10 @@ export default function Turnos() {
       if (['mercadopago', 'credito', 'debito'].includes(medioPago)) {
         const { data } = await client.post('/api/crear-preferencia', null, {
           params: {
-            servicio_id: 1,
-            precio: PRECIO_TURNO,
-            titulo: `Clase ${zona}`,
+            servicio_id: zona?.id ?? 1,
+            precio: zona?.precio ?? 0,
+            titulo: `Clase ${zona?.nombre ?? ''}`,
+            cantidad: shifts.length,
           },
         })
         if (data?.init_point) {
@@ -104,21 +151,28 @@ export default function Turnos() {
         showToast('No se pudo obtener el link de pago.')
         return
       }
+
+      const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
+      const usuarioId = stored ? JSON.parse(stored)?.id : null
+
       await reservarTurnos({
-        zona,
+        zonaId: zona.id,
         turnos: shifts.map((s) => ({ fecha: fmtDate(s.diaDate), hora: s.slot })),
         medioPago,
+        usuarioId,
       })
 
+      // Refresh availability for all affected months
       const affectedMonths = [...new Set(shifts.map((s) => toMes(s.diaDate)))]
-      const refreshed = {}
       await Promise.all(
-        affectedMonths.map(async (mes) => {
-          const data = await getDisponibilidad(mes)
-          Object.assign(refreshed, data)
-        })
+        affectedMonths.map((mes) =>
+          getDisponibilidad(mes).then((data) =>
+            setClasesDelMes((prev) => ({ ...prev, [mes]: data }))
+          )
+        )
       )
-      setDisponibilidad((prev) => ({ ...prev, ...refreshed }))
+
+      refreshBookedIds()
       showToast(
         `✓ ${shifts.length} turno${shifts.length > 1 ? 's' : ''} confirmado${shifts.length > 1 ? 's' : ''}`
       )
@@ -142,11 +196,6 @@ export default function Turnos() {
   const canAddMore = diaDate && slot && shifts.length < MAX_SHIFTS
   const [showDiscounts, setShowDiscounts] = useState(() => !sessionStorage.getItem('discountSeen'))
 
-  function handleCloseDiscount() {
-    sessionStorage.setItem('discountSeen', '1')
-    setShowDiscounts(false)
-  }
-
   return (
     <>
       <Navbar />
@@ -159,6 +208,7 @@ export default function Turnos() {
         <div className='left-col'>
           <StepIndicator zona={zona} shifts={shifts} medioPago={medioPago} />
           <ZonaSelector selected={zona} onSelect={handleZonaSelect} />
+
           <div className={`fade-slide ${zona ? 'fade-slide--visible' : ''}`}>
             <div className='card'>
               <div className='card-title'>
@@ -169,7 +219,7 @@ export default function Turnos() {
                 selectedDay={diaDate}
                 onDaySelect={handleDaySelect}
                 today={today}
-                getOcupados={getOcupados}
+                getClasesForDay={getClasesForDay}
                 bookedDays={bookedDays}
                 onMonthChange={fetchDisponibilidad}
               />
@@ -180,7 +230,8 @@ export default function Turnos() {
                 selectedDay={diaDate}
                 selectedSlot={slot}
                 onSlotSelect={setSlot}
-                getOcupados={getOcupados}
+                clases={clasesDelDia}
+                bookedClaseIds={bookedClaseIds}
               />
               {canAddMore && (
                 <button className='btn-add-shift' onClick={addShift}>
@@ -225,6 +276,7 @@ export default function Turnos() {
               )}
             </div>
           )}
+
           <div className={`fade-slide ${shifts.length > 0 ? 'fade-slide--visible' : ''}`}>
             <PaymentSelector selected={medioPago} onSelect={setMedioPago} />
           </div>
