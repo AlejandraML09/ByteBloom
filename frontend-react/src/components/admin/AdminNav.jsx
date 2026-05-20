@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import logo from '../../assets/fulllogo_slogan_sinfondo.png'
-import SecretariosTab from './SecretariosTab'
 
-// Ícono de perfil SVG (mismo que Navbar usuario)
 function UserIcon() {
   return (
     <svg
@@ -57,7 +55,7 @@ function LogoutIcon() {
   )
 }
 
-export function AdminNav({ user, activeTab, setActiveTab, visibleTabs, onLogout }) {
+export function AdminNav({ user, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const sidebarRef = useRef(null)
 
@@ -97,19 +95,16 @@ export function AdminNav({ user, activeTab, setActiveTab, visibleTabs, onLogout 
             className='admin-profile-btn'
             onClick={() => setSidebarOpen(true)}
             aria-label='Abrir menú de administrador'
-            title='Ver perfil'
           >
             <UserIcon />
           </button>
         </div>
       </nav>
 
-      {/* Overlay */}
       {sidebarOpen && (
         <div className='sidebar-overlay' onClick={() => setSidebarOpen(false)} aria-hidden='true' />
       )}
 
-      {/* Panel lateral admin */}
       <aside
         ref={sidebarRef}
         className={`user-sidebar${sidebarOpen ? ' user-sidebar--open' : ''}`}
@@ -159,24 +154,6 @@ export function AdminNav({ user, activeTab, setActiveTab, visibleTabs, onLogout 
           <span>Cerrar sesión</span>
         </button>
       </aside>
-
-      <div className="admin-content">
-        <div className="admin-tabs">
-          {visibleTabs.map(tab => (
-            <button
-              key={tab.id}
-              className={`nav-btn ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="admin-tab-content">
-          {/* El contenido se renderiza en Admin.jsx */}
-        </div>
-      </div>
     </>
   )
 }
