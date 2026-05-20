@@ -513,3 +513,8 @@ nav.main-nav {
   white-space: nowrap;
   max-width: 100%;
 }
+@media (max-width: 900px) {
+  .nav-auth-buttons {
+    display: none;
+  }
+}
