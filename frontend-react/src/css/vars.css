@@ -20,3 +20,11 @@
   --warning-tint:  #FEF3E2;
   --warning-text:  #7A4A05;
 }
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
