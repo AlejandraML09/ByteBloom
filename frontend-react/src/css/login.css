@@ -305,3 +305,36 @@ body, html {
 .dato-vacio {
   color: var(--text-muted, #aaa);
 }
+/* Fix tablet 560px–900px: card no se corta */
+@media (min-width: 561px) and (max-width: 900px) {
+  .login-page {
+    padding: 2rem 2rem;
+  }
+
+  .login-card {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+}
+/* Agregar al final de login.css */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+#root {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.login-page {
+  max-width: 100%;
+  padding: 2rem 1rem;
+  box-sizing: border-box;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 440px;
+  box-sizing: border-box;
+}
