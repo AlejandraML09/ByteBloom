@@ -11,7 +11,8 @@ export default function SecretariosTab() {
     apellido: '',
     email: '',
     fecha_nacimiento: '',
-    password: ''
+    password: '',
+    dni: '' // Nuevo campo DNI
   })
   const [showForm, setShowForm] = useState(false)
 
@@ -43,11 +44,12 @@ export default function SecretariosTab() {
         apellido: form.apellido,
         email: form.email,
         fecha_nacimiento: form.fecha_nacimiento,
-        password: form.password
+        password: form.password,
+        dni: form.dni // Enviar DNI
       })
 
       setSecretarios([...secretarios, response.data])
-      setForm({ nombre: '', apellido: '', email: '', fecha_nacimiento: '', password: '' })
+      setForm({ nombre: '', apellido: '', email: '', fecha_nacimiento: '', password: '', dni: '' })
       setShowForm(false)
       setError('')
     } catch (err) {
@@ -151,6 +153,18 @@ export default function SecretariosTab() {
               name="password"
               placeholder="Mínimo 6 caracteres"
               value={form.password}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>DNI</label>
+            <input
+              type="text"
+              name="dni"
+              placeholder="12345678"
+              value={form.dni}
               onChange={handleChange}
               required
             />
