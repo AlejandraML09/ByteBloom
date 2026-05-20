@@ -9,13 +9,14 @@ from email.mime.multipart import MIMEMultipart
 import os
 from app.database import SessionLocal
 from app import models
-
+import resend
 
 router = APIRouter()
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5174/")
-GMAIL_USER = os.getenv("GMAIL_USER")
-GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD")
+#GMAIL_USER = os.getenv("GMAIL_USER")
+#GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD")
+resend.api_key = os.getenv("RESEND_API_KEY")
 class RecuperarRequest(BaseModel):
     email: str
 
@@ -30,16 +31,23 @@ def get_db():
     finally:
         db.close()
 
-def enviar_mail(destinatario: str, asunto: str, cuerpo_html: str):
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = asunto
-    msg["From"] = GMAIL_USER
-    msg["To"] = destinatario
-    msg.attach(MIMEText(cuerpo_html, "html"))
+#def enviar_mail(destinatario: str, asunto: str, cuerpo_html: str):
+ #   msg = MIMEMultipart("alternative")
+  #  msg["Subject"] = asunto
+   # msg["From"] = GMAIL_USER
+    #msg["To"] = destinatario
+    #msg.attach(MIMEText(cuerpo_html, "html"))
 
-    with smtplib.SMTP_SSL("smtp.gmail.com", 587) as server:
-        server.login(GMAIL_USER, GMAIL_PASSWORD)
-        server.sendmail(GMAIL_USER, destinatario, msg.as_string())
+    #with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+     #   server.login(GMAIL_USER, GMAIL_PASSWORD)
+      #  server.sendmail(GMAIL_USER, destinatario, msg.as_string())
+def enviar_mail(destinatario: str, asunto: str, cuerpo_html: str):
+    resend.Emails.send({
+        "from": "onboarding@resend.dev",
+        "to": destinatario,
+        "subject": asunto,
+        "html": cuerpo_html
+    })
 @router.post("/recuperar-password")
 def recuperar_password(data: RecuperarRequest, db: Session = Depends(get_db)):
     email_lower = data.email.lower().strip()
