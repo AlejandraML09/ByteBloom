@@ -88,6 +88,10 @@ class BulkProgramarRequest(BaseModel):
     slots: list[SlotItem]
 
 
+class ActualizarHorarioRequest(BaseModel):
+    nueva_hora: str
+
+
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 
@@ -209,3 +213,29 @@ def eliminar_clases_de_profesional(email: str, db: Session = Depends(get_db)):
         clase.activo = False
     db.commit()
     return {"eliminadas": len(clases), "profesional_email": email}
+
+
+@router.put("/{clase_id}/horario")
+def actualizar_horario_clase(
+    clase_id: int, data: ActualizarHorarioRequest, db: Session = Depends(get_db)
+):
+    # Buscar la clase programada (no la template)
+    clase_programada = db.query(ClaseProgramada).filter(
+        ClaseProgramada.id == clase_id,
+        ClaseProgramada.activo == True
+    ).first()
+
+    if not clase_programada:
+        raise HTTPException(status_code=404, detail="Clase programada no encontrada")
+
+    # Convertir la nueva hora a objeto time
+    try:
+        nueva_hora_obj = datetime.strptime(data.nueva_hora, "%H:%M").time()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de hora inválido (HH:MM)")
+
+    clase_programada.hora = nueva_hora_obj
+    db.commit()
+    db.refresh(clase_programada)
+
+    return {"mensaje": "Horario actualizado correctamente", "id": clase_programada.id}
