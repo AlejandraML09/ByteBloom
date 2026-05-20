@@ -150,7 +150,6 @@ export default function QuieroSerAbonado() {
     setDiaDate(null)
     setSlot(null)
     setShifts([])
-    setClasesDelMes({})
   }
 
   function handleDaySelect(d) {
