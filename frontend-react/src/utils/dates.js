@@ -55,6 +55,16 @@ export function getMonday(d) {
   return mon
 }
 
+/** Returns an ISO week key "YYYY-Www" for a given Date (week starts Monday) */
+export function getISOWeekKey(d) {
+  const utc = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+  const dow = utc.getUTCDay() || 7 // 1=Mon … 7=Sun
+  utc.setUTCDate(utc.getUTCDate() + 4 - dow) // Thursday of this week
+  const yearStart = new Date(Date.UTC(utc.getUTCFullYear(), 0, 1))
+  const weekNum = Math.ceil(((utc - yearStart) / 86400000 + 1) / 7)
+  return `${utc.getUTCFullYear()}-W${String(weekNum).padStart(2, '0')}`
+}
+
 /** Returns the next hour string given an "HH:MM" string */
 export function nextHour(hora) {
   const [h, m] = hora.split(':').map(Number)

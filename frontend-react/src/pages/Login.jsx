@@ -22,11 +22,11 @@ export default function Login() {
 
       const response = await client.post('/login', {
         email: email.trim().toLowerCase(),
-        password: pass
+        password: pass,
       })
-      
+
       const data = response.data
-      
+
       console.log('Response completo:', data)
 
       const usuarioActivo = {
@@ -38,13 +38,9 @@ export default function Login() {
         dni: data.dni,
         fecha_nacimiento: data.fecha_nacimiento,
       }
-
-      console.log('Usuario a guardar:', usuarioActivo)
       localStorage.setItem('usuario', JSON.stringify(usuarioActivo))
-      console.log('Usuario guardado en localStorage')
 
       navigate(data.rol === 'admin' || data.rol === 'secretario' ? '/admin' : '/')
-
     } catch (err) {
       console.error('Error completo:', err)
       setError(true)
@@ -58,12 +54,10 @@ export default function Login() {
     <>
       <Navbar />
 
-      <div className="login-page">
-        <div className="login-card" id="login-card">
-
-          <div className="login-body">
-
-            <div className="login-greeting">
+      <div className='login-page'>
+        <div className='login-card' id='login-card'>
+          <div className='login-body'>
+            <div className='login-greeting'>
               <h2>Bienvenido/a</h2>
               <p>Ingresá con tu cuenta</p>
             </div>
@@ -78,48 +72,50 @@ export default function Login() {
               />
             </div>
 
-            <div style={{ position: "relative", display: "flex", alignItems: "center" }} className="form-group">
+            <div className='form-group'>
               <label>Contraseña</label>
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Contraseña"
-                value={pass}
-                onChange={e => setPass(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && doLogin()}
-                required
-                style={{ width: "100%", padding: "8px", paddingRight: "45px", boxSizing: "border-box" }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: "absolute",
-                  right: "8px",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: "18px",
-                  padding: "0"
-                }}
-              >
-                {showPassword ? "👁️" : "👁️‍🗨️"}
-              </button>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder='Contraseña'
+                  value={pass}
+                  onChange={(e) => setPass(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && doLogin()}
+                  required
+                  style={{
+                    width: '100%',
+                    paddingRight: '40px',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <button
+                  type='button'
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '18px',
+                    padding: '0',
+                    lineHeight: '1',
+                  }}
+                >
+                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                </button>
+              </div>
             </div>
             <div className='forgot-hint'>
               <Link to='/recuperar-contrasena'>¿Olvidaste tu contraseña?</Link>
             </div>
-            <button className='btn-login' onClick={doLogin}></button>
-              <div className="forgot-hint">
-                <Link to="/recuperar-contrasena">¿Olvidaste tu contraseña?</Link>
-              </div>
-            <button className="btn-login" onClick={doLogin}>
+            <button className='btn-login' onClick={doLogin}>
               Ingresar
             </button>
 
-              <div className="register-hint">
-                <Link to="/registro">¿No tenés cuenta? Registrate</Link>
-              </div>
-
+            <div className='register-hint'>
+              <Link to='/registro'>¿No tenés cuenta? Registrate</Link>
+            </div>
           </div>
         </div>
       </div>

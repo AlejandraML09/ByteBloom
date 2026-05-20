@@ -16,18 +16,14 @@ down_revision: Union[str, Sequence[str], None] = "d4e5f6a1b2c3"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
-# isoweekday: 1=Lun, 2=Mar, 3=Mié, 4=Jue, 5=Vie, 6=Sáb
+# isoweekday: 1=Lun, 2=Mar, 3=Mié, 4=Jue, 5=Vie
 SCHEDULE = [
     ("marcela.rios@endereza2.com", {1, 3, 5}, "07:00:00"),  # superior · L/M/V mañana
-    (
-        "carolina.fuentes@endereza2.com",
-        {2, 4, 6},
-        "09:00:00",
-    ),  # superior · M/J/S mañana
+    ("carolina.fuentes@endereza2.com",{2, 4, 5},"09:00:00",),  # superior · M/J/V mañana
     ("andrea.salinas@endereza2.com", {1, 3, 5}, "10:00:00"),  # medio    · L/M/V mañana
-    ("lucas.bertoldi@endereza2.com", {2, 4, 6}, "08:00:00"),  # medio    · M/J/S mañana
+    ("lucas.bertoldi@endereza2.com", {2, 4, 5}, "08:00:00"),  # medio    · M/J/V mañana
     ("julian.pedraza@endereza2.com", {1, 3, 5}, "17:00:00"),  # inferior · L/M/V tarde
-    ("emilio.manrique@endereza2.com", {2, 4, 6}, "19:00:00"),  # inferior · M/J/S noche
+    ("emilio.manrique@endereza2.com", {2, 4, 5}, "19:00:00"),  # inferior · M/J/V noche
 ]
 
 START = date(2026, 5, 1)
@@ -65,7 +61,7 @@ def upgrade():
 
 
 def downgrade():
-    # EXTRACT(DOW): 0=Dom, 1=Lun, 2=Mar, 3=Mié, 4=Jue, 5=Vie, 6=Sáb
+    # EXTRACT(DOW): 0=Dom, 1=Lun, 2=Mar, 3=Mié, 4=Jue, 5=Vie
     op.execute("""
     DELETE FROM clases_programadas cp
     USING clases c
@@ -73,10 +69,10 @@ def downgrade():
       AND cp.fecha BETWEEN '2026-05-01' AND '2026-06-30'
       AND (
           (c.profesional_email = 'marcela.rios@endereza2.com'      AND cp.hora = '07:00:00' AND EXTRACT(DOW FROM cp.fecha) IN (1, 3, 5)) OR
-          (c.profesional_email = 'carolina.fuentes@endereza2.com'  AND cp.hora = '09:00:00' AND EXTRACT(DOW FROM cp.fecha) IN (2, 4, 6)) OR
+          (c.profesional_email = 'carolina.fuentes@endereza2.com'  AND cp.hora = '09:00:00' AND EXTRACT(DOW FROM cp.fecha) IN (2, 4, 5)) OR
           (c.profesional_email = 'andrea.salinas@endereza2.com'    AND cp.hora = '10:00:00' AND EXTRACT(DOW FROM cp.fecha) IN (1, 3, 5)) OR
-          (c.profesional_email = 'lucas.bertoldi@endereza2.com'    AND cp.hora = '08:00:00' AND EXTRACT(DOW FROM cp.fecha) IN (2, 4, 6)) OR
+          (c.profesional_email = 'lucas.bertoldi@endereza2.com'    AND cp.hora = '08:00:00' AND EXTRACT(DOW FROM cp.fecha) IN (2, 4, 5)) OR
           (c.profesional_email = 'julian.pedraza@endereza2.com'    AND cp.hora = '17:00:00' AND EXTRACT(DOW FROM cp.fecha) IN (1, 3, 5)) OR
-          (c.profesional_email = 'emilio.manrique@endereza2.com'   AND cp.hora = '19:00:00' AND EXTRACT(DOW FROM cp.fecha) IN (2, 4, 6))
+          (c.profesional_email = 'emilio.manrique@endereza2.com'   AND cp.hora = '19:00:00' AND EXTRACT(DOW FROM cp.fecha) IN (2, 4, 5))
       );
     """)

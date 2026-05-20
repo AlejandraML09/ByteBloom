@@ -52,6 +52,7 @@ class Usuario(Base):
     )
     reset_token = Column(String(255), nullable=True)
     reset_token_expira = Column(DateTime(timezone=True), nullable=True)
+
     def set_password(self, plain_password: str):
         self.password = bcrypt.hashpw(
             plain_password.encode("utf-8"), bcrypt.gensalt()
@@ -123,3 +124,31 @@ class Reserva(Base):
         nullable=False,
         default=EstadoReserva.pendiente,
     )
+
+
+class EstadoListaEspera(str, enum.Enum):
+    esperando = "esperando"
+    notificado = "notificado"
+    confirmado = "confirmado"
+    expirado = "expirado"
+    cancelado = "cancelado"
+
+
+class ListaEspera(Base):
+    __tablename__ = "lista_espera"
+
+    id = Column(Integer, primary_key=True, index=True)
+    usuario_id = Column(Integer, nullable=False, index=True)
+    clase_programada_id = Column(Integer, nullable=False, index=True)
+    prioridad = Column(Integer, nullable=False)
+    fecha_inscripcion = Column(
+        DateTime(timezone=False), nullable=False, server_default=func.now()
+    )
+    estado = Column(
+        SQLEnum(EstadoListaEspera, name="estado_lista_espera"),
+        nullable=False,
+        default=EstadoListaEspera.esperando,
+    )
+    notificado_en = Column(DateTime(timezone=False), nullable=True)
+    expira_en = Column(DateTime(timezone=False), nullable=True)
+    activo = Column(Boolean, nullable=False, default=True)

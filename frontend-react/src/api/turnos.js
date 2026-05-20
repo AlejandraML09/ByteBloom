@@ -43,3 +43,25 @@ export async function getMisTurnos(usuarioId) {
   const { data } = await client.get('/turnos/mis-turnos', { params: { usuario_id: usuarioId } })
   return data
 }
+
+export async function unirseListaEspera({ claseProgramadaId, usuarioId }) {
+  const { data } = await client.post('/turnos/lista-espera', {
+    clase_programada_id: claseProgramadaId,
+    usuario_id: usuarioId,
+  })
+  return data
+}
+
+export async function salirListaEspera({ claseProgramadaId, usuarioId }) {
+  const { data } = await client.delete(`/turnos/lista-espera/${claseProgramadaId}`, {
+    params: { usuario_id: usuarioId },
+  })
+  return data
+}
+
+export async function getMiListaEspera(usuarioId) {
+  const { data } = await client.get('/turnos/mi-lista-espera', {
+    params: { usuario_id: usuarioId },
+  })
+  return data
+}

@@ -12,6 +12,8 @@ import MisReservas from './pages/MisReservas'
 import ScrollToTop from './components/ScrollToTop'
 import RestablecerContrasena from './pages/RestablecerContrasena'
 import MisDatos from './pages/MisDatos'
+import QuieroSerAbonado from './pages/QuieroSerAbonado'
+import MisCreditos from './pages/MisCreditos'
 
 export default function App() {
   return (
@@ -30,6 +32,8 @@ export default function App() {
         <Route path='/mis-reservas' element={<MisReservas />} />
         <Route path='/restablecer-password' element={<RestablecerContrasena />} />
         <Route path='/mis-datos' element={<MisDatos />} />
+        <Route path='/quiero-ser-abonado' element={<QuieroSerAbonado />} />
+        <Route path='/mis-creditos' element={<MisCreditos />} />
         <Route path='*' element={<Navigate to='/' replace />} />
       </Routes>
     </BrowserRouter>

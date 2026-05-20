@@ -11,7 +11,8 @@ export default function SecretariosTab() {
     apellido: '',
     email: '',
     fecha_nacimiento: '',
-    password: ''
+    password: '',
+    dni: '', // Nuevo campo DNI
   })
   const [showForm, setShowForm] = useState(false)
 
@@ -38,16 +39,17 @@ export default function SecretariosTab() {
     setLoading(true)
 
     try {
-      const response = await client.post('/crear-secretario', {
+      const response = await client.post('/api/usuarios/crear-secretario', {
         nombre: form.nombre,
         apellido: form.apellido,
         email: form.email,
         fecha_nacimiento: form.fecha_nacimiento,
-        password: form.password
+        password: form.password,
+        dni: form.dni, // Enviar DNI
       })
 
       setSecretarios([...secretarios, response.data])
-      setForm({ nombre: '', apellido: '', email: '', fecha_nacimiento: '', password: '' })
+      setForm({ nombre: '', apellido: '', email: '', fecha_nacimiento: '', password: '', dni: '' })
       setShowForm(false)
       setError('')
     } catch (err) {
@@ -61,7 +63,7 @@ export default function SecretariosTab() {
     if (confirm('¿Estás seguro de que deseas eliminar este secretario?')) {
       try {
         await client.delete(`/secretarios/${secretarioId}`)
-        setSecretarios(secretarios.filter(s => s.id !== secretarioId))
+        setSecretarios(secretarios.filter((s) => s.id !== secretarioId))
       } catch (err) {
         setError('Error al eliminar secretario')
         console.error('Error:', err)
@@ -71,18 +73,19 @@ export default function SecretariosTab() {
 
   // Filtrar y ordenar secretarios
   const secretariosOrdenados = secretarios
-    .filter(s => 
-      s.apellido.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.email.toLowerCase().includes(searchTerm.toLowerCase())
+    .filter(
+      (s) =>
+        s.apellido.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.email.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => a.apellido.localeCompare(b.apellido))
 
   return (
-    <div className="tab-content">
-      <div className="tab-header">
+    <div className='tab-content'>
+      <div className='tab-header'>
         <h2>Gestión de Secretarios</h2>
-        <button 
+        <button
           className={`btn-nuevo ${showForm ? 'active' : ''}`}
           onClick={() => setShowForm(!showForm)}
         >
@@ -90,29 +93,29 @@ export default function SecretariosTab() {
         </button>
       </div>
 
-      {error && <div className="error-msg show">{error}</div>}
+      {error && <div className='error-msg show'>{error}</div>}
 
       {showForm && (
-        <form onSubmit={handleCrearSecretario} className="form-nuevo">
-          <div className="form-row">
-            <div className="form-group">
+        <form onSubmit={handleCrearSecretario} className='form-nuevo'>
+          <div className='form-row'>
+            <div className='form-group'>
               <label>Nombre</label>
               <input
-                type="text"
-                name="nombre"
-                placeholder="Juan"
+                type='text'
+                name='nombre'
+                placeholder='Juan'
                 value={form.nombre}
                 onChange={handleChange}
                 required
               />
             </div>
 
-            <div className="form-group">
+            <div className='form-group'>
               <label>Apellido</label>
               <input
-                type="text"
-                name="apellido"
-                placeholder="Pérez"
+                type='text'
+                name='apellido'
+                placeholder='Pérez'
                 value={form.apellido}
                 onChange={handleChange}
                 required
@@ -120,23 +123,23 @@ export default function SecretariosTab() {
             </div>
           </div>
 
-          <div className="form-group">
+          <div className='form-group'>
             <label>Email</label>
             <input
-              type="email"
-              name="email"
-              placeholder="secretario@email.com"
+              type='email'
+              name='email'
+              placeholder='secretario@email.com'
               value={form.email}
               onChange={handleChange}
               required
             />
           </div>
 
-          <div className="form-group">
+          <div className='form-group'>
             <label>Fecha de nacimiento</label>
             <input
-              type="date"
-              name="fecha_nacimiento"
+              type='date'
+              name='fecha_nacimiento'
               value={form.fecha_nacimiento}
               onChange={handleChange}
               max={new Date().toISOString().split('T')[0]}
@@ -144,41 +147,45 @@ export default function SecretariosTab() {
             />
           </div>
 
-          <div className="form-group">
-            <label>Contraseña</label>
+          <div className='form-group'>
+            <label>DNI</label>
             <input
-              type="password"
-              name="password"
-              placeholder="Mínimo 6 caracteres"
-              value={form.password}
+              type='text'
+              name='dni'
+              placeholder='12345678'
+              value={form.dni}
               onChange={handleChange}
               required
             />
           </div>
 
-          <button type="submit" disabled={loading} className="btn-nuevo btn-crear-form">
+          <button type='submit' disabled={loading} className='btn-nuevo btn-crear-form'>
             {loading ? 'Creando...' : 'Crear Secretario'}
           </button>
         </form>
       )}
 
-      <div className="secretarios-list">
+      <div className='secretarios-list'>
         <h3>Secretarios Actuales</h3>
-        
-        <div className="search-bar">
+
+        <div className='search-bar'>
           <input
-            type="text"
-            placeholder="Buscar por nombre, apellido o email..."
+            type='text'
+            placeholder='Buscar por nombre, apellido o email...'
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
+            className='search-input'
           />
         </div>
 
         {secretariosOrdenados.length === 0 ? (
-          <p>{secretarios.length === 0 ? 'No hay secretarios registrados.' : 'No se encontraron resultados.'}</p>
+          <p>
+            {secretarios.length === 0
+              ? 'No hay secretarios registrados.'
+              : 'No se encontraron resultados.'}
+          </p>
         ) : (
-          <table className="data-table">
+          <table className='data-table'>
             <thead>
               <tr>
                 <th>Apellido</th>
@@ -188,14 +195,14 @@ export default function SecretariosTab() {
               </tr>
             </thead>
             <tbody>
-              {secretariosOrdenados.map(secretario => (
+              {secretariosOrdenados.map((secretario) => (
                 <tr key={secretario.id}>
                   <td>{secretario.apellido || '-'}</td>
                   <td>{secretario.nombre || '-'}</td>
                   <td>{secretario.email}</td>
                   <td>
                     <button
-                      className="btn-nuevo btn-eliminar-form"
+                      className='btn-nuevo btn-eliminar-form'
                       onClick={() => handleEliminarSecretario(secretario.id)}
                     >
                       Eliminar

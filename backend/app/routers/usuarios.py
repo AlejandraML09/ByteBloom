@@ -1,3 +1,5 @@
+import secrets
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -5,8 +7,16 @@ from datetime import date
 from app.database import SessionLocal
 from app import models
 from typing import Optional
+import os
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 router = APIRouter(tags=["usuarios"])
+
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5174/")
+GMAIL_USER = os.getenv("GMAIL_USER")
+GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD")
 
 
 class UsuarioRequest(BaseModel):
@@ -50,6 +60,7 @@ def registrar(data: UsuarioRequest, db: Session = Depends(get_db)):
     )
     nuevo.set_password(data.password)
     db.add(nuevo)
+    print("antes de commit")
     db.commit()
     db.refresh(nuevo)
 
@@ -78,9 +89,32 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     }
 
 
-@router.post("/crear-secretario")
-def crear_secretario(data: UsuarioRequest, db: Session = Depends(get_db)):
+class CrearSecretarioRequest(BaseModel):
+    nombre: str
+    apellido: str
+    email: str
+    fecha_nacimiento: date
+    dni: str
+
+
+def enviar_mail(destinatario: str, asunto: str, cuerpo_html: str):
+    """Reutilizada de auth.py"""
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = asunto
+    msg["From"] = GMAIL_USER
+    msg["To"] = destinatario
+    msg.attach(MIMEText(cuerpo_html, "html"))
+
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login(GMAIL_USER, GMAIL_PASSWORD)
+        server.sendmail(GMAIL_USER, destinatario, msg.as_string())
+
+
+@router.post("/api/usuarios/crear-secretario")
+def crear_secretario(data: CrearSecretarioRequest, db: Session = Depends(get_db)):
     email_lower = data.email.lower()
+
+    # Validar email único
     if db.query(models.Usuario).filter(models.Usuario.email == email_lower).first():
         raise HTTPException(status_code=400, detail="Email ya registrado")
 
@@ -91,22 +125,50 @@ def crear_secretario(data: UsuarioRequest, db: Session = Depends(get_db)):
         email=email_lower,
         nombre=data.nombre,
         apellido=data.apellido,
-        fecha_nacimiento=data.fecha_nacimiento,
         dni=data.dni,
+        fecha_nacimiento=data.fecha_nacimiento,
         rol=models.RolUsuario.secretario,
     )
-    nuevo_secretario.set_password(data.password)
+
+    # ✅ GENERAR TOKEN PARA RESTABLECIMIENTO (mismo flujo que usuarios)
+    token = secrets.token_urlsafe(32)
+    nuevo_secretario.reset_token = token
+    nuevo_secretario.reset_token_expira = datetime.now(timezone.utc) + timedelta(hours=24)
+
+    # ✅ GENERAR CONTRASEÑA TEMPORAL
+    temp_password = secrets.token_urlsafe(12)
+    nuevo_secretario.set_password(temp_password)
+
     db.add(nuevo_secretario)
     db.commit()
     db.refresh(nuevo_secretario)
+
+    # ✅ ENVIAR EMAIL (reutilizando enviar_mail)
+    enlace = f"{FRONTEND_URL}restablecer-password?token={token}"
+
+    try:
+        enviar_mail(
+            destinatario=email_lower,
+            asunto="ByteBloom - Completa tu registro como secretario",
+            cuerpo_html=f"""
+                <p>Hola {nuevo_secretario.nombre},</p>
+                <p>Tu cuenta como secretario en ByteBloom ha sido creada.</p>
+                <p><strong>Contraseña temporal: {temp_password}</strong></p>
+                <p><a href="{enlace}">Hacé clic acá para establecer tu contraseña definitiva</a></p>
+                <p>El enlace expira en 24 horas.</p>
+                <p>Si tienes dudas, contactá a soporte.</p>
+            """
+        )
+    except Exception as e:
+        print(f"Error enviando email: {e}")
 
     return {
         "id": nuevo_secretario.id,
         "email": nuevo_secretario.email,
         "nombre": nuevo_secretario.nombre,
         "apellido": nuevo_secretario.apellido,
-        "rol": nuevo_secretario.rol,
-        "message": "Secretario creado exitosamente",
+        "rol": str(nuevo_secretario.rol),
+        "message": "Secretario creado. Email de restablecimiento enviado.",
     }
 
 
@@ -181,12 +243,14 @@ def listar_profesionales(db: Session = Depends(get_db)):
         for p in profesionales
     ]
 
+
 class ActualizarUsuarioRequest(BaseModel):
     usuario_id: int
     nombre: str
     apellido: str
     dni: int
     fecha_nacimiento: date
+
 
 @router.put("/usuarios/me")
 def actualizar_usuario(data: ActualizarUsuarioRequest, db: Session = Depends(get_db)):
@@ -198,21 +262,121 @@ def actualizar_usuario(data: ActualizarUsuarioRequest, db: Session = Depends(get
     if not data.nombre.strip():
         raise HTTPException(status_code=400, detail="El nombre es un campo obligatorio")
     if not data.apellido.strip():
-        raise HTTPException(status_code=400, detail="El apellido es un campo obligatorio")
+        raise HTTPException(
+            status_code=400, detail="El apellido es un campo obligatorio"
+        )
 
     user.nombre = data.nombre.strip()
     user.apellido = data.apellido.strip()
+    user.dni = data.dni
     user.fecha_nacimiento = data.fecha_nacimiento
 
     # Solo actualizar dni si cambió
     if data.dni and data.dni != user.dni:
-        existe = db.query(models.Usuario).filter(
-            models.Usuario.dni == data.dni,
-            models.Usuario.id != data.usuario_id
-        ).first()
+        existe = (
+            db.query(models.Usuario)
+            .filter(
+                models.Usuario.dni == data.dni, models.Usuario.id != data.usuario_id
+            )
+            .first()
+        )
         if existe:
-            raise HTTPException(status_code=400, detail="El DNI ya está registrado por otro usuario")
+            raise HTTPException(
+                status_code=400, detail="El DNI ya está registrado por otro usuario"
+            )
         user.dni = data.dni
 
     db.commit()
+
     return {"mensaje": "Modificación exitosa"}
+
+
+@router.delete("/secretarios/{secretario_id}")
+def eliminar_secretario(secretario_id: int, db: Session = Depends(get_db)):
+    secretario = (
+        db.query(models.Usuario)
+        .filter(
+            models.Usuario.id == secretario_id,
+            models.Usuario.rol == models.RolUsuario.secretario,
+        )
+        .first()
+    )
+
+    if not secretario:
+        raise HTTPException(status_code=404, detail="Secretario no encontrado")
+
+    # Verificar si tiene turnos o registros asociados
+    # Si es necesario, primero elimina esos registros
+
+    db.delete(secretario)
+    db.commit()
+
+    return {"message": "Secretario eliminado exitosamente"}
+
+    #lo nuevo de registrar cliente:
+
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5174/")
+GMAIL_USER = os.getenv("GMAIL_USER")
+GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD")
+
+def enviar_mail_usuario(destinatario: str, asunto: str, cuerpo_html: str):
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = asunto
+    msg["From"] = GMAIL_USER
+    msg["To"] = destinatario
+    msg.attach(MIMEText(cuerpo_html, "html"))
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login(GMAIL_USER, GMAIL_PASSWORD)
+        server.sendmail(GMAIL_USER, destinatario, msg.as_string())
+
+class RegistrarClienteRequest(BaseModel):
+    nombre: str
+    apellido: str
+    email: str
+    dni: int | None = None
+
+@router.post("/secretario/registrar-cliente")
+def registrar_cliente_secretario(data: RegistrarClienteRequest, db: Session = Depends(get_db)):
+    email_lower = data.email.lower().strip()
+
+    if db.query(models.Usuario).filter(models.Usuario.email == email_lower).first():
+        raise HTTPException(status_code=400, detail="Email ya registrado")
+
+    password_generada = secrets.token_urlsafe(10)
+
+    nuevo = models.Usuario(
+        nombre=data.nombre,
+        apellido=data.apellido,
+        email=email_lower,
+        dni=data.dni,
+        fecha_nacimiento=date(2000, 1, 1),
+        rol=models.RolUsuario.usuario,
+    )
+    nuevo.set_password(password_generada)
+    db.add(nuevo)
+    db.commit()
+    db.refresh(nuevo)
+
+    # Generar token para restablecer contraseña
+    from datetime import datetime, timedelta, timezone
+    token = secrets.token_urlsafe(32)
+    nuevo.reset_token = token
+    nuevo.reset_token_expira = datetime.now(timezone.utc) + timedelta(hours=24)
+    db.commit()
+
+    enlace = f"{FRONTEND_URL}restablecer-password?token={token}"
+    print(f"Enviando mail a: {email_lower}")
+    enviar_mail_usuario(
+        destinatario=email_lower,
+        asunto="Bienvenido a Endereza2 - Activá tu cuenta",
+        cuerpo_html=f"""
+            <p>Hola {data.nombre},</p>
+            <p>Tu cuenta fue creada en Endereza2.</p>
+            <p>Tu contraseña temporal es: <strong>{password_generada}</strong></p>
+            <p>Te recomendamos establecer tu propia contraseña haciendo clic acá:</p>
+            <p><a href="{enlace}">Establecer mi contraseña</a></p>
+            <p>El enlace expira en 24 horas.</p>
+        """
+    )
+
+    return {"id": nuevo.id, "email": nuevo.email}

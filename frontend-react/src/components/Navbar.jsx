@@ -79,6 +79,7 @@ export default function Navbar() {
   }
 
   const usuario = getUsuario()
+  const isAuthPage = ['/login', '/registro'].includes(pathname)
 
   const logout = () => {
     localStorage.removeItem('usuario')
@@ -146,15 +147,19 @@ export default function Navbar() {
             </button>
           </div>
         ) : (
-            <div className='nav-auth-buttons'>
+        <div className='nav-auth-buttons'>
+            {pathname !== '/registro' && (
               <Link to='/registro' className='btn-registro-nav'>
                 Registrarse
               </Link>
+            )}
+            {pathname !== '/login' && (
               <Link to='/login' className='btn-login-nav'>
                 Iniciar sesión
               </Link>
-            </div>
-          )}
+            )}
+          </div>
+        )}
 
         <button
           className={`nav-hamburger${open ? ' open' : ''}`}
@@ -257,8 +262,14 @@ export default function Navbar() {
               </Link>
             </li>
             <li className='user-sidebar__item'>
-              <span className='user-sidebar__item-icon'>💳</span>
-              <span>Mis créditos</span>
+              <Link
+                to='/mis-creditos'
+                className='user-sidebar__item-link'
+                onClick={() => setSidebarOpen(false)}
+              >
+                <span className='user-sidebar__item-icon'>💳</span>
+                <span>Mis créditos</span>
+              </Link>
             </li>
             <li className='user-sidebar__item'>
             <Link

@@ -477,3 +477,44 @@ nav.mobile-menu li.active {
   background: var(--primary-tint);
   color: var(--primary-dark);
 }
+/* Asegurar que los auth buttons sean visibles dentro del mobile-menu */
+nav.mobile-menu .nav-auth-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+nav.mobile-menu .btn-registro-nav,
+nav.mobile-menu .btn-login-nav {
+  width: 100%;
+  text-align: center;
+  padding: 10px 16px;
+  border-radius: 20px;
+  display: block;
+}
+/* Agregar al final de navbar.css */
+* {
+  box-sizing: border-box;
+}
+
+nav.main-nav {
+  max-width: 100vw;
+  overflow: hidden;
+}
+
+.nav-auth-buttons {
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.btn-login-nav,
+.btn-registro-nav {
+  white-space: nowrap;
+  max-width: 100%;
+}
+@media (max-width: 900px) {
+  .nav-auth-buttons {
+    display: none;
+  }
+}

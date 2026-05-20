@@ -1,0 +1,323 @@
+/* ── Enrollment period banner ── */
+.sa-enrollment-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  border: 1px solid;
+}
+
+.sa-enrollment-banner--open {
+  background: var(--success-tint);
+  color: var(--success-text);
+  border-color: #b6d97a;
+}
+
+.sa-enrollment-banner--closed {
+  background: var(--warning-tint);
+  color: var(--warning-text);
+  border-color: #f5c97a;
+}
+
+.sa-enrollment-banner svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ── Missing sessions hint ── */
+.sa-missing-hint {
+  font-size: 12px;
+  color: var(--primary-deep);
+  background: var(--primary-tint);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 0 0 12px;
+}
+
+/* ── Complete badge ── */
+.shifts-count--complete {
+  background: var(--success-text) !important;
+}
+
+/* ── Header badge ── */
+.sa-header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--primary-tint);
+  color: var(--primary);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+/* ── Rules info card ── */
+.sa-rules-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1.25rem 1.5rem;
+}
+
+.sa-rules-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 15px;
+  color: var(--text-main);
+  margin-bottom: 12px;
+}
+
+.sa-rules-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sa-rules-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+.sa-rules-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--primary);
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+/* ── Week warning ── */
+.sa-week-warn {
+  color: var(--primary-deep) !important;
+  font-weight: 500;
+}
+
+/* ── Confirm card ── */
+.sa-confirm-card {
+  background: var(--white);
+  border: 1.5px solid var(--primary-mid);
+  border-radius: 18px;
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+}
+
+.sa-confirm-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 1.25rem 1.5rem;
+  background: var(--primary-tint);
+  border-bottom: 1px solid var(--border);
+}
+
+.sa-confirm-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 16px;
+  color: var(--text-main);
+  margin-bottom: 2px;
+}
+
+.sa-confirm-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.sa-confirm-rows {
+  padding: 0 1.5rem;
+}
+
+.sa-confirm-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-main);
+  gap: 12px;
+}
+
+.sa-confirm-row:last-child {
+  border-bottom: none;
+}
+
+.sa-confirm-row span {
+  color: var(--text-muted);
+}
+
+.sa-confirm-btn {
+  display: block;
+  width: calc(100% - 3rem);
+  margin: 1rem 1.5rem;
+  background: var(--primary);
+  color: var(--white);
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 15px;
+  font-family: 'DM Serif Display', serif;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    transform 0.1s;
+  letter-spacing: 0.2px;
+}
+
+.sa-confirm-btn:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+.sa-confirm-btn:disabled {
+  background: var(--border);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.sa-confirm-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 0 1.5rem 1.25rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Month day: week-blocked state ── */
+.month-day.week-blocked {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: var(--bg);
+}
+
+/* ── Success screen ── */
+.sa-success {
+  max-width: 520px;
+  margin: 3rem auto 4rem;
+  padding: 0 1.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.sa-success-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #ecfdf5;
+  color: #059669;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.sa-success-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 26px;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.sa-success-sub {
+  font-size: 15px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.sa-success-sessions {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.sa-success-session {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-main);
+  text-align: left;
+}
+
+.sa-success-session:last-child {
+  border-bottom: none;
+}
+
+.sa-success-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--primary-tint);
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sa-success-note {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0;
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+
+.sa-success-btn {
+  background: var(--primary);
+  color: var(--white);
+  border: none;
+  border-radius: 12px;
+  padding: 13px 32px;
+  font-size: 15px;
+  font-family: 'DM Serif Display', serif;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-top: 4px;
+}
+
+.sa-success-btn:hover {
+  background: var(--primary-dark);
+}
+
+@media (max-width: 560px) {
+  .sa-confirm-btn {
+    width: calc(100% - 2rem);
+    margin: 1rem;
+  }
+
+  .sa-confirm-card .sa-confirm-rows {
+    padding: 0 1rem;
+  }
+
+  .sa-confirm-header {
+    padding: 1rem;
+  }
+
+  .sa-rules-card {
+    padding: 1rem;
+  }
+}

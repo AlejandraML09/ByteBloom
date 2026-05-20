@@ -1,4 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
+import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import Toast, { useToast } from '../components/Toast'
@@ -9,10 +11,162 @@ import { MonthCalendar } from '../components/turnos/MonthCalendar'
 import { SlotGrid } from '../components/turnos/SlotGrid'
 import { PaymentSelector } from '../components/turnos/PaymentSelector'
 import { SummaryPanel } from '../components/turnos/SummaryPanel'
-import { getDisponibilidad, reservarTurnos, getMisTurnos } from '../api/turnos'
+import {
+  getDisponibilidad,
+  reservarTurnos,
+  getMisTurnos,
+  getMiListaEspera,
+  unirseListaEspera,
+  salirListaEspera,
+} from '../api/turnos'
 import { fmtDate, fmtDiaLargo, nextHour } from '../utils/dates'
+import { ZONA_LABELS } from '../constants/turnos'
 import DiscountModal from '../components/turnos/Discountmodal'
 import '../css/turnos.css'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const fmtPrecio = (n) => `$${Number(n).toLocaleString('es-AR')}`
+
+const PROMO_BENEFITS = [
+  {
+    icon: (
+      <svg
+        width='20'
+        height='20'
+        viewBox='0 0 24 24'
+        fill='none'
+        stroke='currentColor'
+        strokeWidth='1.8'
+        strokeLinecap='round'
+        strokeLinejoin='round'
+      >
+        <path d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2' />
+        <circle cx='9' cy='7' r='4' />
+        <path d='M23 21v-2a4 4 0 0 0-3-3.87' />
+        <path d='M16 3.13a4 4 0 0 1 0 7.75' />
+      </svg>
+    ),
+    title: 'Más clases por mes',
+    desc: 'Organizá tus días y asistí cuando lo necesites.',
+  },
+  {
+    icon: (
+      <svg
+        width='20'
+        height='20'
+        viewBox='0 0 24 24'
+        fill='none'
+        stroke='currentColor'
+        strokeWidth='1.8'
+        strokeLinecap='round'
+        strokeLinejoin='round'
+      >
+        <polygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2' />
+      </svg>
+    ),
+    title: 'Mejor precio',
+    desc: 'Ahorrá en comparación a reservas sueltas.',
+  },
+  {
+    icon: (
+      <svg
+        width='20'
+        height='20'
+        viewBox='0 0 24 24'
+        fill='none'
+        stroke='currentColor'
+        strokeWidth='1.8'
+        strokeLinecap='round'
+        strokeLinejoin='round'
+      >
+        <circle cx='12' cy='12' r='10' />
+        <polyline points='12 6 12 12 16 14' />
+      </svg>
+    ),
+    title: 'Flexibilidad total',
+    desc: 'Elegí tus horarios cada mes según tu disponibilidad.',
+  },
+  {
+    icon: (
+      <svg
+        width='20'
+        height='20'
+        viewBox='0 0 24 24'
+        fill='none'
+        stroke='currentColor'
+        strokeWidth='1.8'
+        strokeLinecap='round'
+        strokeLinejoin='round'
+      >
+        <path d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' />
+      </svg>
+    ),
+    title: 'Acompañamiento continuo',
+    desc: 'Un plan pensado para tu recuperación y bienestar.',
+  },
+]
+
+function AbonoPromo({ zonaSeleccionada }) {
+  const [minPrecio, setMinPrecio] = useState(null)
+
+  useEffect(() => {
+    if (zonaSeleccionada) return
+    fetch(`${API_URL}/api/zonas`)
+      .then((r) => r.json())
+      .then((zonas) => setMinPrecio(Math.min(...zonas.map((z) => z.precio))))
+      .catch(() => {})
+  }, [zonaSeleccionada])
+
+  const precio = zonaSeleccionada?.precio ?? minPrecio
+
+  return (
+    <div className='abono-promo'>
+      <div className='abono-promo-top'>
+        <div className='abono-promo-badge'>¡Más conveniente!</div>
+        <h3 className='abono-promo-title'>¿Querés aprovechar más tu tratamiento?</h3>
+        <p className='abono-promo-sub'>
+          Convertite en abonado y disfrutá de todos estos beneficios.
+        </p>
+        <ul className='abono-promo-benefits'>
+          {PROMO_BENEFITS.map((b) => (
+            <li key={b.title} className='abono-promo-benefit'>
+              <span className='abono-promo-benefit-icon'>{b.icon}</span>
+              <div>
+                <span className='abono-promo-benefit-title'>{b.title}</span>
+                <span className='abono-promo-benefit-desc'>{b.desc}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className='abono-promo-footer'>
+        {precio != null && (
+          <div className='abono-promo-price'>
+            Desde <strong>{fmtPrecio(precio)}</strong>
+            <span className='abono-promo-price-mes'>/mes</span>
+          </div>
+        )}
+        <Link to='/quiero-ser-abonado' className='abono-promo-cta'>
+          Quiero ser abonado
+          <svg
+            width='14'
+            height='14'
+            viewBox='0 0 24 24'
+            fill='none'
+            stroke='currentColor'
+            strokeWidth='2.5'
+            strokeLinecap='round'
+            strokeLinejoin='round'
+          >
+            <line x1='5' y1='12' x2='19' y2='12' />
+            <polyline points='12 5 19 12 12 19' />
+          </svg>
+        </Link>
+        <p className='abono-promo-more'>Conocé más sobre nuestros planes</p>
+      </div>
+    </div>
+  )
+}
 
 const MAX_SHIFTS = 3
 
@@ -21,6 +175,49 @@ function toMes(date) {
 }
 
 export default function Turnos() {
+  const navigate = useNavigate()
+
+  const storedUser = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
+  const user = storedUser ? JSON.parse(storedUser) : null
+
+  // ✅ SI NO HAY SESIÓN, MOSTRAR PANTALLA DE BIENVENIDA CON NAVBAR Y FOOTER
+  if (!user) {
+    return (
+      <div style={{ background: 'linear-gradient(135deg, var(--danger) 0%, var(--danger-dark) 100%)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <Navbar />
+        <div className='welcome-container' style={{ background: 'none', flex: 1 }}>
+          <div className='welcome-content'>
+            <div className='welcome-header'>
+              <h1 style={{ color: 'var(--danger-muted)' }}>Bienvenido a ByteBloom</h1>
+              <p style={{ color: 'var(--danger-muted)' }}>Accedé a tu cuenta o crea una nueva para comenzar</p>
+            </div>
+
+            <div className='welcome-buttons'>
+              <button
+                onClick={() => navigate('/login')}
+                className='welcome-btn login'
+              >
+                <span className='welcome-btn-icon'>🔐</span>
+                <h3 style={{ color: 'var(--danger-muted)' }}>Iniciar Sesión</h3>
+                <p style={{ color: 'var(--danger-muted)' }}>¿Ya tenés cuenta?</p>
+              </button>
+
+              <button
+                onClick={() => navigate('/registro')}
+                className='welcome-btn register'
+              >
+                <span className='welcome-btn-icon'>✨</span>
+                <h3 style={{ color: 'var(--danger-muted)' }}>Crear Cuenta</h3>
+                <p style={{ color: 'var(--danger-muted)' }}>Nuevos en ByteBloom?</p>
+              </button>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    )
+  }
+
   // zona is the full zona object { id, nombre, precio, descripcion, activo }
   const [zona, setZona] = useState(null)
   const [diaDate, setDiaDate] = useState(null)
@@ -31,6 +228,7 @@ export default function Turnos() {
   const [clasesDelMes, setClasesDelMes] = useState({})
   // Set of clase_programada_id values the logged-in user has already booked (non-cancelled)
   const [bookedClaseIds, setBookedClaseIds] = useState(new Set())
+  const [waitlistClaseIds, setWaitlistClaseIds] = useState(new Set())
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
   const { msg, visible, showToast } = useToast()
@@ -55,8 +253,21 @@ export default function Turnos() {
     }
   }, [])
 
+  const refreshWaitlistIds = useCallback(async () => {
+    const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
+    const usuario = stored ? JSON.parse(stored) : null
+    if (!usuario?.id) return
+    try {
+      const lista = await getMiListaEspera(usuario.id)
+      setWaitlistClaseIds(new Set(lista.map((e) => e.clase_programada_id)))
+    } catch {
+      // silently ignore
+    }
+  }, [])
+
   useEffect(() => {
     refreshBookedIds()
+    refreshWaitlistIds()
   }, [])
 
   const fetchDisponibilidad = useCallback(async (displayDate) => {
@@ -149,12 +360,13 @@ export default function Turnos() {
     try {
       if (['mercadopago', 'credito', 'debito'].includes(medioPago)) {
         const { data } = await client.post('/api/crear-preferencia', null, {
-          params: {
-            servicio_id: zona?.id ?? 1,
-            precio: zona?.precio ?? 0,
-            titulo: `Clase ${zona?.nombre ?? ''}`,
-            cantidad: shifts.length,
-          },
+          params:
+            {
+              servicio_id: zona?.id ?? 1,
+              precio: zona?.precio ?? 0,
+              titulo: `Clase ${zona?.nombre ?? ''}`,
+              cantidad: shifts.length,
+            },
         })
         if (data?.init_point) {
   const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
@@ -211,6 +423,39 @@ export default function Turnos() {
     }
   }
 
+  async function handleWaitlistToggle(clase) {
+    const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
+    const usuario = stored ? JSON.parse(stored) : null
+    if (!usuario?.id) {
+      showToast('Tenés que iniciar sesión para usar la lista de espera.')
+      return
+    }
+    const zonaNombre = ZONA_LABELS[clase.zona_nombre] ?? clase.zona_nombre
+    const fechaDisplay = fmtDiaLargo(new Date(clase.fecha + 'T00:00:00'))
+    const inWaitlist = waitlistClaseIds.has(clase.id)
+    try {
+      if (inWaitlist) {
+        await salirListaEspera({ claseProgramadaId: clase.id, usuarioId: usuario.id })
+        setWaitlistClaseIds((prev) => {
+          const next = new Set(prev)
+          next.delete(clase.id)
+          return next
+        })
+        showToast(
+          `Fuiste dado de baja de la lista de espera para la clase de ${zonaNombre} el ${fechaDisplay} a las ${clase.hora}.`
+        )
+      } else {
+        await unirseListaEspera({ claseProgramadaId: clase.id, usuarioId: usuario.id })
+        setWaitlistClaseIds((prev) => new Set([...prev, clase.id]))
+        showToast(
+          `Fuiste anotado a la lista de espera para la clase de ${zonaNombre} el ${fechaDisplay} a las ${clase.hora}. Recibirás una notificación si se libera el turno.`
+        )
+      }
+    } catch (err) {
+      showToast(err?.response?.data?.detail || 'No se pudo actualizar la lista de espera.')
+    }
+  }
+
   const discountPct = shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
   const allFilled = zona && shifts.length > 0 && medioPago
   const canAddMore = diaDate && slot && shifts.length < MAX_SHIFTS
@@ -224,7 +469,7 @@ export default function Turnos() {
         <p>Elegí la zona, el día y el horario que mejor se adapte a vos</p>
       </div>
 
-      <div className='main'>
+      <div className='main turnos-main'>
         <div className='left-col'>
           <StepIndicator zona={zona} shifts={shifts} medioPago={medioPago} />
           <ZonaSelector selected={zona} onSelect={handleZonaSelect} />
@@ -252,6 +497,8 @@ export default function Turnos() {
                 onSlotSelect={setSlot}
                 clases={clasesDelDia}
                 bookedClaseIds={bookedClaseIds}
+                waitlistClaseIds={waitlistClaseIds}
+                onWaitlistToggle={handleWaitlistToggle}
               />
               {canAddMore && (
                 <button className='btn-add-shift' onClick={addShift}>
@@ -301,6 +548,10 @@ export default function Turnos() {
             <PaymentSelector selected={medioPago} onSelect={setMedioPago} />
           </div>
         </div>
+
+        <aside className='booking-sidebar'>
+          <AbonoPromo zonaSeleccionada={zona} />
+        </aside>
       </div>
 
       <div className={`fade-slide summary-bottom-wrap ${allFilled ? 'fade-slide--visible' : ''}`}>

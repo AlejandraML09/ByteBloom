@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { fmtDate, MESES_ES } from '../../utils/dates'
+import { fmtDate, MESES_ES, getISOWeekKey } from '../../utils/dates'
 
 const DIAS_HEADER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
@@ -10,8 +10,12 @@ export function MonthCalendar({
   getClasesForDay,
   bookedDays,
   onMonthChange,
+  blockedWeekKeys,
+  defaultMonthOffset = 0,
+  minMonthOffset = 0,
+  maxMonthOffset = null,
 }) {
-  const [monthOffset, setMonthOffset] = useState(0)
+  const [monthOffset, setMonthOffset] = useState(defaultMonthOffset)
 
   const displayDate = useMemo(() => {
     return new Date(today.getFullYear(), today.getMonth() + monthOffset, 1)
@@ -21,7 +25,8 @@ export function MonthCalendar({
     onMonthChange?.(displayDate)
   }, [displayDate])
 
-  const prevDisabled = monthOffset <= 0
+  const prevDisabled = monthOffset <= minMonthOffset
+  const nextDisabled = maxMonthOffset !== null && monthOffset >= maxMonthOffset
   const monthLabel = `${MESES_ES[displayDate.getMonth()]} ${displayDate.getFullYear()}`
 
   const calendarDays = useMemo(() => {
@@ -51,7 +56,11 @@ export function MonthCalendar({
           &#8249;
         </button>
         <span className='week-label'>{monthLabel}</span>
-        <button className='week-arrow' onClick={() => setMonthOffset((o) => o + 1)}>
+        <button
+          className='week-arrow'
+          disabled={nextDisabled}
+          onClick={() => setMonthOffset((o) => o + 1)}
+        >
           &#8250;
         </button>
       </div>
@@ -73,11 +82,16 @@ export function MonthCalendar({
 
           const clases = isPast || isBooked ? [] : (getClasesForDay?.(d) ?? [])
           const hasAvailable = clases.some((c) => c.cupo_disponible > 0)
-          const disabled = isPast || isBooked || !hasAvailable
+
+          const isWeekend = d.getDay() === 0 || d.getDay() === 6
+          const weekKey = getISOWeekKey(d)
+          const isWeekBlocked = blockedWeekKeys?.has(weekKey) ?? false
 
           const totalMax = clases.reduce((s, c) => s + c.cupo_maximo, 0)
           const totalTaken = clases.reduce((s, c) => s + (c.cupo_maximo - c.cupo_disponible), 0)
           const pct = totalMax > 0 ? Math.min(100, Math.round((totalTaken / totalMax) * 100)) : 0
+
+          const disabled = isPast || isWeekend || isBooked || !hasAvailable || isWeekBlocked
 
           return (
             <button
@@ -87,6 +101,7 @@ export function MonthCalendar({
                 isToday ? 'today' : '',
                 isSelected ? 'selected' : '',
                 isBooked ? 'booked' : '',
+                isWeekBlocked ? 'week-blocked' : '',
                 disabled ? 'disabled' : '',
               ]
                 .filter(Boolean)

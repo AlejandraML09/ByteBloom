@@ -1,10 +1,14 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import { getMisTurnos } from '../api/turnos'
+import { getMisTurnos, getDisponibilidad, getMiListaEspera, salirListaEspera } from '../api/turnos'
+import { getMisAbonos, renovarAbono, getSesionesAbono, modificarSesionAbono } from '../api/abonos'
+import client from '../api/client'
 import { ZONA_LABELS } from '../constants/turnos'
-import { fmtLargo, nextHour } from '../utils/dates'
+import { fmtLargo, fmtDate, fmtDiaLargo, nextHour, getISOWeekKey, MESES_ES } from '../utils/dates'
+import { MonthCalendar } from '../components/turnos/MonthCalendar'
+import { SlotGrid } from '../components/turnos/SlotGrid'
 import '../css/mis-reservas.css'
 
 function getUsuario() {
@@ -24,6 +28,21 @@ const ESTADO_CONFIG = {
   asistio: { label: 'Asistió', css: 'asistio' },
   ausente: { label: 'Ausente', css: 'ausente' },
 }
+
+const ESTADO_ABONO_CONFIG = {
+  activo: { label: 'Activo', css: 'activo' },
+  vencido: { label: 'Vencido', css: 'vencido' },
+  cancelado: { label: 'Cancelado', css: 'cancelado' },
+  pausado: { label: 'Pausado', css: 'pausado' },
+}
+
+const ESTADO_PAGO_CONFIG = {
+  pendiente: { label: 'Pendiente', css: 'pendiente' },
+  pagado: { label: 'Pagado', css: 'pagado' },
+  vencido: { label: 'Vencido', css: 'vencido' },
+}
+
+const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
 function isProxima(reserva) {
   const today = new Date()
@@ -84,6 +103,41 @@ function ClockIcon({ size = 20 }) {
     >
       <circle cx='12' cy='12' r='10' />
       <polyline points='12 6 12 12 16 14' />
+    </svg>
+  )
+}
+
+function StarIcon({ size = 20 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox='0 0 24 24'
+      fill='none'
+      stroke='currentColor'
+      strokeWidth='1.8'
+      strokeLinecap='round'
+      strokeLinejoin='round'
+    >
+      <polygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2' />
+    </svg>
+  )
+}
+
+function CreditCardIcon({ size = 20 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox='0 0 24 24'
+      fill='none'
+      stroke='currentColor'
+      strokeWidth='1.8'
+      strokeLinecap='round'
+      strokeLinejoin='round'
+    >
+      <rect x='1' y='4' width='22' height='16' rx='2' />
+      <line x1='1' y1='10' x2='23' y2='10' />
     </svg>
   )
 }
@@ -174,12 +228,471 @@ const TABS = [
 
 const fmt = (n) => `$${Number(n).toLocaleString('es-AR')}`
 
+function AbonoPagoRow({ pago }) {
+  const cfg = ESTADO_PAGO_CONFIG[pago.estado] ?? { label: pago.estado, css: 'pendiente' }
+  return (
+    <div className='ma-pago-row'>
+      <span className='ma-pago-periodo'>
+        {MESES[(pago.mes ?? 1) - 1]} {pago.anio}
+      </span>
+      <span className='ma-pago-monto'>{fmt(pago.monto)}</span>
+      {pago.medio_pago && <span className='ma-pago-medio'>{pago.medio_pago}</span>}
+      <span className={`ma-pago-badge ma-pago-badge--${cfg.css}`}>{cfg.label}</span>
+    </div>
+  )
+}
+
+// ── helpers ────────────────────────────────────────────────────────────────
+function toMes(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+}
+
+function getNextMonthName() {
+  const now = new Date()
+  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+  return `${MESES_ES[next.getMonth()].toLowerCase()} ${next.getFullYear()}`
+}
+
+// ── ModificarModal ──────────────────────────────────────────────────────────
+function ModificarModal({ abono, onClose, onSuccess }) {
+  const today = useMemo(() => {
+    const d = new Date()
+    d.setHours(0, 0, 0, 0)
+    return d
+  }, [])
+
+  const [sesiones, setSesiones] = useState([])
+  const [loadingSesiones, setLoadingSesiones] = useState(true)
+  const [selectedReservaId, setSelectedReservaId] = useState(null)
+  const [diaDate, setDiaDate] = useState(null)
+  const [slot, setSlot] = useState(null)
+  const [clasesDelMes, setClasesDelMes] = useState({})
+  const [loadingSlots, setLoadingSlots] = useState(false)
+  const [guardando, setGuardando] = useState(false)
+  const [errorMsg, setErrorMsg] = useState(null)
+
+  useEffect(() => {
+    getSesionesAbono(abono.id)
+      .then(setSesiones)
+      .catch(() => setErrorMsg('No se pudieron cargar las sesiones.'))
+      .finally(() => setLoadingSesiones(false))
+  }, [abono.id])
+
+  const fetchDisponibilidad = useCallback(async (displayDate) => {
+    const mes = toMes(displayDate)
+    setLoadingSlots(true)
+    try {
+      const data = await getDisponibilidad(mes)
+      setClasesDelMes((prev) => ({ ...prev, [mes]: data }))
+    } catch {
+      /* ignore */
+    } finally {
+      setLoadingSlots(false)
+    }
+  }, [])
+
+  // Semanas bloqueadas = semanas de todas las sesiones EXCEPTO la seleccionada para cambiar
+  const blockedWeekKeys = useMemo(() => {
+    return new Set(
+      sesiones
+        .filter((s) => s.reserva_id !== selectedReservaId)
+        .map((s) => getISOWeekKey(new Date(s.fecha + 'T00:00:00')))
+    )
+  }, [sesiones, selectedReservaId])
+
+  function getClasesForDay(date) {
+    const mes = toMes(date)
+    const all = clasesDelMes[mes] ?? []
+    return all.filter((c) => c.fecha === fmtDate(date) && c.zona_id === abono.zona_id)
+  }
+
+  function handleSelectSesion(reservaId) {
+    setSelectedReservaId(reservaId === selectedReservaId ? null : reservaId)
+    setDiaDate(null)
+    setSlot(null)
+  }
+
+  async function handleGuardar() {
+    if (!selectedReservaId || !diaDate || !slot) return
+    setGuardando(true)
+    setErrorMsg(null)
+    try {
+      await modificarSesionAbono(abono.id, selectedReservaId, fmtDate(diaDate), slot)
+      onSuccess()
+    } catch (err) {
+      setErrorMsg(err?.response?.data?.detail || 'No se pudo modificar la sesión.')
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  const canSave = selectedReservaId && diaDate && slot
+
+  return (
+    <div className='ma-modal-overlay' onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className='ma-modal'>
+        <div className='ma-modal-header'>
+          <div>
+            <div className='ma-modal-title'>Modificar sesiones</div>
+            <div className='ma-modal-subtitle'>{ZONA_LABELS[abono.zona] ?? abono.zona}</div>
+          </div>
+          <button className='ma-modal-close' onClick={onClose}>
+            ×
+          </button>
+        </div>
+
+        <div className='ma-modal-body'>
+          {/* Paso 1: elegir sesión a cambiar */}
+          <div className='ma-modal-section-title'>1. Seleccioná la sesión que querés cambiar</div>
+          {loadingSesiones ? (
+            <p className='ma-modal-hint'>Cargando sesiones…</p>
+          ) : sesiones.length === 0 ? (
+            <p className='ma-modal-hint'>
+              No tenés sesiones futuras para modificar. Usá "Renovar" para crear las del próximo
+              mes.
+            </p>
+          ) : (
+            <div className='ma-modal-sesiones'>
+              {sesiones.map((s) => (
+                <button
+                  key={s.reserva_id}
+                  className={`ma-modal-sesion${selectedReservaId === s.reserva_id ? ' selected' : ''}`}
+                  onClick={() => handleSelectSesion(s.reserva_id)}
+                >
+                  <span className='ma-modal-sesion-fecha'>
+                    {fmtDiaLargo(new Date(s.fecha + 'T00:00:00'))}
+                  </span>
+                  <span className='ma-modal-sesion-hora'>
+                    {s.hora} – {nextHour(s.hora)}
+                  </span>
+                  {selectedReservaId === s.reserva_id && (
+                    <span className='ma-modal-sesion-check'>✕ Quitar</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Paso 2: elegir nueva fecha */}
+          {selectedReservaId && (
+            <>
+              <div className='ma-modal-section-title' style={{ marginTop: '1.25rem' }}>
+                2. Elegí la nueva fecha
+                {loadingSlots && (
+                  <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-muted)' }}>
+                    {' '}
+                    · cargando…
+                  </span>
+                )}
+              </div>
+              <MonthCalendar
+                selectedDay={diaDate}
+                onDaySelect={(d) => {
+                  setDiaDate(d)
+                  setSlot(null)
+                }}
+                today={today}
+                getClasesForDay={getClasesForDay}
+                bookedDays={new Set()}
+                onMonthChange={fetchDisponibilidad}
+                blockedWeekKeys={blockedWeekKeys}
+              />
+              <div className='ma-modal-section-title' style={{ marginTop: '1rem' }}>
+                Elegí el horario
+              </div>
+              <SlotGrid
+                selectedDay={diaDate}
+                selectedSlot={slot}
+                onSlotSelect={setSlot}
+                clases={
+                  diaDate
+                    ? (clasesDelMes[toMes(diaDate)]?.filter(
+                        (c) => c.fecha === fmtDate(diaDate) && c.zona_id === abono.zona_id
+                      ) ?? [])
+                    : []
+                }
+                bookedClaseIds={new Set()}
+              />
+            </>
+          )}
+
+          {errorMsg && <p className='ma-modal-error'>{errorMsg}</p>}
+        </div>
+
+        <div className='ma-modal-footer'>
+          <button className='ma-modal-cancel' onClick={onClose}>
+            Cancelar
+          </button>
+          <button
+            className='ma-modal-save'
+            onClick={handleGuardar}
+            disabled={!canSave || guardando}
+          >
+            {guardando ? 'Guardando…' : 'Confirmar cambio'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const RENOVAR_MEDIO_DB = {
+  efectivo: 'Efectivo',
+  transferencia: 'Transferencia',
+  cuentadni: 'Efectivo',
+  modo: 'Transferencia',
+  mercadopago: 'Mercado Pago',
+}
+
+// ── AbonoCard ───────────────────────────────────────────────────────────────
+function AbonoCard({ abono, onModificar, onRenovarDone }) {
+  const [expanded, setExpanded] = useState(false)
+  const [renovando, setRenovando] = useState(null) // null | 'confirm' | 'loading'
+  const [renovarMedio, setRenovarMedio] = useState(null)
+  const cfg = ESTADO_ABONO_CONFIG[abono.estado] ?? { label: abono.estado, css: 'activo' }
+  const pagosVisibles = expanded ? abono.pagos : abono.pagos.slice(0, 3)
+  const nextMonthName = getNextMonthName()
+
+  async function handleRenovar() {
+    if (!renovarMedio) return
+    if (['mercadopago'].includes(renovarMedio)) {
+      setRenovando('loading')
+      try {
+        const { data } = await client.post('/api/crear-preferencia', null, {
+          params: {
+            servicio_id: abono.zona_id ?? 1,
+            precio: abono.monto_mensual ?? 0,
+            titulo: `Renovación abono ${abono.zona}`,
+            cantidad: 1,
+          },
+        })
+        if (data?.init_point) {
+          window.location.href = data.init_point
+          return
+        }
+        onRenovarDone(null, 'No se pudo obtener el link de pago.')
+      } catch {
+        onRenovarDone(null, 'Error al procesar el pago.')
+      } finally {
+        setRenovando(null)
+      }
+      return
+    }
+    setRenovando('loading')
+    try {
+      const res = await renovarAbono(abono.id, RENOVAR_MEDIO_DB[renovarMedio] ?? 'Efectivo')
+      const aviso = res.aviso ? ` ${res.aviso}` : ''
+      onRenovarDone(`Se renovaron ${res.renovadas} sesiones para ${nextMonthName}.${aviso}`)
+    } catch (err) {
+      onRenovarDone(null, err?.response?.data?.detail || 'No se pudo renovar el abono.')
+    } finally {
+      setRenovando(null)
+    }
+  }
+
+  return (
+    <div className='ma-card'>
+      <div className='ma-card-header'>
+        <div className={`ma-card-icon ma-card-icon--${cfg.css}`}>
+          <BodyIcon zona={abono.zona} size={22} />
+        </div>
+        <div className='ma-card-title'>
+          <span className='ma-card-zona'>{ZONA_LABELS[abono.zona] ?? abono.zona}</span>
+          <span className='ma-card-desde'>Desde {fmtLargo(abono.fecha_inicio)}</span>
+        </div>
+        <span className={`ma-estado-badge ma-estado-badge--${cfg.css}`}>{cfg.label}</span>
+      </div>
+
+      <div className='ma-card-body'>
+        <div className='ma-detail'>
+          <span className='ma-detail-label'>Cuota mensual</span>
+          <span className='ma-detail-value'>{fmt(abono.monto_mensual)}</span>
+        </div>
+        <div className='ma-detail'>
+          <span className='ma-detail-label'>Vence el día</span>
+          <span className='ma-detail-value'>{abono.dia_limite_pago} de cada mes</span>
+        </div>
+        {abono.fecha_fin && (
+          <div className='ma-detail'>
+            <span className='ma-detail-label'>Fecha fin</span>
+            <span className='ma-detail-value'>{fmtLargo(abono.fecha_fin)}</span>
+          </div>
+        )}
+      </div>
+
+      {abono.pagos.length > 0 && (
+        <div className='ma-card-pagos'>
+          <div className='ma-pagos-header'>
+            <CreditCardIcon size={14} />
+            <span>Historial de pagos</span>
+          </div>
+          {pagosVisibles.map((p) => (
+            <AbonoPagoRow key={p.id} pago={p} />
+          ))}
+          {abono.pagos.length > 3 && (
+            <button className='ma-toggle-pagos' onClick={() => setExpanded((e) => !e)}>
+              {expanded ? 'Ver menos' : `Ver ${abono.pagos.length - 3} más`}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Acciones */}
+      {abono.activo && (
+        <div className='ma-card-actions'>
+          {renovando === 'confirm' ? (
+            <div className='ma-renovar-confirm'>
+              <p>
+                ¿Renovar para <strong>{nextMonthName}</strong>? Se buscarán los mismos días de la
+                semana.
+              </p>
+              <div className='ma-renovar-medios'>
+                {[
+                  { id: 'mercadopago', label: 'MercadoPago' },
+                  { id: 'efectivo', label: 'Efectivo / Transf.' },
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    className={`ma-renovar-medio${renovarMedio === m.id ? ' selected' : ''}`}
+                    onClick={() => setRenovarMedio(m.id)}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+              <div className='ma-renovar-btns'>
+                <button className='ma-renovar-ok' onClick={handleRenovar} disabled={!renovarMedio}>
+                  {renovarMedio === 'mercadopago' ? 'Pagar con MP' : 'Confirmar renovación'}
+                </button>
+                <button
+                  className='ma-renovar-cancel'
+                  onClick={() => {
+                    setRenovando(null)
+                    setRenovarMedio(null)
+                  }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : renovando === 'loading' ? (
+            <p className='ma-action-loading'>Renovando…</p>
+          ) : (
+            <>
+              <button className='ma-action-btn' onClick={() => setRenovando('confirm')}>
+                ↻ Renovar abono
+              </button>
+              <button
+                className='ma-action-btn ma-action-btn--outline'
+                onClick={() => onModificar(abono)}
+              >
+                ✎ Modificar fechas
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ListaEsperaSection({ listaEspera, loading, onSalir }) {
+  const [saliendoId, setSaliendoId] = useState(null)
+
+  if (loading) {
+    return (
+      <div className='mr-skeleton'>
+        {[1, 2, 3].map((i) => (
+          <div key={i} className='mr-skeleton-item'>
+            <div className='mr-skeleton-box' style={{ width: 50, height: 50, borderRadius: 14 }} />
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className='mr-skeleton-box' style={{ width: '55%', height: 14 }} />
+              <div className='mr-skeleton-box' style={{ width: '35%', height: 12 }} />
+            </div>
+            <div className='mr-skeleton-box' style={{ width: 72, height: 26, borderRadius: 20 }} />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (listaEspera.length === 0) {
+    return (
+      <div className='mr-empty'>
+        <div className='mr-empty-icon'>
+          <ClockIcon size={48} />
+        </div>
+        <h3>No estás en ninguna lista de espera</h3>
+        <p>Cuando una clase esté llena, podés anotarte desde la página de turnos.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className='mr-list'>
+      {listaEspera.map((entrada) => (
+        <div key={entrada.id} className='mr-item'>
+          <div className='mr-item-icon'>
+            <BodyIcon zona={entrada.zona_nombre} />
+          </div>
+          <div className='mr-item-info'>
+            <div className='mr-item-fecha'>
+              {fmtLargo(entrada.fecha)} · {entrada.hora}–{nextHour(entrada.hora)}
+            </div>
+            <div className='mr-item-meta'>
+              <span>{ZONA_LABELS[entrada.zona_nombre] ?? entrada.zona_nombre}</span>
+              <span className='mr-item-meta-dot' />
+              <span>Posición #{entrada.prioridad}</span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+            <span className='mr-item-badge mr-item-badge--pendiente'>En espera</span>
+            <button
+              className='ma-action-btn ma-action-btn--outline'
+              style={{ fontSize: 11, padding: '3px 10px' }}
+              disabled={saliendoId === entrada.id}
+              onClick={async () => {
+                setSaliendoId(entrada.id)
+                await onSalir(entrada)
+                setSaliendoId(null)
+              }}
+            >
+              {saliendoId === entrada.id ? 'Saliendo…' : 'Salir de la lista'}
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function MisReservas() {
   const navigate = useNavigate()
   const usuario = getUsuario()
+
+  const [section, setSection] = useState('turnos')
+
+  // Turnos state
   const [reservas, setReservas] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('todas')
+
+  // Abonos state
+  const [abonos, setAbonos] = useState([])
+  const [loadingAbonos, setLoadingAbonos] = useState(false)
+  const [abonosLoaded, setAbonosLoaded] = useState(false)
+  const [modificarAbono, setModificarAbono] = useState(null)
+  const [toastMsg, setToastMsg] = useState(null)
+
+  // Lista de espera state
+  const [listaEspera, setListaEspera] = useState([])
+  const [loadingEspera, setLoadingEspera] = useState(false)
+  const [esperaLoaded, setEsperaLoaded] = useState(false)
+
+  function showAppToast(msg) {
+    setToastMsg(msg)
+    setTimeout(() => setToastMsg(null), 3500)
+  }
 
   useEffect(() => {
     if (!usuario) {
@@ -192,7 +705,32 @@ export default function MisReservas() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Sort: upcoming first (asc by fecha), then past (desc by fecha)
+  useEffect(() => {
+    if (section === 'abonos' && !abonosLoaded && usuario) {
+      setLoadingAbonos(true)
+      getMisAbonos(usuario.id)
+        .then(setAbonos)
+        .catch(() => setAbonos([]))
+        .finally(() => {
+          setLoadingAbonos(false)
+          setAbonosLoaded(true)
+        })
+    }
+  }, [section])
+
+  useEffect(() => {
+    if (section === 'espera' && !esperaLoaded && usuario) {
+      setLoadingEspera(true)
+      getMiListaEspera(usuario.id)
+        .then(setListaEspera)
+        .catch(() => setListaEspera([]))
+        .finally(() => {
+          setLoadingEspera(false)
+          setEsperaLoaded(true)
+        })
+    }
+  }, [section])
+
   const sorted = useMemo(() => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -221,142 +759,277 @@ export default function MisReservas() {
       <Navbar />
 
       <div className='mr-header'>
-        <h1>Mis reservas</h1>
-        <p>Consultá y gestioná tus turnos, {nombreCompleto}</p>
+        <h1>Mi cuenta</h1>
+        <p>Gestioná tus turnos y abonos, {nombreCompleto}</p>
       </div>
 
       <div className='mr-main'>
-        {/* Stats */}
-        <div className='mr-stats'>
-          <div className='mr-stat-card'>
-            <div className='mr-stat-icon mr-stat-icon--total'>
-              <CalendarIcon size={22} />
-            </div>
-            <div>
-              <div className='mr-stat-number'>{reservas.length}</div>
-              <div className='mr-stat-label'>Reservas totales</div>
-            </div>
-          </div>
-          <div className='mr-stat-card'>
-            <div className='mr-stat-icon mr-stat-icon--proximas'>
-              <ClockIcon size={22} />
-            </div>
-            <div>
-              <div className='mr-stat-number'>{proximas.length}</div>
-              <div className='mr-stat-label'>Próximas</div>
-            </div>
-          </div>
-          <div className='mr-stat-card'>
-            <div className='mr-stat-icon mr-stat-icon--completadas'>
-              <CheckCircleIcon size={22} />
-            </div>
-            <div>
-              <div className='mr-stat-number'>{completadas.length}</div>
-              <div className='mr-stat-label'>Completadas</div>
-            </div>
-          </div>
+        {/* Section toggle */}
+        <div className='mr-section-toggle'>
+          <button
+            className={`mr-section-btn${section === 'turnos' ? ' active' : ''}`}
+            onClick={() => setSection('turnos')}
+          >
+            <CalendarIcon size={16} />
+            Mis turnos
+          </button>
+          <button
+            className={`mr-section-btn${section === 'abonos' ? ' active' : ''}`}
+            onClick={() => setSection('abonos')}
+          >
+            <StarIcon size={16} />
+            Mis abonos
+          </button>
+          <button
+            className={`mr-section-btn${section === 'espera' ? ' active' : ''}`}
+            onClick={() => setSection('espera')}
+          >
+            <ClockIcon size={16} />
+            Lista de espera
+          </button>
         </div>
 
-        {/* Filter tabs */}
-        <div className='mr-tabs'>
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              className={`mr-tab${activeTab === tab.id ? ' active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* List */}
-        {loading ? (
-          <div className='mr-skeleton'>
-            {[1, 2, 3].map((i) => (
-              <div key={i} className='mr-skeleton-item'>
-                <div
-                  className='mr-skeleton-box'
-                  style={{ width: 50, height: 50, borderRadius: 14 }}
-                />
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div className='mr-skeleton-box' style={{ width: '55%', height: 14 }} />
-                  <div className='mr-skeleton-box' style={{ width: '35%', height: 12 }} />
+        {section === 'espera' ? (
+          <ListaEsperaSection
+            listaEspera={listaEspera}
+            loading={loadingEspera}
+            onSalir={async (entrada) => {
+              try {
+                await salirListaEspera({
+                  claseProgramadaId: entrada.clase_programada_id,
+                  usuarioId: usuario.id,
+                })
+                setListaEspera((prev) => prev.filter((e) => e.id !== entrada.id))
+                showAppToast(
+                  `Fuiste dado de baja de la lista de espera para la clase de ${ZONA_LABELS[entrada.zona_nombre] ?? entrada.zona_nombre} el ${fmtLargo(entrada.fecha)} a las ${entrada.hora}.`
+                )
+              } catch (err) {
+                showAppToast(
+                  err?.response?.data?.detail || 'No se pudo salir de la lista de espera.'
+                )
+              }
+            }}
+          />
+        ) : section === 'turnos' ? (
+          <>
+            {/* Stats */}
+            <div className='mr-stats'>
+              <div className='mr-stat-card'>
+                <div className='mr-stat-icon mr-stat-icon--total'>
+                  <CalendarIcon size={22} />
                 </div>
-                <div
-                  className='mr-skeleton-box'
-                  style={{ width: 72, height: 26, borderRadius: 20 }}
-                />
+                <div>
+                  <div className='mr-stat-number'>{reservas.length}</div>
+                  <div className='mr-stat-label'>Reservas totales</div>
+                </div>
               </div>
-            ))}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className='mr-empty'>
-            <div className='mr-empty-icon'>
-              <CalendarIcon size={48} />
-            </div>
-            <h3>
-              {activeTab === 'todas'
-                ? 'Todavía no tenés reservas'
-                : `Sin reservas en ${ZONA_LABELS[activeTab] ?? activeTab}`}
-            </h3>
-            <p>
-              {activeTab === 'todas'
-                ? 'Reservá tu primer turno y comenzá tu tratamiento.'
-                : 'Probá ver todas o reservá un nuevo turno.'}
-            </p>
-          </div>
-        ) : (
-          <div className='mr-list'>
-            {filtered.map((r) => {
-              const proxima = isProxima(r)
-              const estadoCfg = ESTADO_CONFIG[r.estado] ?? { label: r.estado, css: 'pendiente' }
-              return (
-                <div key={r.id} className='mr-item'>
-                  <div className={`mr-item-icon${proxima ? '' : ' mr-item-icon--completada'}`}>
-                    <BodyIcon zona={r.zona} />
-                  </div>
-                  <div className='mr-item-info'>
-                    <div className='mr-item-fecha'>
-                      {fmtLargo(r.fecha)} · {r.hora}–{nextHour(r.hora)}
-                    </div>
-                    <div className='mr-item-meta'>
-                      <span>{ZONA_LABELS[r.zona] ?? r.zona}</span>
-                      {r.medio_pago && (
-                        <>
-                          <span className='mr-item-meta-dot' />
-                          <span>{r.medio_pago}</span>
-                        </>
-                      )}
-                      {r.precio_pagado != null && (
-                        <>
-                          <span className='mr-item-meta-dot' />
-                          <span>{fmt(r.precio_pagado)}</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <span className={`mr-item-badge mr-item-badge--${estadoCfg.css}`}>
-                    {estadoCfg.label}
-                  </span>
+              <div className='mr-stat-card'>
+                <div className='mr-stat-icon mr-stat-icon--proximas'>
+                  <ClockIcon size={22} />
                 </div>
-              )
-            })}
-          </div>
-        )}
+                <div>
+                  <div className='mr-stat-number'>{proximas.length}</div>
+                  <div className='mr-stat-label'>Próximas</div>
+                </div>
+              </div>
+              <div className='mr-stat-card'>
+                <div className='mr-stat-icon mr-stat-icon--completadas'>
+                  <CheckCircleIcon size={22} />
+                </div>
+                <div>
+                  <div className='mr-stat-number'>{completadas.length}</div>
+                  <div className='mr-stat-label'>Completadas</div>
+                </div>
+              </div>
+            </div>
 
-        <Link to='/turnos' className='mr-cta'>
-          <div className='mr-cta-left'>
-            <CalendarIcon size={20} />
-            Nueva reserva
-          </div>
-          <span className='mr-cta-arrow'>
-            <ArrowRightIcon />
-          </span>
-        </Link>
+            {/* Filter tabs */}
+            <div className='mr-tabs'>
+              {TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  className={`mr-tab${activeTab === tab.id ? ' active' : ''}`}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* List */}
+            {loading ? (
+              <div className='mr-skeleton'>
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className='mr-skeleton-item'>
+                    <div
+                      className='mr-skeleton-box'
+                      style={{ width: 50, height: 50, borderRadius: 14 }}
+                    />
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div className='mr-skeleton-box' style={{ width: '55%', height: 14 }} />
+                      <div className='mr-skeleton-box' style={{ width: '35%', height: 12 }} />
+                    </div>
+                    <div
+                      className='mr-skeleton-box'
+                      style={{ width: 72, height: 26, borderRadius: 20 }}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className='mr-empty'>
+                <div className='mr-empty-icon'>
+                  <CalendarIcon size={48} />
+                </div>
+                <h3>
+                  {activeTab === 'todas'
+                    ? 'Todavía no tenés reservas'
+                    : `Sin reservas en ${ZONA_LABELS[activeTab] ?? activeTab}`}
+                </h3>
+                <p>
+                  {activeTab === 'todas'
+                    ? 'Reservá tu primer turno y comenzá tu tratamiento.'
+                    : 'Probá ver todas o reservá un nuevo turno.'}
+                </p>
+              </div>
+            ) : (
+              <div className='mr-list'>
+                {filtered.map((r) => {
+                  const proxima = isProxima(r)
+                  const estadoCfg = ESTADO_CONFIG[r.estado] ?? { label: r.estado, css: 'pendiente' }
+                  return (
+                    <div key={r.id} className='mr-item'>
+                      <div className={`mr-item-icon${proxima ? '' : ' mr-item-icon--completada'}`}>
+                        <BodyIcon zona={r.zona} />
+                      </div>
+                      <div className='mr-item-info'>
+                        <div className='mr-item-fecha'>
+                          {fmtLargo(r.fecha)} · {r.hora}–{nextHour(r.hora)}
+                        </div>
+                        <div className='mr-item-meta'>
+                          <span>{ZONA_LABELS[r.zona] ?? r.zona}</span>
+                          {r.medio_pago && (
+                            <>
+                              <span className='mr-item-meta-dot' />
+                              <span>{r.medio_pago}</span>
+                            </>
+                          )}
+                          {r.precio_pagado != null && (
+                            <>
+                              <span className='mr-item-meta-dot' />
+                              <span>{fmt(r.precio_pagado)}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <span className={`mr-item-badge mr-item-badge--${estadoCfg.css}`}>
+                        {estadoCfg.label}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            <Link to='/turnos' className='mr-cta'>
+              <div className='mr-cta-left'>
+                <CalendarIcon size={20} />
+                Nueva reserva
+              </div>
+              <span className='mr-cta-arrow'>
+                <ArrowRightIcon />
+              </span>
+            </Link>
+          </>
+        ) : (
+          <>
+            {/* Abonos section */}
+            {loadingAbonos ? (
+              <div className='mr-skeleton'>
+                {[1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className='mr-skeleton-item'
+                    style={{
+                      flexDirection: 'column',
+                      alignItems: 'stretch',
+                      gap: 12,
+                      padding: '1.4rem 1.5rem',
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                      <div
+                        className='mr-skeleton-box'
+                        style={{ width: 50, height: 50, borderRadius: 14 }}
+                      />
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <div className='mr-skeleton-box' style={{ width: '40%', height: 14 }} />
+                        <div className='mr-skeleton-box' style={{ width: '60%', height: 12 }} />
+                      </div>
+                      <div
+                        className='mr-skeleton-box'
+                        style={{ width: 68, height: 26, borderRadius: 20 }}
+                      />
+                    </div>
+                    <div
+                      className='mr-skeleton-box'
+                      style={{ width: '100%', height: 60, borderRadius: 10 }}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : abonos.length === 0 ? (
+              <div className='mr-empty'>
+                <div className='mr-empty-icon'>
+                  <StarIcon size={48} />
+                </div>
+                <h3>No tenés abonos activos</h3>
+                <p>Consultá con el centro para suscribirte a una zona.</p>
+              </div>
+            ) : (
+              <div className='ma-list'>
+                {abonos.map((a) => (
+                  <AbonoCard
+                    key={a.id}
+                    abono={a}
+                    onModificar={setModificarAbono}
+                    onRenovarDone={(ok, err) => {
+                      showAppToast(err || ok)
+                      if (!err) {
+                        setAbonosLoaded(false)
+                        getMisAbonos(usuario.id)
+                          .then(setAbonos)
+                          .catch(() => {})
+                          .finally(() => setAbonosLoaded(true))
+                      }
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       <Footer />
+
+      {modificarAbono && (
+        <ModificarModal
+          abono={modificarAbono}
+          onClose={() => setModificarAbono(null)}
+          onSuccess={() => {
+            setModificarAbono(null)
+            showAppToast('Sesión modificada correctamente.')
+            setAbonosLoaded(false)
+            getMisAbonos(usuario.id)
+              .then(setAbonos)
+              .catch(() => {})
+              .finally(() => setAbonosLoaded(true))
+          }}
+        />
+      )}
+
+      {toastMsg && <div className='ma-toast'>{toastMsg}</div>}
     </div>
   )
 }
