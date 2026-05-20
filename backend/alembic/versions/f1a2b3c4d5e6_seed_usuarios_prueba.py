@@ -174,10 +174,10 @@ def upgrade():
             'valentina.torres@test.com'
         )
         AND r.estado NOT IN ('cancelada'::estado_reserva)
-        AND cp.fecha >= CURRENT_DATE
         GROUP BY r.clase_programada_id
     ) sub
-    WHERE cp.id = sub.clase_programada_id;
+    WHERE cp.id = sub.clase_programada_id
+    AND cp.fecha >= CURRENT_DATE;
     """)
 
     # ── 4. Abonos ──────────────────────────────────────────────────────────────
@@ -306,7 +306,7 @@ def downgrade():
     ) sub
     JOIN clases_programadas cp2 ON cp2.id = sub.clase_programada_id
     WHERE cp.id = sub.clase_programada_id
-      AND cp.fecha >= CURRENT_DATE;
+    AND cp.fecha >= CURRENT_DATE;
 
     DELETE FROM reservas
     WHERE usuario_id IN (
