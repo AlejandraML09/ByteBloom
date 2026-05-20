@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routers import usuarios, turnos, pagos, servicios, clases, zonas, auth
+from app.routers import usuarios, turnos, pagos, servicios, clases, zonas, auth, abonos
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -9,7 +9,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5174",
         "http://localhost:5173",
-        "https://endereza2.vercel.app"
+        "https://endereza2.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -24,3 +24,4 @@ app.include_router(pagos.router)
 app.include_router(clases.router)
 app.include_router(zonas.router)
 app.include_router(auth.router)
+app.include_router(abonos.router)

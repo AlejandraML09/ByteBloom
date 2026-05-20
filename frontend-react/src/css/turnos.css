@@ -706,6 +706,97 @@
   position: static;
 }
 
+/* ── 2-column layout for Turnos with promo sidebar ── */
+.turnos-main {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.booking-sidebar {
+  position: sticky;
+  top: 80px;
+}
+
+/* ── Abono promo card ── */
+.abono-promo {
+  background: linear-gradient(145deg, #1a0a2e 0%, #3b1d6e 100%);
+  border-radius: 18px;
+  padding: 1.5rem;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.abono-promo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #e9d5ff;
+  width: fit-content;
+}
+
+.abono-promo-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 18px;
+  color: #fff;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.abono-promo-text {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.abono-promo-price {
+  font-size: 14px;
+  color: #e9d5ff;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 10px 14px;
+  text-align: center;
+}
+
+.abono-promo-price strong {
+  font-size: 20px;
+  color: #fff;
+  font-family: 'DM Serif Display', serif;
+}
+
+.abono-promo-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #fff;
+  color: #3b1d6e;
+  border-radius: 12px;
+  padding: 11px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    background 0.15s,
+    transform 0.1s;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.abono-promo-cta:hover {
+  background: #f3e8ff;
+  transform: translateY(-1px);
+}
+
 .summary-bottom-wrap {
   max-width: 900px;
   margin: 0 auto;
@@ -1222,6 +1313,13 @@
   }
   .summary-v2-columns {
     grid-template-columns: 1fr;
+  }
+  .turnos-main {
+    grid-template-columns: 1fr;
+  }
+  .booking-sidebar {
+    position: static;
+    order: -1;
   }
 }
 

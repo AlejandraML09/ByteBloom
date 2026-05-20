@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import Toast, { useToast } from '../components/Toast'
@@ -13,6 +14,55 @@ import { getDisponibilidad, reservarTurnos, getMisTurnos } from '../api/turnos'
 import { fmtDate, fmtDiaLargo, nextHour } from '../utils/dates'
 import DiscountModal from '../components/turnos/Discountmodal'
 import '../css/turnos.css'
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const fmtPrecio = (n) => `$${Number(n).toLocaleString('es-AR')}`
+
+function AbonoPromo({ zonaSeleccionada }) {
+  const [minPrecio, setMinPrecio] = useState(null)
+
+  useEffect(() => {
+    if (zonaSeleccionada) return
+    fetch(`${API_URL}/api/zonas`)
+      .then((r) => r.json())
+      .then((zonas) => setMinPrecio(Math.min(...zonas.map((z) => z.precio))))
+      .catch(() => {})
+  }, [zonaSeleccionada])
+
+  const precio = zonaSeleccionada?.precio ?? minPrecio
+
+  return (
+    <div className='abono-promo'>
+      <div className='abono-promo-badge'>✦ Beneficio exclusivo</div>
+      <h3 className='abono-promo-title'>¿Querés aprovechar más tu tratamiento?</h3>
+      <p className='abono-promo-text'>
+        Convertite en abonada y disfrutá sesiones garantizadas, prioridad en los horarios y
+        acompañamiento continuo en tu zona de trabajo.
+      </p>
+      {precio != null && (
+        <div className='abono-promo-price'>
+          Desde <strong>{fmtPrecio(precio)}</strong>/mes
+        </div>
+      )}
+      <Link to='/quiero-ser-abonado' className='abono-promo-cta'>
+        Quiero ser abonada
+        <svg
+          width='14'
+          height='14'
+          viewBox='0 0 24 24'
+          fill='none'
+          stroke='currentColor'
+          strokeWidth='2.5'
+          strokeLinecap='round'
+          strokeLinejoin='round'
+        >
+          <line x1='5' y1='12' x2='19' y2='12' />
+          <polyline points='12 5 19 12 12 19' />
+        </svg>
+      </Link>
+    </div>
+  )
+}
 
 const MAX_SHIFTS = 3
 
@@ -204,7 +254,7 @@ export default function Turnos() {
         <p>Elegí la zona, el día y el horario que mejor se adapte a vos</p>
       </div>
 
-      <div className='main'>
+      <div className='main turnos-main'>
         <div className='left-col'>
           <StepIndicator zona={zona} shifts={shifts} medioPago={medioPago} />
           <ZonaSelector selected={zona} onSelect={handleZonaSelect} />
@@ -281,6 +331,10 @@ export default function Turnos() {
             <PaymentSelector selected={medioPago} onSelect={setMedioPago} />
           </div>
         </div>
+
+        <aside className='booking-sidebar'>
+          <AbonoPromo zonaSeleccionada={zona} />
+        </aside>
       </div>
 
       <div className={`fade-slide summary-bottom-wrap ${allFilled ? 'fade-slide--visible' : ''}`}>
