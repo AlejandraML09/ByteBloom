@@ -11,53 +11,104 @@ export function CuposTab({
     : classes
 
   return (
-    <div className='card'>
-      <div className='card-header'>
-        <div>
-          <h3>Modificar cupo de clase</h3>
-          <p>Selecciona una clase sin inscriptos y ajusta su cupo máximo.</p>
-        </div>
-        <div className='date-filter'>
-          <input type='date' value={filterDate} onChange={(e) => onFilterChange(e.target.value)} />
-        </div>
+    <div style={{ padding: '1.5rem' }}>
+      {/* Header igual al de Modificar precio */}
+      <h3 style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '0.25rem' }}>
+        Modificar cupo de clases
+      </h3>
+      <p style={{ color: '#666', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+        Selecciona una clase sin inscriptos y ajusta su cupo máximo.
+      </p>
+
+      {/* Filtro de fecha alineado a la derecha, estilo limpio */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+        <input
+          type="date"
+          value={filterDate}
+          onChange={(e) => onFilterChange(e.target.value)}
+          style={{
+            border: '1px solid #ddd',
+            borderRadius: '6px',
+            padding: '0.4rem 0.75rem',
+            fontSize: '0.875rem',
+            outline: 'none',
+          }}
+        />
       </div>
+
+      {/* Tabla estilo Modificar precio */}
       <div style={{ overflowX: 'auto' }}>
-        <table>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
           <thead>
             <tr>
-              <th>Zona</th>
-              <th>Fecha</th>
-              <th>Horario</th>
-              <th>Cupo actual</th>
-              <th>Nuevo cupo</th>
-              <th>Acción</th>
+              {['Zona', 'Fecha', 'Horario', 'Cupo actual', 'Nuevo cupo', 'Acción'].map((col) => (
+                <th
+                  key={col}
+                  style={{
+                    textAlign: 'left',
+                    padding: '0.75rem 1rem',
+                    color: '#7c3d52',        // color vino/morado como en la tabla
+                    fontWeight: '600',
+                    fontSize: '0.85rem',
+                    borderBottom: '1px solid #eee',
+                    background: 'transparent',
+                  }}
+                >
+                  {col}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {filteredClasses.length === 0 ? (
               <tr>
-                <td colSpan='6' style={{ textAlign: 'center', padding: '1.5rem' }}>
+                <td
+                  colSpan={6}
+                  style={{ textAlign: 'center', padding: '2rem', color: '#999', fontSize: '0.875rem' }}
+                >
                   No hay clases sin inscriptos disponibles.
                 </td>
               </tr>
             ) : (
-              filteredClasses.map((clase) => (
-                <tr key={clase.id}>
-                  <td>{clase.zona_nombre}</td>
-                  <td>{clase.fecha}</td>
-                  <td>{clase.hora}</td>
-                  <td>{clase.cupo_maximo}</td>
-                  <td>
+              filteredClasses.map((clase, index) => (
+                <tr
+                  key={clase.id}
+                  style={{ background: index % 2 === 0 ? '#fff' : '#fafafa' }}
+                >
+                  <td style={{ padding: '0.75rem 1rem' }}>{clase.zona_nombre}</td>
+                  <td style={{ padding: '0.75rem 1rem' }}>{clase.fecha}</td>
+                  <td style={{ padding: '0.75rem 1rem' }}>{clase.hora}</td>
+                  <td style={{ padding: '0.75rem 1rem' }}>{clase.cupo_maximo}</td>
+                  <td style={{ padding: '0.75rem 1rem' }}>
                     <input
-                      className='cupo-input'
-                      type='number'
-                      min='1'
+                      type="number"
+                      min="1"
                       value={cuposInput[clase.id] ?? clase.cupo_maximo}
                       onChange={(e) => onInputChange(clase.id, e.target.value)}
+                      style={{
+                        width: '80px',
+                        border: '1px solid #ddd',
+                        borderRadius: '6px',
+                        padding: '0.35rem 0.6rem',
+                        fontSize: '0.875rem',
+                        outline: 'none',
+                      }}
                     />
                   </td>
-                  <td>
-                    <button className='btn-action' onClick={() => onModifyCupo(clase.id)}>
+                  <td style={{ padding: '0.75rem 1rem' }}>
+                    <button
+                      onClick={() => onModifyCupo(clase.id)}
+                      style={{
+                        background: '#c0435a',   // botón vino igual al de Modificar precio
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '0.4rem 1rem',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        fontWeight: '500',
+                      }}
+                    >
                       Modificar
                     </button>
                   </td>
