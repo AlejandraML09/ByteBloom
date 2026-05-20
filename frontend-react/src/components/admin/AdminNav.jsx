@@ -104,17 +104,6 @@ export function AdminNav({ user, onLogout }) {
 
         <div className='user-sidebar__divider' />
 
-        <nav className='user-sidebar__nav'>
-          <ul>
-            <li className='user-sidebar__item'>
-              <span className='user-sidebar__item-icon'>👤</span>
-              <span>Mis datos</span>
-            </li>
-          </ul>
-        </nav>
-
-        <div className='user-sidebar__divider' />
-
         <button
           className='user-sidebar__logout'
           onClick={() => { setSidebarOpen(false); onLogout() }}
