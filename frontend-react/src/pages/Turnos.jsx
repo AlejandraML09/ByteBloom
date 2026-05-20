@@ -291,15 +291,15 @@ export default function Turnos() {
       const cantidad = parseInt(params.get('cantidad')) || 1
       const pending = localStorage.getItem('pending_shifts')
       if (pending) {
-        try {
-          const { zonaId, turnos, medioPago, usuarioId } = JSON.parse(pending)
-          await reservarTurnos({ zonaId, turnos, medioPago, usuarioId })
-          localStorage.removeItem('pending_shifts')
-          refreshBookedIds()
-        } catch (err) {
-          console.error('Error al reservar tras pago:', err)
-        }
-      }
+  localStorage.removeItem('pending_shifts')  // ← borrar ANTES
+  try {
+    const { zonaId, turnos, medioPago, usuarioId } = JSON.parse(pending)
+    await reservarTurnos({ zonaId, turnos, medioPago, usuarioId })
+    refreshBookedIds()
+  } catch (err) {
+    console.error('Error al reservar tras pago:', err)
+  }
+}
       showToast(`✓ ${cantidad} turno${cantidad > 1 ? 's' : ''} confirmado${cantidad > 1 ? 's' : ''}`)
     }
     if (status === 'failure') showToast('✗ El pago fue rechazado. Intentá de nuevo.')

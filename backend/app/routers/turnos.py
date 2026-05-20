@@ -72,6 +72,7 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
     """
     Books one or more shifts. Looks up clase_programada by fecha/hora/zona_id.
     """
+    print(f"Data recibida: zona_id={data.zona_id}, medio_pago={data.medio_pago}, turnos={data.turnos}")  # ← acá
     zona = db.query(models.Zona).filter(models.Zona.id == data.zona_id).first()
     if not zona:
         raise HTTPException(status_code=404, detail="Zona no encontrada.")
