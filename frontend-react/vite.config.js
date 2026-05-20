@@ -9,6 +9,6 @@ export default defineConfig({
     sourcemap: true
   },
   server: {
-    allowedHosts: ['overcrowd-clump-disregard.ngrok-free.dev', 'blob-swimsuit-pregnancy.ngrok-free.dev']
+    allowedHosts: ['overcrowd-clump-disregard.ngrok-free.dev', 'blob-swimsuit-pregnancy.ngrok-free.dev', 'sequence-styling-thursday.ngrok-free.dev']
   }
 })
