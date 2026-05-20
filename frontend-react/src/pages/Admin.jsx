@@ -13,8 +13,10 @@ import { PriceTab } from '../components/admin/PriceTab'
 import { EliminarTab } from '../components/admin/EliminarTab'
 import { HORARIOS, PACIENTES, DIST } from '../constants/admin'
 import { fmtDate, fmtLargo } from '../utils/dates'
+import { RegistrarClienteTab } from '../components/admin/RegistrarClienteTab'
 import '../css/admin.css'
 import SecretariosTab from '../components/admin/SecretariosTab'
+
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -41,24 +43,20 @@ const TABS = [
   { id: 'eliminar', label: 'Eliminar por profesional', roles: ['admin'] },
   { id: 'precios', label: 'Modificar precio', roles: ['admin'] },
   { id: 'secretarios', label: 'Secretarios', roles: ['admin'] },
+  { id: 'registrar-paciente', label: 'Registrar cliente', roles: ['secretario'] },
 ]
 
 const TAB_HEADERS = {
-  turnos: { title: 'Turnos del día', desc: 'Consultá y gestioná los turnos de hoy.' },
-  pacientes: { title: 'Pacientes', desc: 'Historial completo de pacientes del sistema.' },
-  cupos: { title: 'Gestionar cupos', desc: 'Ajustá el cupo máximo de cada clase.' },
-  asistencia: { title: 'Asistencia', desc: 'Marcá la presencia de cada paciente.' },
-  crear: { title: 'Crear clase', desc: 'Completá los datos para agregar una nueva clase.' },
-  cancelar: { title: 'Cancelar clase', desc: 'Seleccioná una clase activa para cancelarla.' },
-  eliminar: {
-    title: 'Eliminar por profesional',
-    desc: 'Cancelá todas las clases futuras de un profesional.',
-  },
-  precios: {
-    title: 'Modificar precio',
-    desc: 'Aplicá un nuevo precio a las próximas clases sin inscriptos.',
-  },
+  turnos:      { title: 'Turnos del día',          desc: 'Consultá y gestioná los turnos de hoy.' },
+  pacientes:   { title: 'Pacientes',               desc: 'Historial completo de pacientes del sistema.' },
+  cupos:       { title: 'Gestionar cupos',         desc: 'Ajustá el cupo máximo de cada clase.' },
+  asistencia:  { title: 'Asistencia',              desc: 'Marcá la presencia de cada paciente.' },
+  crear:       { title: 'Crear clase',             desc: 'Completá los datos para agregar una nueva clase.' },
+  cancelar:    { title: 'Cancelar clase',          desc: 'Seleccioná una clase activa para cancelarla.' },
+  eliminar:    { title: 'Eliminar por profesional',desc: 'Cancelá todas las clases futuras de un profesional.' },
+  precios:     { title: 'Modificar precio',        desc: 'Aplicá un nuevo precio a las próximas clases sin inscriptos.' },
   secretarios: { title: 'Secretarios', desc: 'Gestioná los usuarios secretarios del sistema.' },
+  'registrar-paciente': { title: 'Registrar cliente', desc: 'Registrá un nuevo cliente en el sistema.' },
 }
 
 export default function Admin() {
@@ -468,6 +466,9 @@ export default function Admin() {
           />
         )}
         {activeTab === 'secretarios' && <SecretariosTab />}
+        {activeTab === 'registrar-paciente' && (
+          <RegistrarClienteTab onToast={showToast} />
+        )}
       </div>
 
       <div className={`admin-toast${toastVisible ? ' show' : ''}`}>{toastMsg}</div>
