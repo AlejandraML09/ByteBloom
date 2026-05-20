@@ -10,8 +10,16 @@ import { MonthCalendar } from '../components/turnos/MonthCalendar'
 import { SlotGrid } from '../components/turnos/SlotGrid'
 import { PaymentSelector } from '../components/turnos/PaymentSelector'
 import { SummaryPanel } from '../components/turnos/SummaryPanel'
-import { getDisponibilidad, reservarTurnos, getMisTurnos } from '../api/turnos'
+import {
+  getDisponibilidad,
+  reservarTurnos,
+  getMisTurnos,
+  getMiListaEspera,
+  unirseListaEspera,
+  salirListaEspera,
+} from '../api/turnos'
 import { fmtDate, fmtDiaLargo, nextHour } from '../utils/dates'
+import { ZONA_LABELS } from '../constants/turnos'
 import DiscountModal from '../components/turnos/Discountmodal'
 import '../css/turnos.css'
 
@@ -176,6 +184,7 @@ export default function Turnos() {
   const [clasesDelMes, setClasesDelMes] = useState({})
   // Set of clase_programada_id values the logged-in user has already booked (non-cancelled)
   const [bookedClaseIds, setBookedClaseIds] = useState(new Set())
+  const [waitlistClaseIds, setWaitlistClaseIds] = useState(new Set())
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
   const { msg, visible, showToast } = useToast()
@@ -200,8 +209,21 @@ export default function Turnos() {
     }
   }, [])
 
+  const refreshWaitlistIds = useCallback(async () => {
+    const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
+    const usuario = stored ? JSON.parse(stored) : null
+    if (!usuario?.id) return
+    try {
+      const lista = await getMiListaEspera(usuario.id)
+      setWaitlistClaseIds(new Set(lista.map((e) => e.clase_programada_id)))
+    } catch {
+      // silently ignore
+    }
+  }, [])
+
   useEffect(() => {
     refreshBookedIds()
+    refreshWaitlistIds()
   }, [])
 
   const fetchDisponibilidad = useCallback(async (displayDate) => {
@@ -336,6 +358,39 @@ export default function Turnos() {
     }
   }
 
+  async function handleWaitlistToggle(clase) {
+    const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
+    const usuario = stored ? JSON.parse(stored) : null
+    if (!usuario?.id) {
+      showToast('Tenés que iniciar sesión para usar la lista de espera.')
+      return
+    }
+    const zonaNombre = ZONA_LABELS[clase.zona_nombre] ?? clase.zona_nombre
+    const fechaDisplay = fmtDiaLargo(new Date(clase.fecha + 'T00:00:00'))
+    const inWaitlist = waitlistClaseIds.has(clase.id)
+    try {
+      if (inWaitlist) {
+        await salirListaEspera({ claseProgramadaId: clase.id, usuarioId: usuario.id })
+        setWaitlistClaseIds((prev) => {
+          const next = new Set(prev)
+          next.delete(clase.id)
+          return next
+        })
+        showToast(
+          `Fuiste dado de baja de la lista de espera para la clase de ${zonaNombre} el ${fechaDisplay} a las ${clase.hora}.`
+        )
+      } else {
+        await unirseListaEspera({ claseProgramadaId: clase.id, usuarioId: usuario.id })
+        setWaitlistClaseIds((prev) => new Set([...prev, clase.id]))
+        showToast(
+          `Fuiste anotado a la lista de espera para la clase de ${zonaNombre} el ${fechaDisplay} a las ${clase.hora}. Recibirás una notificación si se libera el turno.`
+        )
+      }
+    } catch (err) {
+      showToast(err?.response?.data?.detail || 'No se pudo actualizar la lista de espera.')
+    }
+  }
+
   const discountPct = shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
   const allFilled = zona && shifts.length > 0 && medioPago
   const canAddMore = diaDate && slot && shifts.length < MAX_SHIFTS
@@ -377,6 +432,8 @@ export default function Turnos() {
                 onSlotSelect={setSlot}
                 clases={clasesDelDia}
                 bookedClaseIds={bookedClaseIds}
+                waitlistClaseIds={waitlistClaseIds}
+                onWaitlistToggle={handleWaitlistToggle}
               />
               {canAddMore && (
                 <button className='btn-add-shift' onClick={addShift}>

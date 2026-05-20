@@ -1,5 +1,15 @@
 from fastapi import FastAPI
-from app.routers import usuarios, turnos, pagos, servicios, clases, zonas, auth, abonos
+from app.routers import (
+    usuarios,
+    turnos,
+    pagos,
+    servicios,
+    clases,
+    zonas,
+    auth,
+    abonos,
+    lista_espera,
+)
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -25,3 +35,4 @@ app.include_router(clases.router)
 app.include_router(zonas.router)
 app.include_router(auth.router)
 app.include_router(abonos.router)
+app.include_router(lista_espera.router, prefix="/turnos")

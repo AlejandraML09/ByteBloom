@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import { getMisTurnos, getDisponibilidad } from '../api/turnos'
+import { getMisTurnos, getDisponibilidad, getMiListaEspera, salirListaEspera } from '../api/turnos'
 import { getMisAbonos, renovarAbono, getSesionesAbono, modificarSesionAbono } from '../api/abonos'
 import client from '../api/client'
 import { ZONA_LABELS } from '../constants/turnos'
@@ -596,6 +596,76 @@ function AbonoCard({ abono, onModificar, onRenovarDone }) {
   )
 }
 
+function ListaEsperaSection({ listaEspera, loading, onSalir }) {
+  const [saliendoId, setSaliendoId] = useState(null)
+
+  if (loading) {
+    return (
+      <div className='mr-skeleton'>
+        {[1, 2, 3].map((i) => (
+          <div key={i} className='mr-skeleton-item'>
+            <div className='mr-skeleton-box' style={{ width: 50, height: 50, borderRadius: 14 }} />
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className='mr-skeleton-box' style={{ width: '55%', height: 14 }} />
+              <div className='mr-skeleton-box' style={{ width: '35%', height: 12 }} />
+            </div>
+            <div className='mr-skeleton-box' style={{ width: 72, height: 26, borderRadius: 20 }} />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (listaEspera.length === 0) {
+    return (
+      <div className='mr-empty'>
+        <div className='mr-empty-icon'>
+          <ClockIcon size={48} />
+        </div>
+        <h3>No estás en ninguna lista de espera</h3>
+        <p>Cuando una clase esté llena, podés anotarte desde la página de turnos.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className='mr-list'>
+      {listaEspera.map((entrada) => (
+        <div key={entrada.id} className='mr-item'>
+          <div className='mr-item-icon'>
+            <BodyIcon zona={entrada.zona_nombre} />
+          </div>
+          <div className='mr-item-info'>
+            <div className='mr-item-fecha'>
+              {fmtLargo(entrada.fecha)} · {entrada.hora}–{nextHour(entrada.hora)}
+            </div>
+            <div className='mr-item-meta'>
+              <span>{ZONA_LABELS[entrada.zona_nombre] ?? entrada.zona_nombre}</span>
+              <span className='mr-item-meta-dot' />
+              <span>Posición #{entrada.prioridad}</span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+            <span className='mr-item-badge mr-item-badge--pendiente'>En espera</span>
+            <button
+              className='ma-action-btn ma-action-btn--outline'
+              style={{ fontSize: 11, padding: '3px 10px' }}
+              disabled={saliendoId === entrada.id}
+              onClick={async () => {
+                setSaliendoId(entrada.id)
+                await onSalir(entrada)
+                setSaliendoId(null)
+              }}
+            >
+              {saliendoId === entrada.id ? 'Saliendo…' : 'Salir de la lista'}
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function MisReservas() {
   const navigate = useNavigate()
   const usuario = getUsuario()
@@ -613,6 +683,11 @@ export default function MisReservas() {
   const [abonosLoaded, setAbonosLoaded] = useState(false)
   const [modificarAbono, setModificarAbono] = useState(null)
   const [toastMsg, setToastMsg] = useState(null)
+
+  // Lista de espera state
+  const [listaEspera, setListaEspera] = useState([])
+  const [loadingEspera, setLoadingEspera] = useState(false)
+  const [esperaLoaded, setEsperaLoaded] = useState(false)
 
   function showAppToast(msg) {
     setToastMsg(msg)
@@ -639,6 +714,19 @@ export default function MisReservas() {
         .finally(() => {
           setLoadingAbonos(false)
           setAbonosLoaded(true)
+        })
+    }
+  }, [section])
+
+  useEffect(() => {
+    if (section === 'espera' && !esperaLoaded && usuario) {
+      setLoadingEspera(true)
+      getMiListaEspera(usuario.id)
+        .then(setListaEspera)
+        .catch(() => setListaEspera([]))
+        .finally(() => {
+          setLoadingEspera(false)
+          setEsperaLoaded(true)
         })
     }
   }, [section])
@@ -692,9 +780,37 @@ export default function MisReservas() {
             <StarIcon size={16} />
             Mis abonos
           </button>
+          <button
+            className={`mr-section-btn${section === 'espera' ? ' active' : ''}`}
+            onClick={() => setSection('espera')}
+          >
+            <ClockIcon size={16} />
+            Lista de espera
+          </button>
         </div>
 
-        {section === 'turnos' ? (
+        {section === 'espera' ? (
+          <ListaEsperaSection
+            listaEspera={listaEspera}
+            loading={loadingEspera}
+            onSalir={async (entrada) => {
+              try {
+                await salirListaEspera({
+                  claseProgramadaId: entrada.clase_programada_id,
+                  usuarioId: usuario.id,
+                })
+                setListaEspera((prev) => prev.filter((e) => e.id !== entrada.id))
+                showAppToast(
+                  `Fuiste dado de baja de la lista de espera para la clase de ${ZONA_LABELS[entrada.zona_nombre] ?? entrada.zona_nombre} el ${fmtLargo(entrada.fecha)} a las ${entrada.hora}.`
+                )
+              } catch (err) {
+                showAppToast(
+                  err?.response?.data?.detail || 'No se pudo salir de la lista de espera.'
+                )
+              }
+            }}
+          />
+        ) : section === 'turnos' ? (
           <>
             {/* Stats */}
             <div className='mr-stats'>

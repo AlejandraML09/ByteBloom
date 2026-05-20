@@ -6,6 +6,8 @@ export function SlotGrid({
   onSlotSelect,
   clases,
   bookedClaseIds = new Set(),
+  waitlistClaseIds = new Set(),
+  onWaitlistToggle = null,
 }) {
   if (!selectedDay) {
     return (
@@ -51,43 +53,63 @@ export function SlotGrid({
         const isFull = clase.cupo_disponible <= 0
         const isBooked = bookedClaseIds.has(clase.id)
         const isSelected = selectedSlot === clase.hora
+        const inWaitlist = waitlistClaseIds.has(clase.id)
         const disabled = isFull || isBooked
         const taken = clase.cupo_maximo - clase.cupo_disponible
         const dots = Math.min(clase.cupo_maximo, MAX_DOTS)
         const takenDots = Math.round((taken / clase.cupo_maximo) * dots)
 
         return (
-          <button
-            key={clase.id}
-            className={`slot-btn${isFull ? ' full' : ''}${isBooked ? ' booked' : ''}${isSelected ? ' selected' : ''}`}
-            disabled={disabled}
-            onClick={() => onSlotSelect(clase.hora)}
-          >
-            <span className='slot-time'>{clase.hora}</span>
-            <div className='slot-dots'>
-              {Array.from({ length: dots }, (_, i) => (
-                <div key={i} className={`slot-dot${i < takenDots ? ' taken' : ''}`} />
-              ))}
-            </div>
-            <div
-              className='slot-cupos'
-              style={{
-                color: isBooked
-                  ? 'var(--primary)'
-                  : isFull
-                    ? 'var(--text-muted)'
-                    : clase.cupo_disponible <= 2
-                      ? 'var(--danger)'
-                      : 'var(--primary-dark)',
-              }}
+          <div key={clase.id} className='slot-item'>
+            <button
+              className={`slot-btn${isFull ? ' full' : ''}${isBooked ? ' booked' : ''}${isSelected ? ' selected' : ''}${inWaitlist ? ' in-waitlist' : ''}`}
+              disabled={disabled}
+              onClick={() => onSlotSelect(clase.hora)}
             >
-              {isBooked
-                ? 'Ya reservado'
-                : isFull
-                  ? 'Sin cupos'
-                  : `${clase.cupo_disponible} lugar${clase.cupo_disponible === 1 ? '' : 'es'}`}
-            </div>
-          </button>
+              <span className='slot-time'>{clase.hora}</span>
+              <div className='slot-dots'>
+                {Array.from({ length: dots }, (_, i) => (
+                  <div key={i} className={`slot-dot${i < takenDots ? ' taken' : ''}`} />
+                ))}
+              </div>
+              <div
+                className='slot-cupos'
+                style={{
+                  color: isBooked
+                    ? 'var(--primary)'
+                    : isFull
+                      ? inWaitlist
+                        ? 'var(--warning, #b45309)'
+                        : 'var(--text-muted)'
+                      : clase.cupo_disponible <= 2
+                        ? 'var(--danger)'
+                        : 'var(--primary-dark)',
+                }}
+              >
+                {isBooked
+                  ? 'Ya reservado'
+                  : isFull
+                    ? inWaitlist
+                      ? 'En lista de espera'
+                      : 'Sin cupos'
+                    : `${clase.cupo_disponible} lugar${clase.cupo_disponible === 1 ? '' : 'es'}`}
+              </div>
+            </button>
+
+            {isFull && onWaitlistToggle && (
+              <div className='waitlist-overlay'>
+                <button
+                  className={`waitlist-btn${inWaitlist ? ' waitlist-btn--leave' : ' waitlist-btn--join'}`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onWaitlistToggle(clase)
+                  }}
+                >
+                  {inWaitlist ? 'Salir de la lista de espera' : 'Anotarse a la lista de espera'}
+                </button>
+              </div>
+            )}
+          </div>
         )
       })}
     </div>
