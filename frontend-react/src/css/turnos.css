@@ -645,12 +645,13 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--primary-mid);
+  background: var(--primary-tint);
 }
 
 .slot-dot.taken {
-  background: var(--primary);
+  background: var(--danger-dark, #8b1c1c);
 }
+
 .slot-btn.full .slot-dot.taken {
   background: var(--text-muted);
 }

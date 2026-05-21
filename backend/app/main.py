@@ -19,10 +19,10 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5174",
         "http://localhost:5173",
-        "https://buckle-muster-floss.ngrok-free.dev",
         "https://endereza2.vercel.app"
     ],
     allow_credentials=True,
+    allow_origin_regex=r"^https://[a-zA-Z0-9-]+\.ngrok-free\.dev$",
     allow_methods=["*"],
     allow_headers=["*"],
 )

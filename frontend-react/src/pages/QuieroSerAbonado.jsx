@@ -8,6 +8,7 @@ import { MonthCalendar } from '../components/turnos/MonthCalendar'
 import { SlotGrid } from '../components/turnos/SlotGrid'
 import { PaymentSelector } from '../components/turnos/PaymentSelector'
 import { getDisponibilidad } from '../api/turnos'
+import { getMisAbonos } from '../api/abonos'
 import client from '../api/client'
 import { fmtDate, fmtDiaLargo, nextHour, getISOWeekKey, MESES_ES } from '../utils/dates'
 import { ZONA_LABELS } from '../constants/turnos'
@@ -142,6 +143,8 @@ export default function QuieroSerAbonado() {
   const [shifts, setShifts] = useState([])
   const [medioPago, setMedioPago] = useState(null)
   const [clasesDelMes, setClasesDelMes] = useState({})
+  const [activeAbonoZonaIds, setActiveAbonoZonaIds] = useState(new Set())
+  const [blockedZonaName, setBlockedZonaName] = useState(null)
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -154,6 +157,22 @@ export default function QuieroSerAbonado() {
   }, [])
 
   const [isFinalizingPayment, setIsFinalizingPayment] = useState(false)
+
+  useEffect(() => {
+    if (!usuario?.id) return
+    getMisAbonos(usuario.id)
+      .then((data) => {
+        const activeZones = new Set(
+          Array.isArray(data)
+            ? data.filter((abono) => abono.activo).map((abono) => abono.zona_id)
+            : []
+        )
+        setActiveAbonoZonaIds(activeZones)
+      })
+      .catch(() => {
+        setActiveAbonoZonaIds(new Set())
+      })
+  }, [usuario?.id])
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -242,12 +261,30 @@ export default function QuieroSerAbonado() {
   const bookedDays = useMemo(() => new Set(shifts.map((s) => fmtDate(s.diaDate))), [shifts])
 
   function handleZonaSelect(zonaObj) {
+    if (activeAbonoZonaIds.has(zonaObj.id)) {
+      setBlockedZonaName(ZONA_LABELS[zonaObj.nombre] ?? zonaObj.nombre)
+      showToast('Ya tenés un abono activo en esta zona. Modificálo en Mis Reservas.')
+      return
+    }
+    setBlockedZonaName(null)
     setZona(zonaObj)
     setDiaDate(null)
     setSlot(null)
     setShifts([])
     setMedioPago(null)
   }
+
+  useEffect(() => {
+    if (zona && activeAbonoZonaIds.has(zona.id)) {
+      setBlockedZonaName(ZONA_LABELS[zona.nombre] ?? zona.nombre)
+      showToast('Ya tenés un abono activo en esta zona. Modificálo en Mis Reservas.')
+      setZona(null)
+      setDiaDate(null)
+      setSlot(null)
+      setShifts([])
+      setMedioPago(null)
+    }
+  }, [zona, activeAbonoZonaIds])
 
   function addShift() {
     if (!diaDate || !slot || shifts.length >= SHIFTS_REQUIRED) return
@@ -308,6 +345,10 @@ export default function QuieroSerAbonado() {
         return
       }
 
+      if (activeAbonoZonaIds.has(zona.id)) {
+        showToast('No podés crear otro abono en la misma zona. Modificá tu abono desde Mis Reservas.')
+        return
+      }
       await client.post('/abonos/solicitar', {
         usuario_id: usuario.id,
         zona_id: zona.id,
@@ -378,11 +419,6 @@ export default function QuieroSerAbonado() {
             <ul className='sa-rules-list'>
               <li>
                 <span className='sa-rules-dot' />
-                Elegí exactamente <strong>{SHIFTS_REQUIRED} fechas</strong> en{' '}
-                <strong>{enrollment.monthName}</strong>
-              </li>
-              <li>
-                <span className='sa-rules-dot' />
                 Máximo <strong>1 sesión por semana</strong> del calendario
               </li>
               <li>
@@ -393,44 +429,49 @@ export default function QuieroSerAbonado() {
                 <span className='sa-rules-dot' />
                 La inscripción está abierta del <strong>1 al 10 de cada mes</strong>
               </li>
-              <li>
-                <span className='sa-rules-dot' />
-                El pago se coordina directamente en el centro
-              </li>
             </ul>
           </div>
 
-          <div className={`fade-slide ${zona ? 'fade-slide--visible' : ''}`}>
-            <div className='card'>
-              <div className='card-title'>
-                <span className='step-number'>2</span> Elegí el día en {enrollment.monthName}
-                {loadingSlots && <span className='loading-hint'> · cargando…</span>}
-              </div>
-              <MonthCalendar
-                selectedDay={diaDate}
-                onDaySelect={(d) => {
-                  setDiaDate(d)
-                  setSlot(null)
-                }}
-                today={today}
-                getClasesForDay={getClasesForDay}
-                bookedDays={bookedDays}
-                onMonthChange={fetchDisponibilidad}
-                blockedWeekKeys={blockedWeekKeys}
-                defaultMonthOffset={enrollment.monthOffset}
-                minMonthOffset={enrollment.monthOffset}
-                maxMonthOffset={enrollment.monthOffset}
-              />
-              <div className='card-title' style={{ marginTop: '1.25rem' }}>
-                Elegí el horario
-              </div>
-              <SlotGrid
-                selectedDay={diaDate}
-                selectedSlot={slot}
-                onSlotSelect={setSlot}
-                clases={clasesDelDia}
-                bookedClaseIds={new Set()}
-              />
+          {blockedZonaName ? (
+            <div className='card sa-blocked-zone-card'>
+              <div className='sa-blocked-zone-title'>Zona ya abonada</div>
+              <p>
+                Ya tenés un abono activo en <strong>{blockedZonaName}</strong>. Para cambiar tus fechas,
+                entrá en <strong>Mis Reservas</strong> y modificá el abono correspondiente.
+              </p>
+            </div>
+          ) : (
+            <div className={`fade-slide ${zona ? 'fade-slide--visible' : ''}`}>
+              <div className='card'>
+                <div className='card-title'>
+                  <span className='step-number'>2</span> Elegí el día en {enrollment.monthName}
+                  {loadingSlots && <span className='loading-hint'> · cargando…</span>}
+                </div>
+                <MonthCalendar
+                  selectedDay={diaDate}
+                  onDaySelect={(d) => {
+                    setDiaDate(d)
+                    setSlot(null)
+                  }}
+                  today={today}
+                  getClasesForDay={getClasesForDay}
+                  bookedDays={bookedDays}
+                  onMonthChange={fetchDisponibilidad}
+                  blockedWeekKeys={blockedWeekKeys}
+                  defaultMonthOffset={enrollment.monthOffset}
+                  minMonthOffset={enrollment.monthOffset}
+                  maxMonthOffset={enrollment.monthOffset}
+                />
+                <div className='card-title' style={{ marginTop: '1.25rem' }}>
+                  Elegí el horario
+                </div>
+                <SlotGrid
+                  selectedDay={diaDate}
+                  selectedSlot={slot}
+                  onSlotSelect={setSlot}
+                  clases={clasesDelDia}
+                  bookedClaseIds={new Set()}
+                />
               {canAddMore && (
                 <button className='btn-add-shift' onClick={addShift}>
                   + Agregar sesión ({shifts.length}/{SHIFTS_REQUIRED})
@@ -446,6 +487,7 @@ export default function QuieroSerAbonado() {
               )}
             </div>
           </div>
+        )}
 
           {shifts.length > 0 && (
             <div className='card'>

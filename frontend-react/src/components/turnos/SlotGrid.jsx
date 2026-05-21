@@ -1,3 +1,5 @@
+import { WaitlistToggle } from './WaitList'
+
 const MAX_DOTS = 10
 
 export function SlotGrid({
@@ -97,17 +99,11 @@ export function SlotGrid({
             </button>
 
             {isFull && onWaitlistToggle && (
-              <div className='waitlist-overlay'>
-                <button
-                  className={`waitlist-btn${inWaitlist ? ' waitlist-btn--leave' : ' waitlist-btn--join'}`}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onWaitlistToggle(clase)
-                  }}
-                >
-                  {inWaitlist ? 'Salir de la lista de espera' : 'Anotarse a la lista de espera'}
-                </button>
-              </div>
+              <WaitlistToggle
+                clase={clase}
+                inWaitlist={inWaitlist}
+                onToggle={onWaitlistToggle}
+              />
             )}
           </div>
         )
