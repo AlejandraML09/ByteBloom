@@ -419,11 +419,6 @@ export default function QuieroSerAbonado() {
             <ul className='sa-rules-list'>
               <li>
                 <span className='sa-rules-dot' />
-                Elegí exactamente <strong>{SHIFTS_REQUIRED} fechas</strong> en{' '}
-                <strong>{enrollment.monthName}</strong>
-              </li>
-              <li>
-                <span className='sa-rules-dot' />
                 Máximo <strong>1 sesión por semana</strong> del calendario
               </li>
               <li>
@@ -433,10 +428,6 @@ export default function QuieroSerAbonado() {
               <li>
                 <span className='sa-rules-dot' />
                 La inscripción está abierta del <strong>1 al 10 de cada mes</strong>
-              </li>
-              <li>
-                <span className='sa-rules-dot' />
-                El pago se coordina directamente en el centro
               </li>
             </ul>
           </div>
