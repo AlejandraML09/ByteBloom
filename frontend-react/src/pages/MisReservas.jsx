@@ -237,7 +237,6 @@ function AbonoPagoRow({ pago }) {
       </span>
       <span className='ma-pago-monto'>{fmt(pago.monto)}</span>
       {pago.medio_pago && <span className='ma-pago-medio'>{pago.medio_pago}</span>}
-      <span className={`ma-pago-badge ma-pago-badge--${cfg.css}`}>{cfg.label}</span>
     </div>
   )
 }
@@ -449,7 +448,8 @@ function AbonoCard({ abono, onModificar, onRenovarDone }) {
   const [expanded, setExpanded] = useState(false)
   const [renovando, setRenovando] = useState(null) // null | 'confirm' | 'loading'
   const [renovarMedio, setRenovarMedio] = useState(null)
-  const cfg = ESTADO_ABONO_CONFIG[abono.estado] ?? { label: abono.estado, css: 'activo' }
+  const estadoKey = abono.estado ?? (abono.activo ? 'activo' : 'vencido')
+  const cfg = ESTADO_ABONO_CONFIG[estadoKey] ?? { label: estadoKey, css: abono.activo ? 'activo' : 'vencido' }
   const pagosVisibles = expanded ? abono.pagos : abono.pagos.slice(0, 3)
   const nextMonthName = getNextMonthName()
 
@@ -668,7 +668,7 @@ function ListaEsperaSection({ listaEspera, loading, onSalir }) {
 
 export default function MisReservas() {
   const navigate = useNavigate()
-  const usuario = getUsuario()
+  const usuario = useMemo(() => getUsuario(), [])
 
   const [section, setSection] = useState('turnos')
 
@@ -680,7 +680,6 @@ export default function MisReservas() {
   // Abonos state
   const [abonos, setAbonos] = useState([])
   const [loadingAbonos, setLoadingAbonos] = useState(false)
-  const [abonosLoaded, setAbonosLoaded] = useState(false)
   const [modificarAbono, setModificarAbono] = useState(null)
   const [toastMsg, setToastMsg] = useState(null)
 
@@ -705,18 +704,25 @@ export default function MisReservas() {
       .finally(() => setLoading(false))
   }, [])
 
-  useEffect(() => {
-    if (section === 'abonos' && !abonosLoaded && usuario) {
-      setLoadingAbonos(true)
-      getMisAbonos(usuario.id)
-        .then(setAbonos)
-        .catch(() => setAbonos([]))
-        .finally(() => {
-          setLoadingAbonos(false)
-          setAbonosLoaded(true)
-        })
+  const loadAbonos = useCallback(async () => {
+    const usuarioId = usuario?.id
+    if (!usuarioId) return
+    setLoadingAbonos(true)
+    try {
+      const data = await getMisAbonos(usuarioId)
+      setAbonos(Array.isArray(data) ? data : [])
+    } catch {
+      setAbonos([])
+    } finally {
+      setLoadingAbonos(false)
     }
-  }, [section])
+  }, [usuario?.id])
+
+  useEffect(() => {
+    if (section === 'abonos') {
+      loadAbonos()
+    }
+  }, [section, loadAbonos])
 
   useEffect(() => {
     if (section === 'espera' && !esperaLoaded && usuario) {
@@ -996,11 +1002,7 @@ export default function MisReservas() {
                     onRenovarDone={(ok, err) => {
                       showAppToast(err || ok)
                       if (!err) {
-                        setAbonosLoaded(false)
-                        getMisAbonos(usuario.id)
-                          .then(setAbonos)
-                          .catch(() => {})
-                          .finally(() => setAbonosLoaded(true))
+                        loadAbonos()
                       }
                     }}
                   />
@@ -1020,11 +1022,7 @@ export default function MisReservas() {
           onSuccess={() => {
             setModificarAbono(null)
             showAppToast('Sesión modificada correctamente.')
-            setAbonosLoaded(false)
-            getMisAbonos(usuario.id)
-              .then(setAbonos)
-              .catch(() => {})
-              .finally(() => setAbonosLoaded(true))
+            loadAbonos()
           }}
         />
       )}
