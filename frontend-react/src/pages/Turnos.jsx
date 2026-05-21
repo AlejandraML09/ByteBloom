@@ -264,7 +264,7 @@ export default function Turnos() {
     }
   }, [])
 
- useEffect(() => {
+useEffect(() => {
   const run = async () => {
     const params = new URLSearchParams(window.location.search)
     const status = params.get('status')
@@ -272,15 +272,35 @@ export default function Turnos() {
       const cantidad = parseInt(params.get('cantidad')) || 1
       const pending = localStorage.getItem('pending_shifts')
       if (pending) {
-  localStorage.removeItem('pending_shifts')  // ← borrar ANTES
-  try {
-    const { zonaId, turnos, medioPago, usuarioId } = JSON.parse(pending)
-    await reservarTurnos({ zonaId, turnos, medioPago, usuarioId })
-    refreshBookedIds()
-  } catch (err) {
-    console.error('Error al reservar tras pago:', err)
-  }
-}
+        localStorage.removeItem('pending_shifts')
+        try {
+          const parsed = JSON.parse(pending)
+          const usuarioId = parsed.usuarioId
+          const medioPago = parsed.medioPago
+          // Support either single zona (legacy) or grouped zonas
+          if (parsed.groups) {
+            // parsed.groups is an object keyed by zonaId
+            for (const gid of Object.keys(parsed.groups)) {
+              const group = parsed.groups[gid]
+              try {
+                await reservarTurnos({ zonaId: group.zona.id, turnos: group.turnos, medioPago, usuarioId })
+              } catch (err) {
+                console.error('Error al reservar tras pago (grupo):', err)
+              }
+            }
+          } else {
+            const { zonaId, turnos } = parsed
+            try {
+              await reservarTurnos({ zonaId, turnos, medioPago, usuarioId })
+            } catch (err) {
+              console.error('Error al reservar tras pago:', err)
+            }
+          }
+          refreshBookedIds()
+        } catch (err) {
+          console.error('Error al procesar pending_shifts:', err)
+        }
+      }
       showToast(`✓ ${cantidad} turno${cantidad > 1 ? 's' : ''} confirmado${cantidad > 1 ? 's' : ''}`)
     }
     if (status === 'failure') showToast('✗ El pago fue rechazado. Intentá de nuevo.')
@@ -350,29 +370,28 @@ export default function Turnos() {
 
       const zonaIds = Object.keys(shiftsByZona).filter(Boolean)
 
-      // MercadoPago/online payments only supported when all shifts belong to a single zona
-      if (['mercadopago', 'credito', 'debito'].includes(medioPago) && zonaIds.length > 1) {
-        showToast('Pago online no soportado para turnos en distintas zonas. Seleccioná otro medio o reserva por zona.')
-        return
-      }
-
       if (['mercadopago', 'credito', 'debito'].includes(medioPago)) {
-        // single zona guaranteed here
-        const targetZona = shiftsByZona[zonaIds[0]]?.zona ?? zona
+        // Support online payment even when shifts span multiple zonas.
+        // Build aggregated price and title from all selected shifts/zones.
+        const zonaEntries = Object.values(shiftsByZona)
+        const totalPrecio = zonaEntries.reduce((sum, g) => sum + (g.zona?.precio ?? 0) * g.turnos.length, 0)
+        const titulo = zonaEntries.length === 1 ? `Clase ${zonaEntries[0].zona?.nombre ?? ''}` : `Turnos varias zonas (${zonaEntries.map((g) => g.zona?.nombre).filter(Boolean).join(', ')})`
+        const servicio_id = zonaIds[0] ?? 1
+
         const { data } = await client.post('/api/crear-preferencia', null, {
           params: {
-            servicio_id: targetZona?.id ?? 1,
-            precio: targetZona?.precio ?? 0,
-            titulo: `Clase ${targetZona?.nombre ?? ''}`,
+            servicio_id,
+            precio: totalPrecio,
+            titulo,
             cantidad: shifts.length,
           },
         })
         if (data?.init_point) {
           const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
           const usuarioId = stored ? JSON.parse(stored)?.id : null
+          // Save grouped shifts so post-payment handler can reserve per zona
           localStorage.setItem('pending_shifts', JSON.stringify({
-            zonaId: targetZona.id,
-            turnos: shifts.map((s) => ({ fecha: fmtDate(s.diaDate), hora: s.slot })),
+            groups: shiftsByZona,
             medioPago,
             usuarioId,
           }))
