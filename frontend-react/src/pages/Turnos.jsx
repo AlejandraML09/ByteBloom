@@ -308,10 +308,10 @@ export default function Turnos() {
   const bookedDays = useMemo(() => new Set(shifts.map((s) => fmtDate(s.diaDate))), [shifts])
 
   function handleZonaSelect(zonaObj) {
+    // Do not clear previously selected shifts — allow multi-zona selections
     setZona(zonaObj)
     setDiaDate(null)
     setSlot(null)
-    setShifts([])
     setMedioPago(null)
   }
 
@@ -322,7 +322,8 @@ export default function Turnos() {
 
   function addShift() {
     if (!diaDate || !slot || shifts.length >= MAX_SHIFTS) return
-    setShifts((prev) => [...prev, { diaDate, slot }])
+    // preserve the selected zona on the shift so users can pick turns across zonas
+    setShifts((prev) => [...prev, { diaDate, slot, zona }])
     setDiaDate(null)
     setSlot(null)
   }
@@ -339,28 +340,45 @@ export default function Turnos() {
 
     setConfirmando(true)
     try {
+      // If user selected shifts across multiple zonas, group reservations per zona
+      const shiftsByZona = shifts.reduce((acc, s) => {
+        const zid = s.zona?.id
+        if (!acc[zid]) acc[zid] = { zona: s.zona, turnos: [] }
+        acc[zid].turnos.push({ fecha: fmtDate(s.diaDate), hora: s.slot })
+        return acc
+      }, {})
+
+      const zonaIds = Object.keys(shiftsByZona).filter(Boolean)
+
+      // MercadoPago/online payments only supported when all shifts belong to a single zona
+      if (['mercadopago', 'credito', 'debito'].includes(medioPago) && zonaIds.length > 1) {
+        showToast('Pago online no soportado para turnos en distintas zonas. Seleccioná otro medio o reserva por zona.')
+        return
+      }
+
       if (['mercadopago', 'credito', 'debito'].includes(medioPago)) {
+        // single zona guaranteed here
+        const targetZona = shiftsByZona[zonaIds[0]]?.zona ?? zona
         const { data } = await client.post('/api/crear-preferencia', null, {
-          params:
-            {
-              servicio_id: zona?.id ?? 1,
-              precio: zona?.precio ?? 0,
-              titulo: `Clase ${zona?.nombre ?? ''}`,
-              cantidad: shifts.length,
-            },
+          params: {
+            servicio_id: targetZona?.id ?? 1,
+            precio: targetZona?.precio ?? 0,
+            titulo: `Clase ${targetZona?.nombre ?? ''}`,
+            cantidad: shifts.length,
+          },
         })
         if (data?.init_point) {
-  const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
-  const usuarioId = stored ? JSON.parse(stored)?.id : null
-  localStorage.setItem('pending_shifts', JSON.stringify({
-    zonaId: zona.id,
-    turnos: shifts.map((s) => ({ fecha: fmtDate(s.diaDate), hora: s.slot })),
-    medioPago,
-    usuarioId,
-  }))
-  window.location.href = data.init_point
-  return
-}
+          const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
+          const usuarioId = stored ? JSON.parse(stored)?.id : null
+          localStorage.setItem('pending_shifts', JSON.stringify({
+            zonaId: targetZona.id,
+            turnos: shifts.map((s) => ({ fecha: fmtDate(s.diaDate), hora: s.slot })),
+            medioPago,
+            usuarioId,
+          }))
+          window.location.href = data.init_point
+          return
+        }
         showToast('No se pudo obtener el link de pago.')
         return
       }
@@ -368,12 +386,19 @@ export default function Turnos() {
       const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
       const usuarioId = stored ? JSON.parse(stored)?.id : null
 
-      await reservarTurnos({
-        zonaId: zona.id,
-        turnos: shifts.map((s) => ({ fecha: fmtDate(s.diaDate), hora: s.slot })),
-        medioPago,
-        usuarioId,
-      })
+      // Reserve per zona sequentially
+      let totalReserved = 0
+      for (const zid of zonaIds) {
+        const group = shiftsByZona[zid]
+        if (!group) continue
+        await reservarTurnos({
+          zonaId: group.zona.id,
+          turnos: group.turnos,
+          medioPago,
+          usuarioId,
+        })
+        totalReserved += group.turnos.length
+      }
 
       // Refresh availability for all affected months
       const affectedMonths = [...new Set(shifts.map((s) => toMes(s.diaDate)))]
@@ -475,7 +500,7 @@ export default function Turnos() {
                     <div className='shift-row-info'>
                       <span className='shift-num'>Turno {i + 1}</span>
                       <span className='shift-detail'>
-                        {fmtDiaLargo(s.diaDate)} · {s.slot} – {nextHour(s.slot)}
+                        {ZONA_LABELS[s.zona?.nombre] ?? s.zona?.nombre ?? ''} · {fmtDiaLargo(s.diaDate)} · {s.slot} – {nextHour(s.slot)}
                       </span>
                     </div>
                     <button className='shift-remove' onClick={() => removeShift(i)}>
