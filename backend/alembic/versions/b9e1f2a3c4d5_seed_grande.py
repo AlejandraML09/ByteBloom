@@ -33,7 +33,7 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 # bcrypt de 'prueba' (cost 12)
-PWD = "$2b$12$eOCwAuYvcpSqOtCBagSEpONeHBBsZhTRolJXEK6MUdTxnAFxq1f7e"
+PWD = "$2b$12$GSJXo3ZqON3BXRIOPUZL2ub5AsWlb6yjPzRz8m/bsfxATD.YoNQAW"
 
 START = date(2026, 5, 21)
 END   = date(2026, 7, 10)

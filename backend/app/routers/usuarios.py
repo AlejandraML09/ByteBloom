@@ -144,7 +144,7 @@ def crear_secretario(data: CrearSecretarioRequest, db: Session = Depends(get_db)
     db.refresh(nuevo_secretario)
 
     # ✅ ENVIAR EMAIL (reutilizando enviar_mail)
-    enlace = f"{FRONTEND_URL}restablecer-password?token={token}"
+    enlace = f"{FRONTEND_URL}/restablecer-password?token={token}"
 
     try:
         enviar_mail(
@@ -364,7 +364,7 @@ def registrar_cliente_secretario(data: RegistrarClienteRequest, db: Session = De
     nuevo.reset_token_expira = datetime.now(timezone.utc) + timedelta(hours=24)
     db.commit()
 
-    enlace = f"{FRONTEND_URL}restablecer-password?token={token}"
+    enlace = f"{FRONTEND_URL}/restablecer-password?token={token}"
     print(f"Enviando mail a: {email_lower}")
     enviar_mail_usuario(
         destinatario=email_lower,
