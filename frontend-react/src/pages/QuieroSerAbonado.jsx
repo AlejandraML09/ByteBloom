@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
@@ -153,6 +153,57 @@ export default function QuieroSerAbonado() {
     return d
   }, [])
 
+  const [isFinalizingPayment, setIsFinalizingPayment] = useState(false)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const status = params.get('status')
+    if (!status) return
+
+    const pendingRaw = sessionStorage.getItem('pending_abono')
+    const pendingAbono = pendingRaw ? JSON.parse(pendingRaw) : null
+
+    const clearSearch = () => {
+      const url = window.location.pathname
+      window.history.replaceState({}, '', url)
+    }
+
+    if (status === 'approved') {
+      if (pendingAbono) {
+        setIsFinalizingPayment(true)
+        client
+          .post('/abonos/solicitar', pendingAbono)
+          .then(() => {
+            sessionStorage.removeItem('pending_abono')
+            setSuccess(true)
+          })
+          .catch((err) => {
+            showToast(err?.response?.data?.detail || 'No se pudo completar el abono luego del pago.')
+          })
+          .finally(() => {
+            setIsFinalizingPayment(false)
+            clearSearch()
+          })
+      } else {
+        showToast('No se encontró el abono pendiente. Intentá nuevamente.')
+        clearSearch()
+      }
+      return
+    }
+
+    if (status === 'failure') {
+      sessionStorage.removeItem('pending_abono')
+      showToast('El pago fue rechazado. Intentá de nuevo.')
+      clearSearch()
+      return
+    }
+
+    if (status === 'pending') {
+      showToast('Tu pago está pendiente de confirmación.')
+      clearSearch()
+    }
+  }, [])
+
   const fetchDisponibilidad = useCallback(async (displayDate) => {
     const mes = toMes(displayDate)
     setLoadingSlots(true)
@@ -230,12 +281,23 @@ export default function QuieroSerAbonado() {
     try {
       // Mismo patrón que Turnos: MP/crédito/débito → redirigir a pasarela
       if (['mercadopago', 'credito', 'debito'].includes(medioPago)) {
+        const payload = {
+          usuario_id: usuario.id,
+          zona_id: zona.id,
+          turnos: shifts.map((s) => ({ fecha: fmtDate(s.diaDate), hora: s.slot })),
+          medio_pago: MEDIO_PAGO_DB[medioPago] ?? medioPago,
+        }
+        sessionStorage.setItem('pending_abono', JSON.stringify(payload))
+
         const { data } = await client.post('/api/crear-preferencia', null, {
           params: {
             servicio_id: zona?.id ?? 1,
             precio: zona?.precio ?? 0,
             titulo: `Abono ${zona?.nombre ?? ''}`,
             cantidad: 1,
+            success_path: '/quiero-ser-abonado?status=approved',
+            failure_path: '/quiero-ser-abonado?status=failure',
+            pending_path: '/quiero-ser-abonado?status=pending',
           },
         })
         if (data?.init_point) {
