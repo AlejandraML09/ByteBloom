@@ -132,12 +132,6 @@ class SolicitudAbonoRequest(BaseModel):
 def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
     """Crea un abono para el usuario en la zona indicada y reserva las sesiones seleccionadas."""
 
-    if len(data.turnos) != 4:
-        raise HTTPException(
-            status_code=400,
-            detail="Un abono requiere exactamente 4 sesiones, una por semana.",
-        )
-
     # Validar que cada turno pertenece a una semana distinta
     semanas = []
     for item in data.turnos:
