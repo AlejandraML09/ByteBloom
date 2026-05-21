@@ -183,6 +183,11 @@ export default function QuieroSerAbonado() {
     today,
   ])
 
+  const monthlyPrice = useMemo(() => {
+    if (!zona || !zona.precio) return 0
+    return zona.precio * requiredShifts
+  }, [zona, requiredShifts])
+
   const [isFinalizingPayment, setIsFinalizingPayment] = useState(false)
 
   useEffect(() => {
@@ -356,7 +361,7 @@ export default function QuieroSerAbonado() {
         const { data } = await client.post('/api/crear-preferencia', null, {
           params: {
             servicio_id: zona?.id ?? 1,
-            precio: zona?.precio ?? 0,
+            precio: monthlyPrice ?? 0,
             titulo: `Abono ${zona?.nombre ?? ''}`,
             cantidad: 1,
             success_path: '/quiero-ser-abonado?status=approved',
@@ -450,7 +455,7 @@ export default function QuieroSerAbonado() {
               </li>
               <li>
                 <span className='sa-rules-dot' />
-                Cuota mensual: <strong>{zona ? fmt(zona.precio) : '—'}/mes</strong>
+                Cuota mensual: <strong>{zona ? fmt(monthlyPrice) : '—'}/mes</strong>
               </li>
               <li>
                 <span className='sa-rules-dot' />
@@ -584,7 +589,7 @@ export default function QuieroSerAbonado() {
                 </div>
                 <div className='sa-confirm-row'>
                   <span>Cuota mensual</span>
-                  <strong>{zona ? fmt(zona.precio) : '—'}/mes</strong>
+                  <strong>{zona ? fmt(monthlyPrice) : '—'}/mes</strong>
                 </div>
                 <div className='sa-confirm-row'>
                   <span>Medio de pago</span>
