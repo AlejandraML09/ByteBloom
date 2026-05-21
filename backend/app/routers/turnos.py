@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import cast, String as SAString
 from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel
 from typing import Optional
+from datetime import date as date_type
 from app.database import SessionLocal
 from app import models
 
@@ -20,7 +20,7 @@ def get_db():
 
 class TurnoItem(BaseModel):
     fecha: str  # "YYYY-MM-DD"
-    hora: str  # "HH:MM"
+    hora: str   # "HH:MM"
 
 
 class ReservaRequest(BaseModel):
@@ -36,27 +36,39 @@ class ReservaRequest(BaseModel):
 @router.get("/disponibilidad")
 def get_disponibilidad(mes: str, db: Session = Depends(get_db)):
     """
-    Returns scheduled classes for the given month with availability.
+    Devuelve las clases programadas del mes con disponibilidad.
     mes: "YYYY-MM"
     """
+    try:
+        anio, month = mes.split("-")
+        anio = int(anio)
+        month = int(month)
+    except (ValueError, AttributeError):
+        raise HTTPException(
+            status_code=400, detail="El parámetro 'mes' debe tener formato YYYY-MM."
+        )
+
     rows = (
         db.query(models.ClaseProgramada, models.Clase, models.Zona)
         .join(models.Clase, models.ClaseProgramada.clase_id == models.Clase.id)
         .join(models.Zona, models.Clase.zona_id == models.Zona.id)
         .filter(
-            cast(models.ClaseProgramada.fecha, SAString).startswith(mes),
+            models.ClaseProgramada.fecha >= date_type(anio, month, 1),
+            models.ClaseProgramada.fecha
+            < date_type(anio + (month // 12), (month % 12) + 1, 1),
             models.ClaseProgramada.activo == True,
             models.Clase.activo == True,
         )
         .order_by(models.ClaseProgramada.fecha, models.ClaseProgramada.hora)
         .all()
     )
+
     return [
         {
             "id": cp.id,
             "clase_id": cp.clase_id,
             "fecha": str(cp.fecha),
-            "hora": str(cp.hora)[:5],  # TIME gives "HH:MM:SS", truncate to "HH:MM"
+            "hora": str(cp.hora)[:5],
             "cupo_disponible": cp.cupo_disponible,
             "cupo_maximo": c.cupo_maximo,
             "zona_id": z.id,
@@ -70,9 +82,9 @@ def get_disponibilidad(mes: str, db: Session = Depends(get_db)):
 @router.post("/reservar")
 def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
     """
-    Books one or more shifts. Looks up clase_programada by fecha/hora/zona_id.
+    Reserva uno o más turnos. Busca la clase_programada por fecha/hora/zona_id.
+    No vincula a abono — para reservas con abono usar /abonos/solicitar.
     """
-    print(f"Data recibida: zona_id={data.zona_id}, medio_pago={data.medio_pago}, turnos={data.turnos}")  # ← acá
     zona = db.query(models.Zona).filter(models.Zona.id == data.zona_id).first()
     if not zona:
         raise HTTPException(status_code=404, detail="Zona no encontrada.")
@@ -91,14 +103,22 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
             detail=f"Medio de pago '{data.medio_pago}' no disponible.",
         )
 
-    # Validate all slots before inserting anything
+    # Validar todos los slots antes de insertar nada
     clase_programadas = []
     for item in data.turnos:
+        try:
+            fecha_obj = date_type.fromisoformat(item.fecha)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Fecha inválida: {item.fecha}. Usá formato YYYY-MM-DD.",
+            )
+
         cp = (
             db.query(models.ClaseProgramada)
             .join(models.Clase, models.ClaseProgramada.clase_id == models.Clase.id)
             .filter(
-                models.ClaseProgramada.fecha == item.fecha,
+                models.ClaseProgramada.fecha == fecha_obj,
                 models.ClaseProgramada.hora == item.hora,
                 models.Clase.zona_id == data.zona_id,
                 models.ClaseProgramada.activo == True,
@@ -116,7 +136,6 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
                 status_code=400,
                 detail=f"Sin cupos disponibles para {item.fecha} a las {item.hora}.",
             )
-        # Check the user doesn't already have an active booking for this slot
         if data.usuario_id is not None:
             existing = (
                 db.query(models.Reserva)
@@ -152,12 +171,13 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
             status_code=400,
             detail="Ya tenés una reserva activa para uno de los horarios seleccionados.",
         )
+
     return {"ok": True, "reservados": len(clase_programadas)}
 
 
 @router.get("/mis-turnos")
 def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
-    """Returns all reservas for a given user, sorted newest first."""
+    """Devuelve todas las reservas del usuario, ordenadas por fecha descendente."""
     rows = (
         db.query(
             models.Reserva,
