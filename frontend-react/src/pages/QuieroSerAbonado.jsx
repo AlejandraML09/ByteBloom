@@ -15,7 +15,8 @@ import { ZONA_LABELS } from '../constants/turnos'
 import '../css/turnos.css'
 import '../css/abonado.css'
 
-const SHIFTS_REQUIRED = 4
+// Nota: el número de sesiones requeridas ya no es fijo.
+// Se calcula dinámicamente según semanas calendario del mes objetivo.
 
 const MEDIO_PAGO_DB = {
   efectivo: 'Efectivo',
@@ -53,6 +54,27 @@ function computeEnrollment() {
   const monthOffset = isOpen ? 0 : 1
   const monthName = `${MESES_ES[targetDate.getMonth()].toLowerCase()} ${targetDate.getFullYear()}`
   return { isOpen, targetDate, monthOffset, monthName }
+}
+
+function computeMaxShiftsForEnrollment(enrollment, today) {
+  if (!enrollment || !enrollment.targetDate) return 0
+  const targetStart = new Date(enrollment.targetDate.getFullYear(), enrollment.targetDate.getMonth(), 1)
+  // Si la inscripción está cerrada (estás reservando antes de que inicie el mes),
+  // se cuenta desde el 1 del mes objetivo. Si está abierta (1-10), se cuenta
+  // desde la fecha actual (día de la reserva) dentro de ese mes.
+  const start = enrollment.isOpen ? (today > targetStart ? today : targetStart) : targetStart
+  const end = new Date(targetStart.getFullYear(), targetStart.getMonth() + 1, 0)
+
+  const weeks = new Set()
+  const d = new Date(start)
+  // Asegurarnos que iteramos sólo dentro del mes objetivo
+  while (d <= end) {
+    if (d.getFullYear() === targetStart.getFullYear() && d.getMonth() === targetStart.getMonth()) {
+      weeks.add(getISOWeekKey(d))
+    }
+    d.setDate(d.getDate() + 1)
+  }
+  return weeks.size
 }
 
 function StarIcon({ size = 18 }) {
@@ -155,6 +177,16 @@ export default function QuieroSerAbonado() {
     d.setHours(0, 0, 0, 0)
     return d
   }, [])
+
+  const requiredShifts = useMemo(() => computeMaxShiftsForEnrollment(enrollment, today), [
+    enrollment,
+    today,
+  ])
+
+  const monthlyPrice = useMemo(() => {
+    if (!zona || !zona.precio) return 0
+    return zona.precio * requiredShifts
+  }, [zona, requiredShifts])
 
   const [isFinalizingPayment, setIsFinalizingPayment] = useState(false)
 
@@ -287,7 +319,7 @@ export default function QuieroSerAbonado() {
   }, [zona, activeAbonoZonaIds])
 
   function addShift() {
-    if (!diaDate || !slot || shifts.length >= SHIFTS_REQUIRED) return
+    if (!diaDate || !slot || shifts.length >= requiredShifts) return
     if (blockedWeekKeys.has(getISOWeekKey(diaDate))) {
       showToast('Ya elegiste una sesión en esa semana. Elegí otra semana.')
       return
@@ -306,8 +338,8 @@ export default function QuieroSerAbonado() {
       navigate('/login')
       return
     }
-    if (shifts.length < SHIFTS_REQUIRED) {
-      showToast(`Necesitás seleccionar exactamente ${SHIFTS_REQUIRED} sesiones.`)
+    if (shifts.length < requiredShifts) {
+      showToast(`Necesitás seleccionar exactamente ${requiredShifts} sesiones.`)
       return
     }
     if (!medioPago) {
@@ -329,7 +361,7 @@ export default function QuieroSerAbonado() {
         const { data } = await client.post('/api/crear-preferencia', null, {
           params: {
             servicio_id: zona?.id ?? 1,
-            precio: zona?.precio ?? 0,
+            precio: monthlyPrice ?? 0,
             titulo: `Abono ${zona?.nombre ?? ''}`,
             cantidad: 1,
             success_path: '/quiero-ser-abonado?status=approved',
@@ -366,9 +398,9 @@ export default function QuieroSerAbonado() {
   const canAddMore =
     diaDate &&
     slot &&
-    shifts.length < SHIFTS_REQUIRED &&
+    shifts.length < requiredShifts &&
     !blockedWeekKeys.has(getISOWeekKey(diaDate))
-  const allComplete = shifts.length === SHIFTS_REQUIRED && !!medioPago
+  const allComplete = shifts.length === requiredShifts && !!medioPago
 
   if (success) {
     return (
@@ -388,7 +420,7 @@ export default function QuieroSerAbonado() {
           <StarIcon size={14} /> Plan abono
         </div>
         <h1>Quiero ser abonado</h1>
-        <p>Elegí tu zona y las {SHIFTS_REQUIRED} fechas del mes — una por semana</p>
+        <p>Elegí tu zona y las {requiredShifts} fechas del mes — una por semana</p>
       </div>
 
       <div className='main'>
@@ -423,7 +455,7 @@ export default function QuieroSerAbonado() {
               </li>
               <li>
                 <span className='sa-rules-dot' />
-                Cuota mensual: <strong>{zona ? fmt(zona.precio) : '—'}/mes</strong>
+                Cuota mensual: <strong>{zona ? fmt(monthlyPrice) : '—'}/mes</strong>
               </li>
               <li>
                 <span className='sa-rules-dot' />
@@ -474,15 +506,15 @@ export default function QuieroSerAbonado() {
                 />
               {canAddMore && (
                 <button className='btn-add-shift' onClick={addShift}>
-                  + Agregar sesión ({shifts.length}/{SHIFTS_REQUIRED})
+                  + Agregar sesión ({shifts.length}/{requiredShifts})
                 </button>
               )}
-              {diaDate && slot && !canAddMore && shifts.length < SHIFTS_REQUIRED && (
+              {diaDate && slot && !canAddMore && shifts.length < requiredShifts && (
                 <p className='shift-max-msg sa-week-warn'>Ya elegiste una sesión esta semana</p>
               )}
-              {shifts.length >= SHIFTS_REQUIRED && (
+              {shifts.length >= requiredShifts && (
                 <p className='shift-max-msg'>
-                  Completaste las {SHIFTS_REQUIRED} sesiones requeridas
+                  Completaste las {requiredShifts} sesiones requeridas
                 </p>
               )}
             </div>
@@ -496,16 +528,16 @@ export default function QuieroSerAbonado() {
                   Sesiones seleccionadas
                 </div>
                 <span
-                  className={`shifts-count${shifts.length === SHIFTS_REQUIRED ? ' shifts-count--complete' : ''}`}
+                  className={`shifts-count${shifts.length === requiredShifts ? ' shifts-count--complete' : ''}`}
                 >
-                  {shifts.length}/{SHIFTS_REQUIRED}
+                  {shifts.length}/{requiredShifts}
                 </span>
               </div>
-              {shifts.length < SHIFTS_REQUIRED && (
+              {shifts.length < requiredShifts && (
                 <p className='sa-missing-hint'>
-                  Falta{SHIFTS_REQUIRED - shifts.length > 1 ? 'n' : ''}{' '}
-                  {SHIFTS_REQUIRED - shifts.length} sesión
-                  {SHIFTS_REQUIRED - shifts.length > 1 ? 'es' : ''} para completar el abono
+                  Falta{requiredShifts - shifts.length > 1 ? 'n' : ''}{' '}
+                  {requiredShifts - shifts.length} sesión
+                  {requiredShifts - shifts.length > 1 ? 'es' : ''} para completar el abono
                 </p>
               )}
               <div className='shifts-list'>
@@ -528,12 +560,12 @@ export default function QuieroSerAbonado() {
 
           {/* Paso 3: Medio de pago */}
           <div
-            className={`fade-slide ${shifts.length === SHIFTS_REQUIRED ? 'fade-slide--visible' : ''}`}
+            className={`fade-slide ${shifts.length === requiredShifts ? 'fade-slide--visible' : ''}`}
           >
             <PaymentSelector selected={medioPago} onSelect={setMedioPago} />
           </div>
 
-          {shifts.length === SHIFTS_REQUIRED && (
+          {shifts.length === requiredShifts && (
             <div className='sa-confirm-card'>
               <div className='sa-confirm-header'>
                 <span className='step-number'>4</span>
@@ -557,7 +589,7 @@ export default function QuieroSerAbonado() {
                 </div>
                 <div className='sa-confirm-row'>
                   <span>Cuota mensual</span>
-                  <strong>{zona ? fmt(zona.precio) : '—'}/mes</strong>
+                  <strong>{zona ? fmt(monthlyPrice) : '—'}/mes</strong>
                 </div>
                 <div className='sa-confirm-row'>
                   <span>Medio de pago</span>
