@@ -33,7 +33,7 @@ export function CancelarTab({ classes, onCancelar, filterDate, onFilterChange })
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
           <thead>
             <tr>
-              {['Zona', 'Fecha', 'Horario', 'Precio', 'Cupo máx', 'Inscriptos', 'Acción'].map((col) => (
+              {['Zona', 'Fecha', 'Horario', 'Cupo máx', 'Inscriptos', 'Acción'].map((col) => (
                 <th
                   key={col}
                   style={{
@@ -67,7 +67,6 @@ export function CancelarTab({ classes, onCancelar, filterDate, onFilterChange })
                   <td style={{ padding: '0.75rem 1rem' }}>{clase.zona_nombre}</td>
                   <td style={{ padding: '0.75rem 1rem' }}>{clase.fecha}</td>
                   <td style={{ padding: '0.75rem 1rem' }}>{clase.hora}</td>
-                  <td style={{ padding: '0.75rem 1rem' }}>—</td>
                   <td style={{ padding: '0.75rem 1rem' }}>{clase.cupo_maximo}</td>
                   <td style={{ padding: '0.75rem 1rem' }}>{clase.cupo_maximo - clase.cupo_disponible}</td>
                   <td style={{ padding: '0.75rem 1rem' }}>
