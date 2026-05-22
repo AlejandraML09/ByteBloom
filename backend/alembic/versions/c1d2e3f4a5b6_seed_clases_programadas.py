@@ -49,7 +49,7 @@ CLASES = [
     ("emilio.manrique@endereza2.com",  "inferior", 5,  {"09:00"}),
 ]
 
-HORARIOS_NUEVOS = [f"{h:02d}:00" for h in range(9, 18)]
+HORARIOS_NUEVOS = [f"{h:02d}:00" for h in range(8, 20)]
 
 
 def _dates_for(start, end, dias):
@@ -137,7 +137,7 @@ def downgrade():
     WHERE cp.clase_id = c.id
       AND c.profesional_email IN ({prof_emails})
       AND cp.fecha BETWEEN '2026-05-22' AND '2026-06-30'
-      AND cp.hora BETWEEN '09:00'::time AND '17:00'::time
+      AND cp.hora BETWEEN '08:00'::time AND '19:00'::time
       AND cp.hora NOT IN ('07:00'::time, '08:00'::time,
                           '10:00'::time, '12:00'::time,
                           '13:00'::time, '14:00'::time,
