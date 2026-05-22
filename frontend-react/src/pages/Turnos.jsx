@@ -11,14 +11,8 @@ import { MonthCalendar } from '../components/turnos/MonthCalendar'
 import { SlotGrid } from '../components/turnos/SlotGrid'
 import { PaymentSelector } from '../components/turnos/PaymentSelector'
 import { SummaryPanel } from '../components/turnos/SummaryPanel'
-import {
-  getDisponibilidad,
-  reservarTurnos,
-  getMisTurnos,
-  getMiListaEspera,
-  unirseListaEspera,
-  salirListaEspera,
-} from '../api/turnos'
+import { getDisponibilidad, reservarTurnos, getMisTurnos } from '../api/turnos'
+import { useWaitlist } from '../components/turnos/WaitList'
 import { fmtDate, fmtDiaLargo, nextHour } from '../utils/dates'
 import { ZONA_LABELS } from '../constants/turnos'
 import DiscountModal from '../components/turnos/Discountmodal'
@@ -228,10 +222,10 @@ export default function Turnos() {
   const [clasesDelMes, setClasesDelMes] = useState({})
   // Set of clase_programada_id values the logged-in user has already booked (non-cancelled)
   const [bookedClaseIds, setBookedClaseIds] = useState(new Set())
-  const [waitlistClaseIds, setWaitlistClaseIds] = useState(new Set())
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
   const { msg, visible, showToast } = useToast()
+  const { waitlistClaseIds, handleWaitlistToggle } = useWaitlist(showToast)
 
   const today = useMemo(() => {
     const d = new Date()
@@ -253,22 +247,9 @@ export default function Turnos() {
     }
   }, [])
 
-  const refreshWaitlistIds = useCallback(async () => {
-    const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
-    const usuario = stored ? JSON.parse(stored) : null
-    if (!usuario?.id) return
-    try {
-      const lista = await getMiListaEspera(usuario.id)
-      setWaitlistClaseIds(new Set(lista.map((e) => e.clase_programada_id)))
-    } catch {
-      // silently ignore
-    }
-  }, [])
-
   useEffect(() => {
     refreshBookedIds()
-    refreshWaitlistIds()
-  }, [])
+  }, [refreshBookedIds])
 
   const fetchDisponibilidad = useCallback(async (displayDate) => {
     const mes = toMes(displayDate)
@@ -283,7 +264,7 @@ export default function Turnos() {
     }
   }, [])
 
- useEffect(() => {
+useEffect(() => {
   const run = async () => {
     const params = new URLSearchParams(window.location.search)
     const status = params.get('status')
@@ -291,15 +272,35 @@ export default function Turnos() {
       const cantidad = parseInt(params.get('cantidad')) || 1
       const pending = localStorage.getItem('pending_shifts')
       if (pending) {
-  localStorage.removeItem('pending_shifts')  // ← borrar ANTES
-  try {
-    const { zonaId, turnos, medioPago, usuarioId } = JSON.parse(pending)
-    await reservarTurnos({ zonaId, turnos, medioPago, usuarioId })
-    refreshBookedIds()
-  } catch (err) {
-    console.error('Error al reservar tras pago:', err)
-  }
-}
+        localStorage.removeItem('pending_shifts')
+        try {
+          const parsed = JSON.parse(pending)
+          const usuarioId = parsed.usuarioId
+          const medioPago = parsed.medioPago
+          // Support either single zona (legacy) or grouped zonas
+          if (parsed.groups) {
+            // parsed.groups is an object keyed by zonaId
+            for (const gid of Object.keys(parsed.groups)) {
+              const group = parsed.groups[gid]
+              try {
+                await reservarTurnos({ zonaId: group.zona.id, turnos: group.turnos, medioPago, usuarioId })
+              } catch (err) {
+                console.error('Error al reservar tras pago (grupo):', err)
+              }
+            }
+          } else {
+            const { zonaId, turnos } = parsed
+            try {
+              await reservarTurnos({ zonaId, turnos, medioPago, usuarioId })
+            } catch (err) {
+              console.error('Error al reservar tras pago:', err)
+            }
+          }
+          refreshBookedIds()
+        } catch (err) {
+          console.error('Error al procesar pending_shifts:', err)
+        }
+      }
       showToast(`✓ ${cantidad} turno${cantidad > 1 ? 's' : ''} confirmado${cantidad > 1 ? 's' : ''}`)
     }
     if (status === 'failure') showToast('✗ El pago fue rechazado. Intentá de nuevo.')
@@ -327,10 +328,10 @@ export default function Turnos() {
   const bookedDays = useMemo(() => new Set(shifts.map((s) => fmtDate(s.diaDate))), [shifts])
 
   function handleZonaSelect(zonaObj) {
+    // Do not clear previously selected shifts — allow multi-zona selections
     setZona(zonaObj)
     setDiaDate(null)
     setSlot(null)
-    setShifts([])
     setMedioPago(null)
   }
 
@@ -341,7 +342,8 @@ export default function Turnos() {
 
   function addShift() {
     if (!diaDate || !slot || shifts.length >= MAX_SHIFTS) return
-    setShifts((prev) => [...prev, { diaDate, slot }])
+    // preserve the selected zona on the shift so users can pick turns across zonas
+    setShifts((prev) => [...prev, { diaDate, slot, zona }])
     setDiaDate(null)
     setSlot(null)
   }
@@ -358,28 +360,44 @@ export default function Turnos() {
 
     setConfirmando(true)
     try {
+      // If user selected shifts across multiple zonas, group reservations per zona
+      const shiftsByZona = shifts.reduce((acc, s) => {
+        const zid = s.zona?.id
+        if (!acc[zid]) acc[zid] = { zona: s.zona, turnos: [] }
+        acc[zid].turnos.push({ fecha: fmtDate(s.diaDate), hora: s.slot })
+        return acc
+      }, {})
+
+      const zonaIds = Object.keys(shiftsByZona).filter(Boolean)
+
       if (['mercadopago', 'credito', 'debito'].includes(medioPago)) {
+        // Support online payment even when shifts span multiple zonas.
+        // Build aggregated price and title from all selected shifts/zones.
+        const zonaEntries = Object.values(shiftsByZona)
+        const totalPrecio = zonaEntries.reduce((sum, g) => sum + (g.zona?.precio ?? 0) * g.turnos.length, 0)
+        const titulo = zonaEntries.length === 1 ? `Clase ${zonaEntries[0].zona?.nombre ?? ''}` : `Turnos varias zonas (${zonaEntries.map((g) => g.zona?.nombre).filter(Boolean).join(', ')})`
+        const servicio_id = zonaIds[0] ?? 1
+
         const { data } = await client.post('/api/crear-preferencia', null, {
-          params:
-            {
-              servicio_id: zona?.id ?? 1,
-              precio: zona?.precio ?? 0,
-              titulo: `Clase ${zona?.nombre ?? ''}`,
-              cantidad: shifts.length,
-            },
+          params: {
+            servicio_id,
+            precio: totalPrecio,
+            titulo,
+            cantidad: shifts.length,
+          },
         })
         if (data?.init_point) {
-  const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
-  const usuarioId = stored ? JSON.parse(stored)?.id : null
-  localStorage.setItem('pending_shifts', JSON.stringify({
-    zonaId: zona.id,
-    turnos: shifts.map((s) => ({ fecha: fmtDate(s.diaDate), hora: s.slot })),
-    medioPago,
-    usuarioId,
-  }))
-  window.location.href = data.init_point
-  return
-}
+          const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
+          const usuarioId = stored ? JSON.parse(stored)?.id : null
+          // Save grouped shifts so post-payment handler can reserve per zona
+          localStorage.setItem('pending_shifts', JSON.stringify({
+            groups: shiftsByZona,
+            medioPago,
+            usuarioId,
+          }))
+          window.location.href = data.init_point
+          return
+        }
         showToast('No se pudo obtener el link de pago.')
         return
       }
@@ -387,12 +405,19 @@ export default function Turnos() {
       const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
       const usuarioId = stored ? JSON.parse(stored)?.id : null
 
-      await reservarTurnos({
-        zonaId: zona.id,
-        turnos: shifts.map((s) => ({ fecha: fmtDate(s.diaDate), hora: s.slot })),
-        medioPago,
-        usuarioId,
-      })
+      // Reserve per zona sequentially
+      let totalReserved = 0
+      for (const zid of zonaIds) {
+        const group = shiftsByZona[zid]
+        if (!group) continue
+        await reservarTurnos({
+          zonaId: group.zona.id,
+          turnos: group.turnos,
+          medioPago,
+          usuarioId,
+        })
+        totalReserved += group.turnos.length
+      }
 
       // Refresh availability for all affected months
       const affectedMonths = [...new Set(shifts.map((s) => toMes(s.diaDate)))]
@@ -420,39 +445,6 @@ export default function Turnos() {
       showToast(detail || 'Error al confirmar el turno. Intentá de nuevo.')
     } finally {
       setConfirmando(false)
-    }
-  }
-
-  async function handleWaitlistToggle(clase) {
-    const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
-    const usuario = stored ? JSON.parse(stored) : null
-    if (!usuario?.id) {
-      showToast('Tenés que iniciar sesión para usar la lista de espera.')
-      return
-    }
-    const zonaNombre = ZONA_LABELS[clase.zona_nombre] ?? clase.zona_nombre
-    const fechaDisplay = fmtDiaLargo(new Date(clase.fecha + 'T00:00:00'))
-    const inWaitlist = waitlistClaseIds.has(clase.id)
-    try {
-      if (inWaitlist) {
-        await salirListaEspera({ claseProgramadaId: clase.id, usuarioId: usuario.id })
-        setWaitlistClaseIds((prev) => {
-          const next = new Set(prev)
-          next.delete(clase.id)
-          return next
-        })
-        showToast(
-          `Fuiste dado de baja de la lista de espera para la clase de ${zonaNombre} el ${fechaDisplay} a las ${clase.hora}.`
-        )
-      } else {
-        await unirseListaEspera({ claseProgramadaId: clase.id, usuarioId: usuario.id })
-        setWaitlistClaseIds((prev) => new Set([...prev, clase.id]))
-        showToast(
-          `Fuiste anotado a la lista de espera para la clase de ${zonaNombre} el ${fechaDisplay} a las ${clase.hora}. Recibirás una notificación si se libera el turno.`
-        )
-      }
-    } catch (err) {
-      showToast(err?.response?.data?.detail || 'No se pudo actualizar la lista de espera.')
     }
   }
 
@@ -527,7 +519,7 @@ export default function Turnos() {
                     <div className='shift-row-info'>
                       <span className='shift-num'>Turno {i + 1}</span>
                       <span className='shift-detail'>
-                        {fmtDiaLargo(s.diaDate)} · {s.slot} – {nextHour(s.slot)}
+                        {ZONA_LABELS[s.zona?.nombre] ?? s.zona?.nombre ?? ''} · {fmtDiaLargo(s.diaDate)} · {s.slot} – {nextHour(s.slot)}
                       </span>
                     </div>
                     <button className='shift-remove' onClick={() => removeShift(i)}>

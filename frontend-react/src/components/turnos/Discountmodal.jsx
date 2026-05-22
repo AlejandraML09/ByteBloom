@@ -32,23 +32,60 @@ const tiers = [
   },
 ]
 
+function buildClosedKey() {
+  try {
+    const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
+    if (!stored) return 'discount_modal_closed_guest'
+    // Intentar extraer un id claro del JSON si está disponible
+    try {
+      const obj = JSON.parse(stored)
+      if (obj && (obj.id || obj.usuario_id)) return `discount_modal_closed_user_${obj.id ?? obj.usuario_id}`
+    } catch {
+      // no es JSON, seguiremos con base64
+    }
+    try {
+      return `discount_modal_closed_user_${btoa(stored)}`
+    } catch {
+      return `discount_modal_closed_guest`
+    }
+  } catch {
+    return 'discount_modal_closed_guest'
+  }
+}
+
 export default function DiscountModal({ isOpen, onClose }) {
+  const closedKey = buildClosedKey()
+
+  // Si no está abierto o el usuario ya lo cerró en esta sesión, no renderizamos
+  try {
+    if (!isOpen || localStorage.getItem(closedKey)) return null
+  } catch (err) {
+    // Si localStorage falla, seguimos y mostramos el modal normalmente
+  }
+
+  function handleClose() {
+    try {
+      localStorage.setItem(closedKey, '1')
+    } catch (err) {
+      // ignorar errores de storage
+    }
+    if (typeof onClose === 'function') onClose()
+  }
+
   useEffect(() => {
     if (!isOpen) return
-    const handleKey = (e) => {
-      if (e.key === 'Escape') onClose()
+    const onKey = (e) => {
+      if (e.key === 'Escape') handleClose()
     }
-    document.addEventListener('keydown', handleKey)
-    return () => document.removeEventListener('keydown', handleKey)
-  }, [isOpen, onClose])
-
-  if (!isOpen) return null
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [isOpen])
 
   return (
     <div
       className='discount-modal-overlay'
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose()
+        if (e.target === e.currentTarget) handleClose()
       }}
       role='dialog'
       aria-modal='true'
@@ -56,7 +93,7 @@ export default function DiscountModal({ isOpen, onClose }) {
     >
       <div className='discount-modal'>
         {/* Close button */}
-        <button className='discount-modal-close' onClick={onClose} aria-label='Cerrar'>
+        <button className='discount-modal-close' onClick={handleClose} aria-label='Cerrar'>
           ×
         </button>
 
@@ -82,10 +119,7 @@ export default function DiscountModal({ isOpen, onClose }) {
               }}
             >
               {tier.highlight && (
-                <div
-                  className='discount-tier-best'
-                  style={{ background: tier.border, color: tier.text }}
-                >
+                <div className='discount-tier-best' style={{ background: tier.border, color: tier.text }}>
                   ✦ Mejor opción
                 </div>
               )}
@@ -108,9 +142,6 @@ export default function DiscountModal({ isOpen, onClose }) {
           El descuento se aplica automáticamente al seleccionar 2 o 3 turnos. ¡No necesitás ningún
           código!
         </p>
-        {/* <button className="discount-modal-cta" onClick={onClose}>
-          Entendido, ¡vamos a reservar!
-        </button> */}
       </div>
     </div>
   )

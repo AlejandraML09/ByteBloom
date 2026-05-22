@@ -14,6 +14,8 @@ router = APIRouter(prefix="/abonos", tags=["abonos"])
 _MEDIO_PAGO_MAP = {
     "efectivo": "Efectivo",
     "transferencia": "Transferencia",
+    "mercado_pago": "Mercado Pago",
+    "mercadopago": "Mercado Pago",
 }
 
 
@@ -27,7 +29,7 @@ def get_db():
 
 @router.get("/mis-abonos")
 def get_mis_abonos(usuario_id: int, db: Session = Depends(get_db)):
-    """Devuelve todos los abonos del usuario con sus pagos asociados."""
+    """Devuelve todos los abonos del usuario con sus pagos y reservas asociadas."""
     abonos = db.execute(
         text("""
             SELECT a.id, a.zona_id, z.nombre AS zona_nombre,
@@ -52,6 +54,22 @@ def get_mis_abonos(usuario_id: int, db: Session = Depends(get_db)):
                 LEFT JOIN medios_pago mp ON mp.id = p.medio_pago_id
                 WHERE p.abono_id = :abono_id
                 ORDER BY p.anio DESC, p.mes DESC
+            """),
+            {"abono_id": abono.id},
+        ).fetchall()
+
+        reservas = db.execute(
+            text("""
+                SELECT r.id AS reserva_id,
+                       cp.id AS clase_programada_id,
+                       cp.fecha,
+                       cp.hora,
+                       r.estado::text AS estado
+                FROM abono_reservas ar
+                JOIN reservas r          ON r.id  = ar.reserva_id
+                JOIN clases_programadas cp ON cp.id = r.clase_programada_id
+                WHERE ar.abono_id = :abono_id
+                ORDER BY cp.fecha, cp.hora
             """),
             {"abono_id": abono.id},
         ).fetchall()
@@ -82,6 +100,16 @@ def get_mis_abonos(usuario_id: int, db: Session = Depends(get_db)):
                     }
                     for p in pagos
                 ],
+                "reservas": [
+                    {
+                        "reserva_id": r.reserva_id,
+                        "clase_programada_id": r.clase_programada_id,
+                        "fecha": str(r.fecha),
+                        "hora": str(r.hora)[:5],
+                        "estado": r.estado,
+                    }
+                    for r in reservas
+                ],
             }
         )
 
@@ -103,6 +131,19 @@ class SolicitudAbonoRequest(BaseModel):
 @router.post("/solicitar")
 def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
     """Crea un abono para el usuario en la zona indicada y reserva las sesiones seleccionadas."""
+
+    # Validar que cada turno pertenece a una semana distinta
+    semanas = []
+    for item in data.turnos:
+        fecha_obj = date_type.fromisoformat(item.fecha)
+        semana = fecha_obj.isocalendar()[:2]  # (year, week)
+        if semana in semanas:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Dos sesiones caen en la misma semana ({item.fecha}). Cada sesión debe ser de una semana distinta.",
+            )
+        semanas.append(semana)
+
     zona = db.execute(
         text("SELECT id, precio FROM zonas WHERE id = :id"),
         {"id": data.zona_id},
@@ -110,7 +151,7 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
     if not zona:
         raise HTTPException(status_code=404, detail="Zona no encontrada.")
 
-    db_medio = _MEDIO_PAGO_MAP.get(data.medio_pago, data.medio_pago)
+    db_medio = _MEDIO_PAGO_MAP.get(data.medio_pago.lower(), data.medio_pago)
     medio_pago = db.execute(
         text("SELECT id FROM medios_pago WHERE nombre = :nombre AND activo = true"),
         {"nombre": db_medio},
@@ -128,7 +169,7 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=400, detail="Ya tenés un abono para esta zona.")
 
-    # Validate all slots before writing anything
+    # Validar todos los slots antes de escribir nada
     clase_programadas = []
     for item in data.turnos:
         cp = db.execute(
@@ -176,11 +217,12 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
         abono_id = abono_row.id
 
         for cp in clase_programadas:
-            db.execute(
+            reserva_row = db.execute(
                 text("""
                     INSERT INTO reservas
                         (usuario_id, clase_programada_id, medio_pago_id, precio_pagado)
                     VALUES (:uid, :cpid, :mpid, :precio)
+                    RETURNING id
                 """),
                 {
                     "uid": data.usuario_id,
@@ -188,7 +230,16 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
                     "mpid": medio_pago.id,
                     "precio": float(zona.precio),
                 },
+            ).fetchone()
+
+            db.execute(
+                text("""
+                    INSERT INTO abono_reservas (abono_id, reserva_id)
+                    VALUES (:abono_id, :reserva_id)
+                """),
+                {"abono_id": abono_id, "reserva_id": reserva_row.id},
             )
+
             db.execute(
                 text(
                     "UPDATE clases_programadas SET cupo_disponible = cupo_disponible - 1 WHERE id = :id"
@@ -196,7 +247,7 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
                 {"id": cp.id},
             )
 
-        # First pago_abono: current month if day <= limit, else next month
+        # Pago del mes actual o siguiente según día límite
         dia_limite = 10
         if today.day > dia_limite:
             pago_mes = today.month % 12 + 1
@@ -237,7 +288,7 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
 
 
 def _target_month():
-    """Returns (year, month) for the active enrollment period."""
+    """Devuelve (year, month) del período de inscripción activo."""
     today = date_type.today()
     if today.day <= 10:
         return today.year, today.month
@@ -262,7 +313,7 @@ def _get_efectivo_id(db):
 
 @router.get("/{abono_id}/sesiones")
 def get_sesiones_abono(abono_id: int, db: Session = Depends(get_db)):
-    """Devuelve todas las reservas futuras no canceladas asociadas a este abono."""
+    """Devuelve todas las reservas asociadas a este abono vía abono_reservas."""
     abono = db.execute(
         text("SELECT id, usuario_id, zona_id FROM abonos WHERE id = :id"),
         {"id": abono_id},
@@ -270,23 +321,20 @@ def get_sesiones_abono(abono_id: int, db: Session = Depends(get_db)):
     if not abono:
         raise HTTPException(status_code=404, detail="Abono no encontrado.")
 
-    today = date_type.today()
     rows = db.execute(
         text("""
             SELECT r.id AS reserva_id,
                    cp.id AS clase_programada_id,
                    cp.fecha,
-                   cp.hora
-            FROM reservas r
+                   cp.hora,
+                   r.estado::text AS estado
+            FROM abono_reservas ar
+            JOIN reservas r            ON r.id  = ar.reserva_id
             JOIN clases_programadas cp ON cp.id = r.clase_programada_id
-            JOIN clases c              ON c.id  = cp.clase_id
-            WHERE r.usuario_id = :uid
-              AND c.zona_id    = :zid
-              AND cp.fecha     >= :hoy
-              AND r.estado NOT IN ('cancelada'::estado_reserva)
+            WHERE ar.abono_id = :abono_id
             ORDER BY cp.fecha, cp.hora
         """),
-        {"uid": abono.usuario_id, "zid": abono.zona_id, "hoy": today},
+        {"abono_id": abono_id},
     ).fetchall()
 
     return [
@@ -295,6 +343,7 @@ def get_sesiones_abono(abono_id: int, db: Session = Depends(get_db)):
             "clase_programada_id": r.clase_programada_id,
             "fecha": str(r.fecha),
             "hora": str(r.hora)[:5],
+            "estado": r.estado,
         }
         for r in rows
     ]
@@ -308,8 +357,8 @@ def renovar_abono(
     abono_id: int, medio_pago: str = "Efectivo", db: Session = Depends(get_db)
 ):
     """
-    Crea reservas en el mes objetivo (período de inscripción) replicando los
-    días de la semana y horarios de las reservas existentes del abono.
+    Crea 4 reservas en el mes objetivo replicando los días/horarios del abono
+    anterior y las vincula en abono_reservas.
     """
     abono = db.execute(
         text(
@@ -320,50 +369,43 @@ def renovar_abono(
     if not abono:
         raise HTTPException(status_code=404, detail="Abono no encontrado o inactivo.")
 
+    # Validar que no tenga ya reservas del abono en el mes destino
     target_year, target_month = _target_month()
 
-    # Verificar que no existan reservas en el mes destino para este abono
     existing = db.execute(
         text("""
             SELECT COUNT(*) AS cnt
-            FROM reservas r
+            FROM abono_reservas ar
+            JOIN reservas r            ON r.id  = ar.reserva_id
             JOIN clases_programadas cp ON cp.id = r.clase_programada_id
-            JOIN clases c              ON c.id  = cp.clase_id
-            WHERE r.usuario_id                     = :uid
-              AND c.zona_id                        = :zid
+            WHERE ar.abono_id = :abono_id
               AND EXTRACT(YEAR  FROM cp.fecha)::int = :yr
               AND EXTRACT(MONTH FROM cp.fecha)::int = :mo
               AND r.estado NOT IN ('cancelada'::estado_reserva)
         """),
-        {
-            "uid": abono.usuario_id,
-            "zid": abono.zona_id,
-            "yr": target_year,
-            "mo": target_month,
-        },
+        {"abono_id": abono_id, "yr": target_year, "mo": target_month},
     ).fetchone()
 
     if existing.cnt > 0:
         raise HTTPException(
             status_code=400,
-            detail=f"Ya tenés reservas para ese mes.",
+            detail="Ya tenés reservas para ese mes en este abono.",
         )
 
-    # Obtener patrón: (día de la semana ISO, hora) de todas las reservas no canceladas
+    # Obtener patrón (día ISO, hora) de las reservas actuales del abono
     patrones = db.execute(
         text("""
             SELECT DISTINCT
                 EXTRACT(ISODOW FROM cp.fecha)::int AS dow,
                 cp.hora
-            FROM reservas r
+            FROM abono_reservas ar
+            JOIN reservas r            ON r.id  = ar.reserva_id
             JOIN clases_programadas cp ON cp.id = r.clase_programada_id
-            JOIN clases c              ON c.id  = cp.clase_id
-            WHERE r.usuario_id = :uid
-              AND c.zona_id    = :zid
+            WHERE ar.abono_id = :abono_id
               AND r.estado NOT IN ('cancelada'::estado_reserva)
             ORDER BY dow, cp.hora
         """),
-        {"uid": abono.usuario_id, "zid": abono.zona_id},
+        {"abono_id": abono_id},
     ).fetchall()
 
     if not patrones:
@@ -372,11 +414,12 @@ def renovar_abono(
             detail="No se encontraron sesiones de referencia para renovar.",
         )
 
+    db_medio = _MEDIO_PAGO_MAP.get(medio_pago.lower(), medio_pago)
     mp_row = db.execute(
         text(
             "SELECT id FROM medios_pago WHERE nombre = :nombre AND activo = true LIMIT 1"
         ),
-        {"nombre": medio_pago},
+        {"nombre": db_medio},
     ).fetchone()
     mp_id = mp_row.id if mp_row else _get_efectivo_id(db)
 
@@ -393,14 +436,14 @@ def renovar_abono(
                 SELECT cp.id
                 FROM clases_programadas cp
                 JOIN clases c ON c.id = cp.clase_id
-                WHERE c.zona_id                         = :zid
-                  AND EXTRACT(YEAR  FROM cp.fecha)::int = :yr
-                  AND EXTRACT(MONTH FROM cp.fecha)::int = :mo
+                WHERE c.zona_id                          = :zid
+                  AND EXTRACT(YEAR  FROM cp.fecha)::int  = :yr
+                  AND EXTRACT(MONTH FROM cp.fecha)::int  = :mo
                   AND EXTRACT(ISODOW FROM cp.fecha)::int = :dow
-                  AND cp.hora         = :hora
-                  AND cp.activo       = true
-                  AND c.activo        = true
-                  AND cp.cupo_disponible > 0
+                  AND cp.hora                            = :hora
+                  AND cp.activo                          = true
+                  AND c.activo                           = true
+                  AND cp.cupo_disponible                 > 0
                 ORDER BY cp.fecha
                 LIMIT 1
             """),
@@ -426,12 +469,13 @@ def renovar_abono(
 
     try:
         for cp_id in nuevas:
-            db.execute(
+            reserva_row = db.execute(
                 text("""
                     INSERT INTO reservas
                         (usuario_id, clase_programada_id, medio_pago_id, precio_pagado)
                     VALUES (:uid, :cpid, :mpid, :precio)
                     ON CONFLICT DO NOTHING
+                    RETURNING id
                 """),
                 {
                     "uid": abono.usuario_id,
@@ -439,13 +483,23 @@ def renovar_abono(
                     "mpid": mp_id,
                     "precio": float(zona.precio),
                 },
-            )
-            db.execute(
-                text(
-                    "UPDATE clases_programadas SET cupo_disponible = cupo_disponible - 1 WHERE id = :id"
-                ),
-                {"id": cp_id},
-            )
+            ).fetchone()
+
+            if reserva_row:
+                db.execute(
+                    text("""
+                        INSERT INTO abono_reservas (abono_id, reserva_id)
+                        VALUES (:abono_id, :reserva_id)
+                        ON CONFLICT DO NOTHING
+                    """),
+                    {"abono_id": abono_id, "reserva_id": reserva_row.id},
+                )
+                db.execute(
+                    text(
+                        "UPDATE clases_programadas SET cupo_disponible = cupo_disponible - 1 WHERE id = :id"
+                    ),
+                    {"id": cp_id},
+                )
 
         # Crear pago_abono para el mes destino
         dia_lim = abono.dia_limite_pago
@@ -498,7 +552,7 @@ def modificar_sesion_abono(
     data: ModificarSesionRequest,
     db: Session = Depends(get_db),
 ):
-    """Cancela una sesión del abono y reserva una nueva, respetando la regla de 1 por semana."""
+    """Cancela una sesión del abono y reserva una nueva, respetando 1 por semana."""
     abono = db.execute(
         text("SELECT id, usuario_id, zona_id FROM abonos WHERE id = :id"),
         {"id": abono_id},
@@ -510,48 +564,42 @@ def modificar_sesion_abono(
     old_r = db.execute(
         text("""
             SELECT r.id, r.clase_programada_id
-            FROM reservas r
+            FROM abono_reservas ar
+            JOIN reservas r            ON r.id  = ar.reserva_id
             JOIN clases_programadas cp ON cp.id = r.clase_programada_id
             JOIN clases c              ON c.id  = cp.clase_id
-            WHERE r.id          = :rid
-              AND r.usuario_id  = :uid
-              AND c.zona_id     = :zid
+            WHERE ar.abono_id  = :abono_id
+              AND r.id         = :rid
               AND r.estado NOT IN ('cancelada'::estado_reserva)
         """),
-        {"rid": data.reserva_id_quitar, "uid": abono.usuario_id, "zid": abono.zona_id},
+        {"abono_id": abono_id, "rid": data.reserva_id_quitar},
     ).fetchone()
 
     if not old_r:
         raise HTTPException(
-            status_code=404, detail="Sesión no encontrada o ya cancelada."
+            status_code=404, detail="Sesión no encontrada en este abono o ya cancelada."
         )
 
-    # Semanas ocupadas por sesiones restantes (excluyendo la que se va a quitar)
+    # Semanas ocupadas por las otras reservas del abono (excluyendo la que se quita)
     today = date_type.today()
     restantes = db.execute(
         text("""
             SELECT cp.fecha
-            FROM reservas r
+            FROM abono_reservas ar
+            JOIN reservas r            ON r.id  = ar.reserva_id
             JOIN clases_programadas cp ON cp.id = r.clase_programada_id
-            JOIN clases c              ON c.id  = cp.clase_id
-            WHERE r.usuario_id = :uid
-              AND c.zona_id    = :zid
+            WHERE ar.abono_id  = :abono_id
               AND r.id        != :rid
               AND cp.fecha    >= :hoy
               AND r.estado NOT IN ('cancelada'::estado_reserva)
         """),
-        {
-            "uid": abono.usuario_id,
-            "zid": abono.zona_id,
-            "rid": data.reserva_id_quitar,
-            "hoy": today,
-        },
+        {"abono_id": abono_id, "rid": data.reserva_id_quitar, "hoy": today},
     ).fetchall()
 
     nueva_fecha_obj = date_type.fromisoformat(data.nueva_fecha)
 
     def iso_week(d):
-        return d.isocalendar()[:2]  # (year, week_number)
+        return d.isocalendar()[:2]
 
     for r in restantes:
         if iso_week(r.fecha) == iso_week(nueva_fecha_obj):
@@ -566,12 +614,12 @@ def modificar_sesion_abono(
             SELECT cp.id, cp.cupo_disponible
             FROM clases_programadas cp
             JOIN clases c ON c.id = cp.clase_id
-            WHERE c.zona_id     = :zid
-              AND cp.fecha      = :fecha
-              AND cp.hora       = :hora
-              AND cp.activo     = true
-              AND c.activo      = true
-              AND cp.cupo_disponible > 0
+            WHERE c.zona_id             = :zid
+              AND cp.fecha              = :fecha
+              AND cp.hora               = :hora
+              AND cp.activo             = true
+              AND c.activo              = true
+              AND cp.cupo_disponible    > 0
         """),
         {"zid": abono.zona_id, "fecha": data.nueva_fecha, "hora": data.nueva_hora},
     ).fetchone()
@@ -616,11 +664,12 @@ def modificar_sesion_abono(
         )
 
         # Crear nueva reserva
-        db.execute(
+        nueva_reserva = db.execute(
             text("""
                 INSERT INTO reservas
                     (usuario_id, clase_programada_id, medio_pago_id, precio_pagado)
                 VALUES (:uid, :cpid, :mpid, :precio)
+                RETURNING id
             """),
             {
                 "uid": abono.usuario_id,
@@ -628,7 +677,23 @@ def modificar_sesion_abono(
                 "mpid": mp_id,
                 "precio": float(zona.precio),
             },
+        ).fetchone()
+
+        # Actualizar abono_reservas: quitar la vieja, agregar la nueva
+        db.execute(
+            text(
+                "DELETE FROM abono_reservas WHERE abono_id = :abono_id AND reserva_id = :reserva_id"
+            ),
+            {"abono_id": abono_id, "reserva_id": data.reserva_id_quitar},
         )
+        db.execute(
+            text("""
+                INSERT INTO abono_reservas (abono_id, reserva_id)
+                VALUES (:abono_id, :reserva_id)
+            """),
+            {"abono_id": abono_id, "reserva_id": nueva_reserva.id},
+        )
+
         db.execute(
             text(
                 "UPDATE clases_programadas SET cupo_disponible = cupo_disponible - 1 WHERE id = :id"

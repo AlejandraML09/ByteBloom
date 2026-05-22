@@ -2,16 +2,24 @@ from sqlalchemy import (
     Boolean,
     Column,
     Integer,
+    BigInteger,
     String,
+    Text,
     DateTime,
+    Date,
+    Time,
     Numeric,
     Enum as SQLEnum,
-    Date,
 )
 from sqlalchemy.sql import func
 from app.database import Base
 import enum
 import bcrypt
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ENUMS
+# ══════════════════════════════════════════════════════════════════════════════
 
 
 class RolUsuario(str, enum.Enum):
@@ -35,15 +43,41 @@ class EstadoReserva(str, enum.Enum):
     ausente = "ausente"
 
 
+class EstadoAbono(str, enum.Enum):
+    activo = "activo"
+    vencido = "vencido"
+    cancelado = "cancelado"
+    pausado = "pausado"
+
+
+class EstadoPagoAbono(str, enum.Enum):
+    pendiente = "pendiente"
+    pagado = "pagado"
+    vencido = "vencido"
+
+
+class EstadoListaEspera(str, enum.Enum):
+    esperando = "esperando"
+    notificado = "notificado"
+    confirmado = "confirmado"
+    expirado = "expirado"
+    cancelado = "cancelado"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MODELOS
+# ══════════════════════════════════════════════════════════════════════════════
+
+
 class Usuario(Base):
     __tablename__ = "usuarios"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(BigInteger, primary_key=True, index=True)
     nombre = Column(String(50), nullable=False)
     apellido = Column(String(50), nullable=False)
     dni = Column(Integer, nullable=False, unique=True)
     email = Column(String(100), unique=True, nullable=False)
-    password = Column(String(255), nullable=False)
+    password = Column(Text, nullable=False)
     fecha_nacimiento = Column(Date, nullable=False)
     rol = Column(
         SQLEnum(RolUsuario, name="rol_usuario"),
@@ -72,18 +106,18 @@ class Usuario(Base):
 class Zona(Base):
     __tablename__ = "zonas"
 
-    id = Column(Integer, primary_key=True, index=True)
-    nombre = Column(SQLEnum(ZonaEnum), unique=True, nullable=False)
-    descripcion = Column(String(255), nullable=True)
-    precio = Column(Integer, nullable=False, default=0)
+    id = Column(BigInteger, primary_key=True, index=True)
+    nombre = Column(String(50), unique=True, nullable=False)
+    descripcion = Column(Text, nullable=True)
+    precio = Column(Numeric(10, 2), nullable=False, default=0)
     activo = Column(Boolean, nullable=False, default=True)
 
 
 class Clase(Base):
     __tablename__ = "clases"
 
-    id = Column(Integer, primary_key=True, index=True)
-    zona_id = Column(Integer, nullable=False, index=True)
+    id = Column(BigInteger, primary_key=True, index=True)
+    zona_id = Column(BigInteger, nullable=False, index=True)
     cupo_maximo = Column(Integer, nullable=False, default=5)
     activo = Column(Boolean, nullable=False, default=True)
     profesional_email = Column(String(100), nullable=True)
@@ -92,18 +126,21 @@ class Clase(Base):
 class ClaseProgramada(Base):
     __tablename__ = "clases_programadas"
 
-    id = Column(Integer, primary_key=True, index=True)
-    clase_id = Column(Integer, nullable=False, index=True)
-    fecha = Column(String(10), nullable=False)  # "YYYY-MM-DD"
-    hora = Column(String(5), nullable=False)  # "HH:MM"
+    id = Column(BigInteger, primary_key=True, index=True)
+    clase_id = Column(BigInteger, nullable=False, index=True)
+    fecha = Column(Date, nullable=False)
+    hora = Column(Time, nullable=False)
     cupo_disponible = Column(Integer, nullable=False, default=0)
+    fecha_creacion = Column(
+        DateTime(timezone=False), nullable=False, server_default=func.now()
+    )
     activo = Column(Boolean, nullable=False, default=True)
 
 
 class MedioPago(Base):
     __tablename__ = "medios_pago"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(BigInteger, primary_key=True, index=True)
     nombre = Column(String(50), nullable=False, unique=True)
     activo = Column(Boolean, nullable=False, default=True)
 
@@ -111,13 +148,13 @@ class MedioPago(Base):
 class Reserva(Base):
     __tablename__ = "reservas"
 
-    id = Column(Integer, primary_key=True, index=True)
-    usuario_id = Column(Integer, nullable=False, index=True)
-    clase_programada_id = Column(Integer, nullable=False, index=True)
-    medio_pago_id = Column(Integer, nullable=False)
+    id = Column(BigInteger, primary_key=True, index=True)
+    usuario_id = Column(BigInteger, nullable=False, index=True)
+    clase_programada_id = Column(BigInteger, nullable=False, index=True)
+    medio_pago_id = Column(BigInteger, nullable=False)
     precio_pagado = Column(Numeric(10, 2), nullable=False)
     fecha_reserva = Column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        DateTime(timezone=False), nullable=False, server_default=func.now()
     )
     estado = Column(
         SQLEnum(EstadoReserva, name="estado_reserva"),
@@ -126,20 +163,56 @@ class Reserva(Base):
     )
 
 
-class EstadoListaEspera(str, enum.Enum):
-    esperando = "esperando"
-    notificado = "notificado"
-    confirmado = "confirmado"
-    expirado = "expirado"
-    cancelado = "cancelado"
+class Abono(Base):
+    __tablename__ = "abonos"
+
+    id = Column(BigInteger, primary_key=True, index=True)
+    usuario_id = Column(BigInteger, nullable=False, index=True)
+    zona_id = Column(BigInteger, nullable=False, index=True)
+    fecha_inicio = Column(Date, nullable=False, server_default=func.current_date())
+    fecha_fin = Column(Date, nullable=True)
+    monto_mensual = Column(Numeric(10, 2), nullable=False)
+    dia_limite_pago = Column(Integer, nullable=False, default=10)
+    estado = Column(
+        SQLEnum(EstadoAbono, name="estado_abono"),
+        nullable=False,
+        default=EstadoAbono.activo,
+    )
+    activo = Column(Boolean, nullable=False, default=True)
+
+
+class PagoAbono(Base):
+    __tablename__ = "pagos_abono"
+
+    id = Column(BigInteger, primary_key=True, index=True)
+    abono_id = Column(BigInteger, nullable=False, index=True)
+    medio_pago_id = Column(BigInteger, nullable=True)
+    anio = Column(Integer, nullable=False)
+    mes = Column(Integer, nullable=False)
+    fecha_vencimiento = Column(Date, nullable=False)
+    fecha_pago = Column(DateTime(timezone=False), nullable=True)
+    monto = Column(Numeric(10, 2), nullable=False)
+    estado = Column(
+        SQLEnum(EstadoPagoAbono, name="estado_pago_abono"),
+        nullable=False,
+        default=EstadoPagoAbono.pendiente,
+    )
+
+
+class AbonoReserva(Base):
+    __tablename__ = "abono_reservas"
+
+    id = Column(BigInteger, primary_key=True, index=True)
+    abono_id = Column(BigInteger, nullable=False, index=True)
+    reserva_id = Column(BigInteger, nullable=False, index=True)
 
 
 class ListaEspera(Base):
     __tablename__ = "lista_espera"
 
-    id = Column(Integer, primary_key=True, index=True)
-    usuario_id = Column(Integer, nullable=False, index=True)
-    clase_programada_id = Column(Integer, nullable=False, index=True)
+    id = Column(BigInteger, primary_key=True, index=True)
+    usuario_id = Column(BigInteger, nullable=False, index=True)
+    clase_programada_id = Column(BigInteger, nullable=False, index=True)
     prioridad = Column(Integer, nullable=False)
     fecha_inscripcion = Column(
         DateTime(timezone=False), nullable=False, server_default=func.now()
