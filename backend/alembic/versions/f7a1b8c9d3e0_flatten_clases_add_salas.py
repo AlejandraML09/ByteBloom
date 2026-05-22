@@ -50,9 +50,9 @@ def upgrade():
     -- 3. Seed: 3 salas demo
     -- ======================================================
     INSERT INTO salas (nombre, descripcion, cupo) VALUES
-        ('Sala Norte',   'Sala equipada para 5 reformers', 5),
-        ('Sala Sur',     'Sala equipada para 6 reformers', 6),
-        ('Sala Central', 'Sala equipada para 4 reformers', 4);
+        ('Sala Norte',   'Sala equipada para 5 personas máximo', 5),
+        ('Sala Sur',     'Sala equipada para 6 personas máximo', 6),
+        ('Sala Central', 'Sala equipada para 4 personas máximo', 4);
 
     -- ======================================================
     -- 4. Aplanar clases_programadas

@@ -1,7 +1,7 @@
 """add_waiting_list
 
 Revision ID: d5abe0ee09e5
-Revises: f1a2b3c4d5e6
+Revises: bbbdd189dd33
 Create Date: 2026-05-20 10:04:13.980172
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'd5abe0ee09e5'
-down_revision: Union[str, Sequence[str], None] = 'f1a2b3c4d5e6'
+down_revision: Union[str, Sequence[str], None] = 'bbbdd189dd33'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

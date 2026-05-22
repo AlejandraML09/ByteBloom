@@ -1,7 +1,7 @@
 """seed_secretarios_precios: dos secretarios y precio inicial de zonas
 
 Revision ID: d2e3f4a5b6c7
-Revises: c1d2e3f4a5b6
+Revises: a7f3e2d1c8b9
 Create Date: 2026-05-22 00:00:00.000000
 
 Cambios:
@@ -12,7 +12,7 @@ from typing import Sequence, Union
 from alembic import op
 
 revision: str = "d2e3f4a5b6c7"
-down_revision: Union[str, Sequence[str], None] = "c1d2e3f4a5b6"
+down_revision: Union[str, Sequence[str], None] = "a7f3e2d1c8b9"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
