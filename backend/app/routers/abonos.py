@@ -176,12 +176,10 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
             text("""
                 SELECT cp.id, cp.cupo_disponible
                 FROM clases_programadas cp
-                JOIN clases c ON c.id = cp.clase_id
                 WHERE cp.fecha = :fecha
                   AND cp.hora = :hora
-                  AND c.zona_id = :zona_id
+                  AND cp.zona_id = :zona_id
                   AND cp.activo = true
-                  AND c.activo = true
             """),
             {"fecha": item.fecha, "hora": item.hora, "zona_id": data.zona_id},
         ).fetchone()
@@ -435,14 +433,12 @@ def renovar_abono(
             text("""
                 SELECT cp.id
                 FROM clases_programadas cp
-                JOIN clases c ON c.id = cp.clase_id
-                WHERE c.zona_id                          = :zid
+                WHERE cp.zona_id                         = :zid
                   AND EXTRACT(YEAR  FROM cp.fecha)::int  = :yr
                   AND EXTRACT(MONTH FROM cp.fecha)::int  = :mo
                   AND EXTRACT(ISODOW FROM cp.fecha)::int = :dow
                   AND cp.hora                            = :hora
                   AND cp.activo                          = true
-                  AND c.activo                           = true
                   AND cp.cupo_disponible                 > 0
                 ORDER BY cp.fecha
                 LIMIT 1
@@ -567,7 +563,6 @@ def modificar_sesion_abono(
             FROM abono_reservas ar
             JOIN reservas r            ON r.id  = ar.reserva_id
             JOIN clases_programadas cp ON cp.id = r.clase_programada_id
-            JOIN clases c              ON c.id  = cp.clase_id
             WHERE ar.abono_id  = :abono_id
               AND r.id         = :rid
               AND r.estado NOT IN ('cancelada'::estado_reserva)
@@ -613,12 +608,10 @@ def modificar_sesion_abono(
         text("""
             SELECT cp.id, cp.cupo_disponible
             FROM clases_programadas cp
-            JOIN clases c ON c.id = cp.clase_id
-            WHERE c.zona_id             = :zid
+            WHERE cp.zona_id            = :zid
               AND cp.fecha              = :fecha
               AND cp.hora               = :hora
               AND cp.activo             = true
-              AND c.activo              = true
               AND cp.cupo_disponible    > 0
         """),
         {"zid": abono.zona_id, "fecha": data.nueva_fecha, "hora": data.nueva_hora},

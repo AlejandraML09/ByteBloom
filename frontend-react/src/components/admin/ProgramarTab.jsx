@@ -1,13 +1,14 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { HORARIOS } from '../../constants/turnos'
 import { ZONA_LABELS } from '../../constants/turnos'
+import { profesionales as PROFESIONALES } from '../../constants/profesionales'
 import { fmtDate, MESES_ES } from '../../utils/dates'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const DIAS_HEADER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
-function toMes(date) {
+function toMesParam(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
 }
 
@@ -30,30 +31,55 @@ export function ProgramarTab({ onProgramar }) {
     return d
   }, [])
 
-  const [clases, setClases] = useState([])
-  const [loadingClases, setLoadingClases] = useState(true)
-  const [selectedClase, setSelectedClase] = useState(null)
+  const [zonas, setZonas] = useState([])
+  const [salas, setSalas] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [zonaId, setZonaId] = useState(null)
+  const [salaId, setSalaId] = useState(null)
+  const [profesionalEmail, setProfesionalEmail] = useState('')
   const [monthOffset, setMonthOffset] = useState(0)
   const [selectedDay, setSelectedDay] = useState(null)
   // { "YYYY-MM-DD": Set(["09:00", ...]) }
   const [selection, setSelection] = useState({})
   const [creating, setCreating] = useState(false)
   const [result, setResult] = useState(null)
+  // Clases programadas del mes visible — usado para bloquear horarios ocupados.
+  const [ocupacion, setOcupacion] = useState([])
 
   useEffect(() => {
-    fetch(`${API_URL}/api/clases/activas`)
-      .then((r) => r.json())
-      .then((data) => {
-        setClases(data)
-        setLoadingClases(false)
+    Promise.all([
+      fetch(`${API_URL}/api/zonas`).then((r) => (r.ok ? r.json() : [])),
+      fetch(`${API_URL}/api/salas`).then((r) => (r.ok ? r.json() : [])),
+    ])
+      .then(([zs, ss]) => {
+        setZonas(zs)
+        setSalas(ss)
       })
-      .catch(() => setLoadingClases(false))
+      .finally(() => setLoading(false))
   }, [])
 
   const displayDate = useMemo(
     () => new Date(today.getFullYear(), today.getMonth() + monthOffset, 1),
     [today, monthOffset]
   )
+
+  const fetchOcupacion = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `${API_URL}/turnos/disponibilidad?mes=${toMesParam(displayDate)}`
+      )
+      if (res.ok) {
+        const data = await res.json()
+        setOcupacion(Array.isArray(data) ? data : [])
+      }
+    } catch {
+      /* sin red: dejamos lo previo */
+    }
+  }, [displayDate])
+
+  useEffect(() => {
+    fetchOcupacion()
+  }, [fetchOcupacion])
   const calendarDays = useMemo(() => buildCalendarDays(displayDate), [displayDate])
   const monthLabel = `${MESES_ES[displayDate.getMonth()]} ${displayDate.getFullYear()}`
 
@@ -70,6 +96,50 @@ export function ProgramarTab({ onProgramar }) {
     [selection]
   )
 
+  const seleccionListo = zonaId !== null && salaId !== null
+
+  const isOcupado = useCallback(
+    (fecha, hora) =>
+      ocupacion.some(
+        (s) =>
+          s.fecha === fecha &&
+          s.hora === hora &&
+          (s.sala_id === salaId ||
+            (profesionalEmail && s.profesional_email === profesionalEmail))
+      ),
+    [ocupacion, salaId, profesionalEmail]
+  )
+
+  const horariosOcupados = useMemo(() => {
+    if (!selectedDay) return new Set()
+    const dayKey = fmtDate(selectedDay)
+    const set = new Set()
+    for (const hora of HORARIOS) {
+      if (isOcupado(dayKey, hora)) set.add(hora)
+    }
+    return set
+  }, [selectedDay, isOcupado])
+
+  // Auto-desmarcar slots que pasaron a estar ocupados al cambiar sala/profesional/ocupacion.
+  useEffect(() => {
+    setSelection((prev) => {
+      let touched = false
+      const next = {}
+      for (const [fecha, set] of Object.entries(prev)) {
+        const cleaned = new Set()
+        for (const hora of set) {
+          if (isOcupado(fecha, hora)) {
+            touched = true
+          } else {
+            cleaned.add(hora)
+          }
+        }
+        next[fecha] = cleaned
+      }
+      return touched ? next : prev
+    })
+  }, [isOcupado])
+
   function toggleSlot(dayKey, hora) {
     setSelection((prev) => {
       const set = new Set(prev[dayKey] ?? [])
@@ -79,7 +149,8 @@ export function ProgramarTab({ onProgramar }) {
   }
 
   function selectAllForDay(dayKey) {
-    setSelection((prev) => ({ ...prev, [dayKey]: new Set(HORARIOS) }))
+    const libres = HORARIOS.filter((h) => !isOcupado(dayKey, h))
+    setSelection((prev) => ({ ...prev, [dayKey]: new Set(libres) }))
   }
 
   function clearDay(dayKey) {
@@ -95,39 +166,58 @@ export function ProgramarTab({ onProgramar }) {
   }
 
   async function handleCrear() {
-    if (!selectedClase || totalSlots === 0) return
+    if (!seleccionListo || totalSlots === 0) return
     const slots = sortedDays.flatMap((fecha) =>
       [...selection[fecha]].sort().map((hora) => ({ fecha, hora }))
     )
     setCreating(true)
     setResult(null)
     try {
-      const res = await onProgramar({ clase_id: selectedClase.id, slots })
+      const payload = {
+        zona_id: zonaId,
+        sala_id: salaId,
+        profesional_email: profesionalEmail || null,
+        slots,
+      }
+      const res = await onProgramar(payload)
       setResult({ ok: true, ...res })
       setSelection({})
       setSelectedDay(null)
+      // Refrescar ocupación para que los slots recién creados queden ocultos.
+      fetchOcupacion()
     } catch (err) {
-      setResult({ ok: false, msg: err.message || 'Error al crear las clases.' })
+      // Detectar conflictos estructurados
+      const detail = err.detail ?? err.message
+      if (typeof detail === 'object' && (detail.conflictos_sala || detail.conflictos_profesional)) {
+        setResult({
+          ok: false,
+          msg: detail.mensaje || 'Conflictos detectados.',
+          conflictos_sala: detail.conflictos_sala || [],
+          conflictos_profesional: detail.conflictos_profesional || [],
+        })
+      } else {
+        setResult({ ok: false, msg: typeof detail === 'string' ? detail : 'Error al crear las clases.' })
+      }
     } finally {
       setCreating(false)
     }
   }
 
-  if (loadingClases) {
+  if (loading) {
     return (
       <div className='card'>
-        <p style={{ padding: '1.5rem' }}>Cargando clases…</p>
+        <p style={{ padding: '1.5rem' }}>Cargando…</p>
       </div>
     )
   }
 
-  if (clases.length === 0) {
+  if (salas.length === 0) {
     return (
       <div className='card'>
         <div className='card-header'>
           <div>
             <h3>Programar clases</h3>
-            <p>No hay clases activas. Creá una primero en "Crear clase".</p>
+            <p>No hay salas activas. Creá una primero en "Salas".</p>
           </div>
         </div>
       </div>
@@ -139,11 +229,11 @@ export function ProgramarTab({ onProgramar }) {
       <div className='card-header'>
         <div>
           <h3>Programar clases</h3>
-          <p>Seleccioná una clase, luego marcá los días y horarios en el calendario.</p>
+          <p>Elegí zona, profesional y sala, luego marcá los días y horarios.</p>
         </div>
       </div>
 
-      {/* ── Step 1: clase selector ── */}
+      {/* ── Step 1: zona / profesional / sala ── */}
       <section style={{ marginBottom: '1.5rem' }}>
         <h4
           style={{
@@ -155,42 +245,91 @@ export function ProgramarTab({ onProgramar }) {
             marginBottom: '0.75rem',
           }}
         >
-          1 · Seleccioná una clase
+          1 · Configuración de la clase
         </h4>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-          {clases.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => {
-                setSelectedClase(c)
-                setSelection({})
-                setSelectedDay(null)
-                setResult(null)
-              }}
-              style={{
-                padding: '0.6rem 1rem',
-                border: `2px solid ${selectedClase?.id === c.id ? 'var(--primary)' : 'var(--border)'}`,
-                borderRadius: '10px',
-                background: selectedClase?.id === c.id ? 'var(--primary-tint)' : 'var(--white)',
-                cursor: 'pointer',
-                textAlign: 'left',
-                minWidth: '180px',
-              }}
-            >
-              <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-main)' }}>
-                {ZONA_LABELS[c.zona_nombre] ?? c.zona_nombre}
-              </div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                Cupo: {c.cupo_maximo} ·{' '}
-                {c.profesional_nombre ??
-                  (c.profesional_email ? c.profesional_email.split('@')[0] : 'Sin profesional')}
-              </div>
-            </button>
-          ))}
+
+        {/* Zonas */}
+        <div style={{ marginBottom: '1rem' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
+            Zona
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+            {zonas.map((z) => (
+              <button
+                key={z.id}
+                onClick={() => setZonaId(z.id)}
+                style={{
+                  padding: '0.5rem 0.9rem',
+                  border: `2px solid ${zonaId === z.id ? 'var(--primary)' : 'var(--border)'}`,
+                  borderRadius: '8px',
+                  background: zonaId === z.id ? 'var(--primary-tint)' : 'var(--white)',
+                  cursor: 'pointer',
+                  fontWeight: zonaId === z.id ? 600 : 400,
+                  fontSize: '0.88rem',
+                }}
+              >
+                {ZONA_LABELS[z.nombre] ?? z.nombre}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Profesional */}
+        <div style={{ marginBottom: '1rem' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
+            Profesional (opcional)
+          </div>
+          <select
+            value={profesionalEmail}
+            onChange={(e) => setProfesionalEmail(e.target.value)}
+            style={{
+              padding: '0.5rem 0.7rem',
+              border: '1px solid var(--border)',
+              borderRadius: '6px',
+              fontSize: '0.9rem',
+              minWidth: '320px',
+            }}
+          >
+            <option value=''>Sin asignar</option>
+            {PROFESIONALES.map((p) => (
+              <option key={p.email} value={p.email}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Sala */}
+        <div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
+            Sala
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+            {salas.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setSalaId(s.id)}
+                style={{
+                  padding: '0.5rem 0.9rem',
+                  border: `2px solid ${salaId === s.id ? 'var(--primary)' : 'var(--border)'}`,
+                  borderRadius: '8px',
+                  background: salaId === s.id ? 'var(--primary-tint)' : 'var(--white)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  minWidth: '160px',
+                }}
+              >
+                <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{s.nombre}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                  Cupo: {s.cupo}
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
-      {selectedClase && (
+      {seleccionListo && (
         <>
           {/* ── Step 2: calendar ── */}
           <section style={{ marginBottom: '1.5rem' }}>
@@ -311,44 +450,67 @@ export function ProgramarTab({ onProgramar }) {
                         </button>
                       </div>
                     </div>
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
-                        gap: '0.5rem',
-                      }}
-                    >
-                      {HORARIOS.map((hora) => {
-                        const dayKey = fmtDate(selectedDay)
-                        const checked = selection[dayKey]?.has(hora) ?? false
+                    {(() => {
+                      const dayKey = fmtDate(selectedDay)
+                      const horariosLibres = HORARIOS.filter(
+                        (h) => !horariosOcupados.has(h)
+                      )
+                      if (horariosLibres.length === 0) {
                         return (
-                          <label
-                            key={hora}
+                          <div
                             style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.4rem',
-                              padding: '0.45rem 0.6rem',
-                              border: `1.5px solid ${checked ? 'var(--primary)' : 'var(--border)'}`,
-                              borderRadius: '8px',
-                              background: checked ? 'var(--primary-tint)' : 'var(--white)',
-                              cursor: 'pointer',
+                              padding: '1rem',
+                              textAlign: 'center',
+                              color: 'var(--text-muted)',
                               fontSize: '0.88rem',
-                              fontWeight: checked ? 600 : 400,
-                              color: checked ? 'var(--primary-dark)' : 'var(--text-main)',
+                              background: 'var(--bg-alt)',
+                              borderRadius: '8px',
                             }}
                           >
-                            <input
-                              type='checkbox'
-                              checked={checked}
-                              onChange={() => toggleSlot(dayKey, hora)}
-                              style={{ accentColor: 'var(--primary)' }}
-                            />
-                            {hora}
-                          </label>
+                            No hay horarios disponibles para esta sala/profesional en este día.
+                          </div>
                         )
-                      })}
-                    </div>
+                      }
+                      return (
+                        <div
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(3, 1fr)',
+                            gap: '0.5rem',
+                          }}
+                        >
+                          {horariosLibres.map((hora) => {
+                            const checked = selection[dayKey]?.has(hora) ?? false
+                            return (
+                              <label
+                                key={hora}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.4rem',
+                                  padding: '0.45rem 0.6rem',
+                                  border: `1.5px solid ${checked ? 'var(--primary)' : 'var(--border)'}`,
+                                  borderRadius: '8px',
+                                  background: checked ? 'var(--primary-tint)' : 'var(--white)',
+                                  cursor: 'pointer',
+                                  fontSize: '0.88rem',
+                                  fontWeight: checked ? 600 : 400,
+                                  color: checked ? 'var(--primary-dark)' : 'var(--text-main)',
+                                }}
+                              >
+                                <input
+                                  type='checkbox'
+                                  checked={checked}
+                                  onChange={() => toggleSlot(dayKey, hora)}
+                                  style={{ accentColor: 'var(--primary)' }}
+                                />
+                                {hora}
+                              </label>
+                            )
+                          })}
+                        </div>
+                      )
+                    })()}
                   </>
                 ) : (
                   <div
@@ -429,9 +591,32 @@ export function ProgramarTab({ onProgramar }) {
                   className={result.ok ? 'form-success' : 'form-error'}
                   style={{ marginBottom: '0.75rem' }}
                 >
-                  {result.ok
-                    ? `✓ ${result.creadas} clase${result.creadas !== 1 ? 's' : ''} programada${result.creadas !== 1 ? 's' : ''}${result.omitidas > 0 ? ` (${result.omitidas} ya existían)` : ''}.`
-                    : result.msg}
+                  {result.ok ? (
+                    <>
+                      ✓ {result.creadas} clase{result.creadas !== 1 ? 's' : ''} programada
+                      {result.creadas !== 1 ? 's' : ''}.
+                    </>
+                  ) : (
+                    <>
+                      {result.msg}
+                      {result.conflictos_sala?.length > 0 && (
+                        <div style={{ marginTop: '0.4rem', fontSize: '0.85rem' }}>
+                          <strong>Sala ocupada:</strong>{' '}
+                          {result.conflictos_sala
+                            .map((c) => `${c.fecha} ${c.hora}`)
+                            .join(', ')}
+                        </div>
+                      )}
+                      {result.conflictos_profesional?.length > 0 && (
+                        <div style={{ marginTop: '0.4rem', fontSize: '0.85rem' }}>
+                          <strong>Profesional ocupado:</strong>{' '}
+                          {result.conflictos_profesional
+                            .map((c) => `${c.fecha} ${c.hora}`)
+                            .join(', ')}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
 

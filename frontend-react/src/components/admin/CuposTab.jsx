@@ -41,7 +41,7 @@ export function CuposTab({
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
           <thead>
             <tr>
-              {['Zona', 'Fecha', 'Horario', 'Cupo actual', 'Nuevo cupo', 'Acción'].map((col) => (
+              {['Zona', 'Sala', 'Profesional', 'Fecha', 'Horario', 'Cupo actual', 'Nuevo cupo', 'Acción'].map((col) => (
                 <th
                   key={col}
                   style={{
@@ -63,7 +63,7 @@ export function CuposTab({
             {filteredClasses.length === 0 ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={8}
                   style={{ textAlign: 'center', padding: '2rem', color: '#999', fontSize: '0.875rem' }}
                 >
                   No hay clases sin inscriptos disponibles.
@@ -76,6 +76,10 @@ export function CuposTab({
                   style={{ background: index % 2 === 0 ? '#fff' : '#fafafa' }}
                 >
                   <td style={{ padding: '0.75rem 1rem' }}>{clase.zona_nombre}</td>
+                  <td style={{ padding: '0.75rem 1rem' }}>{clase.sala_nombre ?? '—'}</td>
+                  <td style={{ padding: '0.75rem 1rem', color: '#666', fontSize: '0.85rem' }}>
+                    {clase.profesional_email ? clase.profesional_email.split('@')[0] : 'Sin asignar'}
+                  </td>
                   <td style={{ padding: '0.75rem 1rem' }}>{clase.fecha}</td>
                   <td style={{ padding: '0.75rem 1rem' }}>{clase.hora}</td>
                   <td style={{ padding: '0.75rem 1rem' }}>{clase.cupo_maximo}</td>

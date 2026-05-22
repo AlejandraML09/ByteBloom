@@ -99,13 +99,12 @@ def salir_lista_espera(
 @router.get("/mi-lista-espera")
 def get_mi_lista_espera(usuario_id: int, db: Session = Depends(get_db)):
     rows = (
-        db.query(models.ListaEspera, models.ClaseProgramada, models.Clase, models.Zona)
+        db.query(models.ListaEspera, models.ClaseProgramada, models.Zona)
         .join(
             models.ClaseProgramada,
             models.ListaEspera.clase_programada_id == models.ClaseProgramada.id,
         )
-        .join(models.Clase, models.ClaseProgramada.clase_id == models.Clase.id)
-        .join(models.Zona, models.Clase.zona_id == models.Zona.id)
+        .join(models.Zona, models.ClaseProgramada.zona_id == models.Zona.id)
         .filter(
             models.ListaEspera.usuario_id == usuario_id,
             models.ListaEspera.activo == True,
@@ -126,5 +125,5 @@ def get_mi_lista_espera(usuario_id: int, db: Session = Depends(get_db)):
             ),
             "prioridad": le.prioridad,
         }
-        for le, cp, c, z in rows
+        for le, cp, z in rows
     ]
