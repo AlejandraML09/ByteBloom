@@ -3,163 +3,91 @@ import client from '../../api/client'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-export default function HorarioTab({ classes, onModifyHorario }) {
-  const [selectedClassId, setSelectedClassId] = useState(null)
-  const [horarioInput, setHorarioInput] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [classesLocal, setClassesLocal] = useState(classes)
-
-  const selectedClass = classesLocal.find(c => c.id === selectedClassId)
-
-  async function handleModifyHorario() {
-    if (!selectedClassId || !horarioInput) {
-      setError('Selecciona una clase e ingresa un horario')
-      return
-    }
-
-    setLoading(true)
-    setError('')
-    
-    try {
-      const res = await fetch(`${API_URL}/api/clases/horario`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clase_programada_id: selectedClassId,
-          nueva_hora: horarioInput
-        }),
-      })
-
-      const body = await res.json().catch(() => ({}))
-      
-      if (!res.ok) {
-        throw new Error(body.detail || 'Error al modificar horario')
-      }
-
-      // ✅ Actualizar la lista local de clases
-      setClassesLocal(classesLocal.map(c =>
-        c.id === selectedClassId
-          ? { ...c, hora: horarioInput }
-          : c
-      ))
-
-      // ✅ Llamar callback para refrescar en Admin.jsx
-      if (onModifyHorario) {
-        await onModifyHorario({
-          clase_programada_id: selectedClassId,
-          nueva_hora: horarioInput
-        })
-      }
-
-      setSelectedClassId(null)
-      setHorarioInput('')
-      alert('✓ Horario actualizado exitosamente')
-    } catch (err) {
-      setError(err.message || 'Error al modificar horario')
-      console.error('Error:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
+export function HorarioTab({
+  classes,
+  horarioInput,
+  onInputChange,
+  onModifyHorario,
+  filterDate,
+  onFilterChange,
+}) {
+  const filteredClasses = filterDate
+    ? classes.filter((clase) => clase.fecha === filterDate)
+    : classes
 
   return (
     <div className='card'>
       <div className='card-header'>
         <div>
           <h3>Modificar horario de clase</h3>
-          <p>Seleccioná una clase y ingresá el nuevo horario.</p>
+          <p>Selecciona una clase y ajusta su horario de inicio.</p>
+        </div>
+        <div className='date-filter'>
+          <input type='date' value={filterDate} onChange={(e) => onFilterChange(e.target.value)} />
         </div>
       </div>
-
-      <div className='card-body'>
-        {error && <div className='form-error' style={{ marginBottom: '1rem' }}>{error}</div>}
-
-        {classesLocal.length === 0 ? (
-          <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-            No hay clases disponibles
-          </p>
-        ) : (
-          <>
-            {!selectedClassId ? (
-              <table className='data-table'>
-                <thead>
-                  <tr>
-                    <th>Zona</th>
-                    <th>Fecha</th>
-                    <th>Horario</th>
-                    <th>Profesional</th>
-                    <th>Acción</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {classesLocal.map(clase => (
-                    <tr key={clase.id}>
-                      <td>{clase.zona || clase.zona_id || '-'}</td>
-                      <td>{clase.fecha}</td>
-                      <td>{clase.hora}</td>
-                      <td>{clase.profesional_email || '-'}</td>
-                      <td>
-                        <button
-                          className='btn-action primary'
-                          onClick={() => {
-                            setSelectedClassId(clase.id)
-                            setHorarioInput(clase.hora)
-                            setError('')
-                          }}
-                        >
-                          Modificar
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      <div style={{ overflowX: 'auto' }}>
+        <table>
+          <thead>
+            <tr>
+              <th>Zona</th>
+              <th>Fecha</th>
+              <th>Horario actual</th>
+              <th>Nuevo inicio</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredClasses.length === 0 ? (
+              <tr>
+                <td colSpan='5' style={{ textAlign: 'center', padding: '1.5rem' }}>
+                  No hay clases disponibles.
+                </td>
+              </tr>
             ) : (
-              <div>
-                <h4 style={{ marginBottom: '1rem', color: 'var(--text-main)' }}>
-                  Modificando: {selectedClass?.zona || selectedClass?.zona_id} - {selectedClass?.fecha}
-                </h4>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-                  Horario actual: <strong>{selectedClass?.hora}</strong>
-                </p>
-
-                <div className='price-input-wrap'>
-                  <div className='price-input-group'>
-                    <label className='price-label'>Nuevo Horario</label>
-                    <input
-                      type='time'
-                      value={horarioInput}
-                      onChange={(e) => setHorarioInput(e.target.value)}
-                      className='price-input'
-                    />
-                  </div>
-
-                  <button
-                    className='btn-action primary'
-                    onClick={handleModifyHorario}
-                    disabled={loading}
-                    style={{ alignSelf: 'flex-end' }}
-                  >
-                    {loading ? 'Guardando...' : 'Guardar'}
-                  </button>
-
-                  <button
-                    className='btn-action'
-                    onClick={() => {
-                      setSelectedClassId(null)
-                      setHorarioInput('')
-                      setError('')
-                    }}
-                    style={{ alignSelf: 'flex-end' }}
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </div>
+              filteredClasses.map((clase) => (
+                <tr key={clase.id}>
+                  <td>{clase.zona_nombre}</td>
+                  <td>{clase.fecha}</td>
+                  <td>{clase.hora}</td>
+                  <td>
+                    <select
+                      className='cupo-input'
+                      value={horarioInput[clase.id]?.inicio || ''}
+                      onChange={(e) => onInputChange(clase.id, 'inicio', e.target.value)}
+                      style={{
+                        fontSize: '1.1rem',
+                        padding: '0.6rem',
+                        width: '100%',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      <option value=''>Selecciona horario</option>
+                      {Array.from({ length: 23 }, (_, i) => {
+                        const hora = Math.floor(i / 2) + 8
+                        const minutos = i % 2 === 0 ? '00' : '30'
+                        const horarioStr = `${String(hora).padStart(2, '0')}:${minutos}`
+                        
+                        if (hora > 19 || (hora === 19 && minutos === '30')) return null
+                        
+                        return (
+                          <option key={horarioStr} value={horarioStr}>
+                            {horarioStr}
+                          </option>
+                        )
+                      }).filter(Boolean)}
+                    </select>
+                  </td>
+                  <td>
+                    <button className='btn-action' onClick={() => onModifyHorario(clase.id)}>
+                      Modificar
+                    </button>
+                  </td>
+                </tr>
+              ))
             )}
-          </>
-        )}
+          </tbody>
+        </table>
       </div>
     </div>
   )

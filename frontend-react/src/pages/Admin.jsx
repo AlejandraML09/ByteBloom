@@ -16,6 +16,7 @@ import { fmtDate, fmtLargo } from '../utils/dates'
 import { RegistrarClienteTab } from '../components/admin/RegistrarClienteTab'
 import '../css/admin.css'
 import SecretariosTab from '../components/admin/SecretariosTab'
+import { HorarioTab } from '../components/admin/HorarioTab'
 
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -44,6 +45,7 @@ const TABS = [
   { id: 'precios', label: 'Modificar precio', roles: ['admin'] },
   { id: 'secretarios', label: 'Secretarios', roles: ['admin'] },
   { id: 'registrar-paciente', label: 'Registrar cliente', roles: ['secretario'] },
+  { id: 'horarios', label: 'Modificar horario', roles: ['admin'] },
 ]
 
 const TAB_HEADERS = {
@@ -57,6 +59,7 @@ const TAB_HEADERS = {
   precios:     { title: 'Modificar precio',        desc: 'Aplicá un nuevo precio a las próximas clases sin inscriptos.' },
   secretarios: { title: 'Secretarios', desc: 'Gestioná los usuarios secretarios del sistema.' },
   'registrar-paciente': { title: 'Registrar cliente', desc: 'Registrá un nuevo cliente en el sistema.' },
+  horarios:    { title: 'Modificar horario',        desc: 'Ajustá el horario de inicio de las clases.' },
 }
 
 export default function Admin() {
@@ -87,6 +90,8 @@ export default function Admin() {
   const [precio, setPrecio] = useState(0)
   const [priceInput, setPriceInput] = useState('')
   const [upcomingClasses, setUpcomingClasses] = useState([])
+  const [horarioInput, setHorarioInput] = useState({})
+  const [filterHorarioDate, setFilterHorarioDate] = useState('')
 
   useEffect(() => {
     if (!user || !['admin', 'secretario'].includes(user.rol)) {
@@ -375,6 +380,62 @@ export default function Admin() {
 
   const currentHeader = TAB_HEADERS[activeTab] ?? { title: '', desc: '' }
 
+  const handleHorarioInputChange = (claseId, campo, valor) => {
+    setHorarioInput({
+      ...horarioInput,
+      [claseId]: {
+        ...horarioInput[claseId],
+        [campo]: valor,
+      },
+    })
+  }
+
+  const handleModifyHorario = async (claseId) => {
+    const horario = horarioInput[claseId]
+
+    if (!horario?.inicio) {
+      showToast('Completa el horario de inicio')
+      return
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/api/clases/${claseId}/horario`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nueva_hora: horario.inicio }),
+      })
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        showToast(body.detail || 'Error al actualizar horario')
+        return
+      }
+
+      showToast('✓ Horario actualizado exitosamente')
+
+      try {
+        const resCupos = await fetch(`${API_URL}/api/cupos`)
+        if (resCupos.ok) {
+          const dataCupos = await resCupos.json()
+          setCuposClasses(dataCupos)
+          setUpcomingClasses(dataCupos)
+        }
+      } catch {}
+
+      try {
+        const resCancelar = await fetch(`${API_URL}/api/clases-cancelar`)
+        if (resCancelar.ok) {
+          const dataCancelar = await resCancelar.json()
+          setClasesParaCancelar(dataCancelar)
+        }
+      } catch {}
+
+      setHorarioInput({})
+    } catch (err) {
+      showToast('Error al conectar con el servidor')
+    }
+  }
+
   return (
     <div className='admin-page'>
       {/* Navbar solo con logo + badge + perfil */}
@@ -468,6 +529,16 @@ export default function Admin() {
         {activeTab === 'secretarios' && <SecretariosTab />}
         {activeTab === 'registrar-paciente' && (
           <RegistrarClienteTab onToast={showToast} />
+        )}
+        {activeTab === 'horarios' && (
+          <HorarioTab
+            classes={cuposClasses}
+            horarioInput={horarioInput}
+            onInputChange={handleHorarioInputChange}
+            onModifyHorario={handleModifyHorario}
+            filterDate={filterHorarioDate}
+            onFilterChange={setFilterHorarioDate}
+          />
         )}
       </div>
 
