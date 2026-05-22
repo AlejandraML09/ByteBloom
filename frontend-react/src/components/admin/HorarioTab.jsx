@@ -15,6 +15,34 @@ export function HorarioTab({
     ? classes.filter((clase) => clase.fecha === filterDate)
     : classes
 
+  // Función para obtener horarios ocupados en una sala en una fecha específica
+  const getHorariosOcupados = (salaId, fecha, claseIdActual) => {
+    return filteredClasses
+      .filter((c) => c.sala_id === salaId && c.fecha === fecha && c.id !== claseIdActual)
+      .map((c) => c.hora)
+  }
+
+  // Función para generar opciones de horario
+  const generarOpcionesHorario = (salaId, fecha, claseId) => {
+    const horariosOcupados = getHorariosOcupados(salaId, fecha, claseId)
+    
+    return Array.from({ length: 23 }, (_, i) => {
+      const hora = Math.floor(i / 2) + 8
+      const minutos = i % 2 === 0 ? '00' : '30'
+      const horarioStr = `${String(hora).padStart(2, '0')}:${minutos}`
+      
+      if (hora > 19 || (hora === 19 && minutos === '30')) return null
+      
+      const estaOcupado = horariosOcupados.includes(horarioStr)
+      
+      return (
+        <option key={horarioStr} value={horarioStr} disabled={estaOcupado}>
+          {horarioStr} {estaOcupado ? '(ocupado)' : ''}
+        </option>
+      )
+    }).filter(Boolean)
+  }
+
   return (
     <div className='card'>
       <div className='card-header'>
@@ -31,6 +59,7 @@ export function HorarioTab({
           <thead>
             <tr>
               <th>Zona</th>
+              <th>Sala</th>
               <th>Fecha</th>
               <th>Horario actual</th>
               <th>Nuevo inicio</th>
@@ -40,7 +69,7 @@ export function HorarioTab({
           <tbody>
             {filteredClasses.length === 0 ? (
               <tr>
-                <td colSpan='5' style={{ textAlign: 'center', padding: '1.5rem' }}>
+                <td colSpan='6' style={{ textAlign: 'center', padding: '1.5rem' }}>
                   No hay clases disponibles.
                 </td>
               </tr>
@@ -48,6 +77,7 @@ export function HorarioTab({
               filteredClasses.map((clase) => (
                 <tr key={clase.id}>
                   <td>{clase.zona_nombre}</td>
+                  <td>{clase.sala_nombre}</td>
                   <td>{clase.fecha}</td>
                   <td>{clase.hora}</td>
                   <td>
@@ -63,19 +93,7 @@ export function HorarioTab({
                       }}
                     >
                       <option value=''>Selecciona horario</option>
-                      {Array.from({ length: 23 }, (_, i) => {
-                        const hora = Math.floor(i / 2) + 8
-                        const minutos = i % 2 === 0 ? '00' : '30'
-                        const horarioStr = `${String(hora).padStart(2, '0')}:${minutos}`
-                        
-                        if (hora > 19 || (hora === 19 && minutos === '30')) return null
-                        
-                        return (
-                          <option key={horarioStr} value={horarioStr}>
-                            {horarioStr}
-                          </option>
-                        )
-                      }).filter(Boolean)}
+                      {generarOpcionesHorario(clase.sala_id, clase.fecha, clase.id)}
                     </select>
                   </td>
                   <td>
