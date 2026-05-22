@@ -130,7 +130,7 @@ function SuccessScreen({ zona, shifts, onVolver }) {
       </div>
       <h2 className='sa-success-title'>¡Bienvenido/a al plan de abono!</h2>
       <p className='sa-success-sub'>
-        Tu suscripción a <strong>{ZONA_LABELS[zona?.nombre] ?? zona?.nombre}</strong>{' '} fue creada.
+        Tu suscripción a <strong>{ZONA_LABELS[zona?.nombre] ?? zona?.nombre}</strong> fue creada.
         Tenés {shifts.length} sesione{shifts.length !== 1 ? 's' : ''} reservada
         {shifts.length !== 1 ? 's' : ''}.
       </p>
@@ -170,7 +170,6 @@ export default function QuieroSerAbonado() {
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
   const [success, setSuccess] = useState(false)
-  const [successData, setSuccessData] = useState(null)
   const { msg, visible, showToast } = useToast()
 
   const today = useMemo(() => {
@@ -221,19 +220,6 @@ export default function QuieroSerAbonado() {
     }
 
     if (status === 'approved') {
-      const uiRaw = sessionStorage.getItem('pending_abono_ui')
-
-      if (uiRaw) {
-        const parsed = JSON.parse(uiRaw)
-
-        setSuccessData({
-          ...parsed,
-            shifts: parsed.shifts.map((s) => ({
-              ...s,
-              diaDate: new Date(s.diaDate),
-          })),
-        })
-      }
       if (pendingAbono) {
         setIsFinalizingPayment(true)
         client
@@ -372,14 +358,6 @@ export default function QuieroSerAbonado() {
         }
         sessionStorage.setItem('pending_abono', JSON.stringify(payload))
 
-        sessionStorage.setItem(
-          'pending_abono_ui',
-          JSON.stringify({
-            zona,
-            shifts,
-          })
-        )
-
         const { data } = await client.post('/api/crear-preferencia', null, {
           params: {
             servicio_id: zona?.id ?? 1,
@@ -428,11 +406,7 @@ export default function QuieroSerAbonado() {
     return (
       <>
         <Navbar />
-        <SuccessScreen
-          zona={successData?.zona || zona}
-          shifts={successData?.shifts || shifts}
-          onVolver={() => navigate('/')}
-        />
+        <SuccessScreen zona={zona} shifts={shifts} onVolver={() => navigate('/')} />
         <Footer />
       </>
     )
