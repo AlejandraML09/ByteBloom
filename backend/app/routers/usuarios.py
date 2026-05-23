@@ -11,6 +11,9 @@ import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from dotenv import load_dotenv
+
+load_dotenv()
 
 router = APIRouter(tags=["usuarios"])
 
@@ -33,12 +36,48 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class ActualizarUsuarioRequest(BaseModel):
+    usuario_id: int
+    nombre: str
+    apellido: str
+    dni: int
+    fecha_nacimiento: date
+    password_actual: Optional[str] = None
+    password_nueva: Optional[str] = None
+
+
+class CrearSecretarioRequest(BaseModel):
+    nombre: str
+    apellido: str
+    email: str
+    fecha_nacimiento: date
+    dni: str
+
+
+class RegistrarClienteRequest(BaseModel):
+    nombre: str
+    apellido: str
+    email: str
+    dni: int | None = None
+
+
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+
+def enviar_mail(destinatario: str, asunto: str, cuerpo_html: str):
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = asunto
+    msg["From"] = GMAIL_USER
+    msg["To"] = destinatario
+    msg.attach(MIMEText(cuerpo_html, "html"))
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login(GMAIL_USER, GMAIL_PASSWORD)
+        server.sendmail(GMAIL_USER, destinatario, msg.as_string())
 
 
 @router.post("/registro/")
@@ -60,7 +99,6 @@ def registrar(data: UsuarioRequest, db: Session = Depends(get_db)):
     )
     nuevo.set_password(data.password)
     db.add(nuevo)
-    print("antes de commit")
     db.commit()
     db.refresh(nuevo)
 
@@ -89,32 +127,10 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
     }
 
 
-class CrearSecretarioRequest(BaseModel):
-    nombre: str
-    apellido: str
-    email: str
-    fecha_nacimiento: date
-    dni: str
-
-
-def enviar_mail(destinatario: str, asunto: str, cuerpo_html: str):
-    """Reutilizada de auth.py"""
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = asunto
-    msg["From"] = GMAIL_USER
-    msg["To"] = destinatario
-    msg.attach(MIMEText(cuerpo_html, "html"))
-
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(GMAIL_USER, GMAIL_PASSWORD)
-        server.sendmail(GMAIL_USER, destinatario, msg.as_string())
-
-
 @router.post("/api/usuarios/crear-secretario")
 def crear_secretario(data: CrearSecretarioRequest, db: Session = Depends(get_db)):
     email_lower = data.email.lower()
 
-    # Validar email único
     if db.query(models.Usuario).filter(models.Usuario.email == email_lower).first():
         raise HTTPException(status_code=400, detail="Email ya registrado")
 
@@ -130,12 +146,10 @@ def crear_secretario(data: CrearSecretarioRequest, db: Session = Depends(get_db)
         rol=models.RolUsuario.secretario,
     )
 
-    # ✅ GENERAR TOKEN PARA RESTABLECIMIENTO (mismo flujo que usuarios)
     token = secrets.token_urlsafe(32)
     nuevo_secretario.reset_token = token
     nuevo_secretario.reset_token_expira = datetime.now(timezone.utc) + timedelta(hours=24)
 
-    # ✅ GENERAR CONTRASEÑA TEMPORAL
     temp_password = secrets.token_urlsafe(12)
     nuevo_secretario.set_password(temp_password)
 
@@ -143,8 +157,7 @@ def crear_secretario(data: CrearSecretarioRequest, db: Session = Depends(get_db)
     db.commit()
     db.refresh(nuevo_secretario)
 
-    # ✅ ENVIAR EMAIL (reutilizando enviar_mail)
-    enlace = f"{FRONTEND_URL}/restablecer-password?token={token}"
+    enlace = f"{FRONTEND_URL}restablecer-password?token={token}"
 
     try:
         enviar_mail(
@@ -179,7 +192,6 @@ def listar_secretarios(db: Session = Depends(get_db)):
         .filter(models.Usuario.rol == models.RolUsuario.secretario)
         .all()
     )
-
     return [
         {
             "id": s.id,
@@ -231,7 +243,6 @@ def listar_profesionales(db: Session = Depends(get_db)):
         .filter(models.Usuario.rol == models.RolUsuario.profesional)
         .all()
     )
-
     return [
         {
             "id": p.id,
@@ -244,14 +255,6 @@ def listar_profesionales(db: Session = Depends(get_db)):
     ]
 
 
-class ActualizarUsuarioRequest(BaseModel):
-    usuario_id: int
-    nombre: str
-    apellido: str
-    dni: int
-    fecha_nacimiento: date
-
-
 @router.put("/usuarios/me")
 def actualizar_usuario(data: ActualizarUsuarioRequest, db: Session = Depends(get_db)):
     user = db.query(models.Usuario).filter(models.Usuario.id == data.usuario_id).first()
@@ -262,29 +265,30 @@ def actualizar_usuario(data: ActualizarUsuarioRequest, db: Session = Depends(get
     if not data.nombre.strip():
         raise HTTPException(status_code=400, detail="El nombre es un campo obligatorio")
     if not data.apellido.strip():
-        raise HTTPException(
-            status_code=400, detail="El apellido es un campo obligatorio"
-        )
+        raise HTTPException(status_code=400, detail="El apellido es un campo obligatorio")
 
     user.nombre = data.nombre.strip()
     user.apellido = data.apellido.strip()
-    user.dni = data.dni
     user.fecha_nacimiento = data.fecha_nacimiento
 
-    # Solo actualizar dni si cambió
     if data.dni and data.dni != user.dni:
         existe = (
             db.query(models.Usuario)
-            .filter(
-                models.Usuario.dni == data.dni, models.Usuario.id != data.usuario_id
-            )
+            .filter(models.Usuario.dni == data.dni, models.Usuario.id != data.usuario_id)
             .first()
         )
         if existe:
-            raise HTTPException(
-                status_code=400, detail="El DNI ya está registrado por otro usuario"
-            )
+            raise HTTPException(status_code=400, detail="El DNI ya está registrado por otro usuario")
         user.dni = data.dni
+
+    if data.password_actual or data.password_nueva:
+        if not data.password_actual or not data.password_nueva:
+            raise HTTPException(status_code=400, detail="Debés completar la contraseña actual y la nueva")
+        if not user.check_password(data.password_actual):
+            raise HTTPException(status_code=401, detail="La contraseña actual es incorrecta")
+        if len(data.password_nueva) < 6:
+            raise HTTPException(status_code=400, detail="La nueva contraseña debe tener al menos 6 caracteres")
+        user.set_password(data.password_nueva)
 
     db.commit()
 
@@ -305,35 +309,11 @@ def eliminar_secretario(secretario_id: int, db: Session = Depends(get_db)):
     if not secretario:
         raise HTTPException(status_code=404, detail="Secretario no encontrado")
 
-    # Verificar si tiene turnos o registros asociados
-    # Si es necesario, primero elimina esos registros
-
     db.delete(secretario)
     db.commit()
 
     return {"message": "Secretario eliminado exitosamente"}
 
-    #lo nuevo de registrar cliente:
-
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5174/")
-GMAIL_USER = os.getenv("GMAIL_USER")
-GMAIL_PASSWORD = os.getenv("GMAIL_PASSWORD")
-
-def enviar_mail_usuario(destinatario: str, asunto: str, cuerpo_html: str):
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = asunto
-    msg["From"] = GMAIL_USER
-    msg["To"] = destinatario
-    msg.attach(MIMEText(cuerpo_html, "html"))
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(GMAIL_USER, GMAIL_PASSWORD)
-        server.sendmail(GMAIL_USER, destinatario, msg.as_string())
-
-class RegistrarClienteRequest(BaseModel):
-    nombre: str
-    apellido: str
-    email: str
-    dni: int | None = None
 
 @router.post("/secretario/registrar-cliente")
 def registrar_cliente_secretario(data: RegistrarClienteRequest, db: Session = Depends(get_db)):
@@ -357,16 +337,14 @@ def registrar_cliente_secretario(data: RegistrarClienteRequest, db: Session = De
     db.commit()
     db.refresh(nuevo)
 
-    # Generar token para restablecer contraseña
-    from datetime import datetime, timedelta, timezone
     token = secrets.token_urlsafe(32)
     nuevo.reset_token = token
     nuevo.reset_token_expira = datetime.now(timezone.utc) + timedelta(hours=24)
     db.commit()
 
-    enlace = f"{FRONTEND_URL}/restablecer-password?token={token}"
+    enlace = f"{FRONTEND_URL}restablecer-password?token={token}"
     print(f"Enviando mail a: {email_lower}")
-    enviar_mail_usuario(
+    enviar_mail(
         destinatario=email_lower,
         asunto="Bienvenido a Endereza2 - Activá tu cuenta",
         cuerpo_html=f"""

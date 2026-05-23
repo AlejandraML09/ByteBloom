@@ -13,7 +13,7 @@ export default function Registro() {
     nombre: '',
     apellido: '',
     email: '',
-    dni: '', 
+    dni: '',
     fechaNacimiento: '',
     password: '',
     confirmarPassword: '',
@@ -24,6 +24,21 @@ export default function Registro() {
   const [cargando, setCargando] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  const fechaMaxima = (() => {
+    const d = new Date()
+    d.setFullYear(d.getFullYear() - 14)
+    return d.toISOString().split('T')[0]
+  })()
+
+  const formularioCompleto =
+    form.nombre.trim() &&
+    form.apellido.trim() &&
+    form.email.trim() &&
+    form.dni &&
+    form.fechaNacimiento &&
+    form.password &&
+    form.confirmarPassword
 
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -141,16 +156,18 @@ export default function Registro() {
               onChange={handleChange}
             />
           </div>
+
           <div className='form-group'>
-          <label>DNI</label>
-          <input
-            type='number'
-            name='dni'
-            placeholder='12345678'
-            value={form.dni}
-            onChange={handleChange}
-          />
-        </div>
+            <label>DNI</label>
+            <input
+              type='number'
+              name='dni'
+              placeholder='12345678'
+              value={form.dni}
+              onChange={handleChange}
+            />
+          </div>
+
           <div className='form-group'>
             <label>Fecha de nacimiento</label>
             <input
@@ -158,70 +175,62 @@ export default function Registro() {
               name='fechaNacimiento'
               value={form.fechaNacimiento}
               onChange={handleChange}
-              max={new Date().toISOString().split('T')[0]}
+              max={fechaMaxima}
             />
           </div>
 
           <div className='registro-grid'>
             <div className='form-group'>
               <label>Contraseña</label>
-              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                 <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  placeholder="Mínimo 6 caracteres"
+                  type={showPassword ? 'text' : 'password'}
+                  name='password'
+                  placeholder='Mínimo 6 caracteres'
                   value={form.password}
                   onChange={handleChange}
-                  style={{ width: "100%", padding: "8px", paddingRight: "35px", boxSizing: "border-box" }}
+                  style={{ width: '100%', padding: '8px', paddingRight: '35px', boxSizing: 'border-box' }}
                 />
                 <button
-                  type="button"
+                  type='button'
                   onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: "absolute",
-                    right: "8px",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    fontSize: "18px",
-                    padding: "0"
-                  }}
+                  style={{ position: 'absolute', right: '8px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '0' }}
                 >
-                  {showPassword ? "👁️" : "👁️‍🗨️"}
+                  {showPassword ? '👁️' : '👁️‍🗨️'}
                 </button>
               </div>
             </div>
             <div className='form-group'>
               <label>Confirmar contraseña</label>
-              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                 <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  name="confirmarPassword"
-                  placeholder="Repetí tu contraseña"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name='confirmarPassword'
+                  placeholder='Repetí tu contraseña'
                   value={form.confirmarPassword}
                   onChange={handleChange}
-                  style={{ width: "100%", padding: "8px", paddingRight: "35px", boxSizing: "border-box" }}
+                  style={{ width: '100%', padding: '8px', paddingRight: '35px', boxSizing: 'border-box' }}
                 />
                 <button
-                  type="button"
+                  type='button'
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  style={{
-                    position: "absolute",
-                    right: "8px",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    fontSize: "18px",
-                    padding: "0"
-                  }}
+                  style={{ position: 'absolute', right: '8px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '0' }}
                 >
-                  {showConfirmPassword ? "👁️" : "👁️‍🗨️"}
+                  {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
                 </button>
               </div>
             </div>
           </div>
 
-          <button className='btn-registro' onClick={handleSubmit} disabled={cargando}>
+          <button
+            className='btn-registro'
+            onClick={handleSubmit}
+            disabled={cargando || !formularioCompleto}
+            style={{
+              opacity: formularioCompleto ? 1 : 0.5,
+              cursor: formularioCompleto ? 'pointer' : 'not-allowed',
+            }}
+          >
             {cargando ? 'Registrando...' : 'Registrarse'}
           </button>
 
