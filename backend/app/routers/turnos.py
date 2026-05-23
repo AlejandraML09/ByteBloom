@@ -292,6 +292,7 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
             "monto_total": float(r.monto_total) if r.monto_total is not None else None,
             "estado_pago": r.estado_pago,
             "pack_id": r.pack_id,
+            "clase_activa": bool(cp.activo),
             "fecha_reserva": r.fecha_reserva.isoformat() if r.fecha_reserva else None,
         }
         for r, cp, z, mp in rows

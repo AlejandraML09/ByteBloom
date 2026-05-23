@@ -1,0 +1,28 @@
+HU: Cancelar una clase
+======================
+
+Título: Como admin quiero cancelar una clase para mantener un registro de la cancelación e informar a los usuarios.
+
+
+Reglas de Negocio:
+
+- Sólo los usuarios con rol admin o secretario pueden cancelar clases.
+- Una clase no puede cancelarse si ya está cancelada.
+- Al cancelar una clase, todas las reservas activas de esa clase quedan automáticamente canceladas.
+- Los usuarios afectados ven en "Mis Reservas" que la clase fue cancelada por el centro.
+- Antes de confirmar la cancelación, el admin ve cuántos usuarios serán afectados.
+- Sólo se pueden cancelar clases futuras.
+
+
+Criterios de Aceptación:
+
+Escenario 1: Cancelación exitosa.
+Dado: una clase activa de Tren inferior el 10/06/2026 a las 09:00hs con reservas activas,
+Cuando: el admin selecciona zona: "Tren inferior", fecha: 10/06/2026, hora: 09:00hs y presiona "Cancelar", y en el modal de confirmación que muestra cuántos usuarios resultarán afectados presiona "Confirmar cancelación",
+Entonces: el sistema cancela la clase y sus reservas asociadas e informa "La clase ha sido cancelada exitosamente", y los usuarios afectados ven la cancelación reflejada en "Mis Reservas".
+
+
+Escenario 2: Cancelación fallida porque la clase ya fue cancelada.
+Dado: una clase de Tren inferior el 10/06/2026 a las 09:00hs que ya fue cancelada,
+Cuando: el admin selecciona zona: "Tren inferior", fecha: 10/06/2026, hora: 09:00hs y presiona "Cancelar",
+Entonces: el sistema informa "La clase ya se encuentra cancelada."

@@ -136,9 +136,57 @@ def obtener_clases_cancelar(db: Session = Depends(get_db)):
     return _rows_to_response(_query_clases_programadas(db))
 
 
+@router.get("/clases-cancelar/buscar")
+def buscar_clase_para_cancelar(
+    zona_id: int, fecha: str, hora: str, db: Session = Depends(get_db)
+):
+    """Busca la clase programada exacta (zona + fecha + hora) que el admin
+    quiere cancelar y devuelve cuántos usuarios tienen reserva activa en ella."""
+    try:
+        fecha_obj = date.fromisoformat(fecha)
+    except ValueError:
+        raise HTTPException(
+            status_code=400, detail="Fecha inválida. Usá formato YYYY-MM-DD."
+        )
+
+    cp = (
+        db.query(models.ClaseProgramada)
+        .filter(
+            models.ClaseProgramada.zona_id == zona_id,
+            models.ClaseProgramada.fecha == fecha_obj,
+            models.ClaseProgramada.hora == hora,
+        )
+        .first()
+    )
+    if not cp:
+        raise HTTPException(
+            status_code=404,
+            detail="No hay clase programada para esa zona, fecha y hora.",
+        )
+
+    inscriptos = (
+        db.query(models.Reserva)
+        .filter(
+            models.Reserva.clase_programada_id == cp.id,
+            models.Reserva.estado != models.EstadoReserva.cancelada,
+        )
+        .count()
+    )
+
+    return {
+        "id": cp.id,
+        "activo": cp.activo,
+        "inscriptos": inscriptos,
+        "zona_id": cp.zona_id,
+        "fecha": str(cp.fecha),
+        "hora": str(cp.hora)[:5],
+    }
+
+
 @router.post("/clases-cancelar")
 def cancelar_clase(data: CancelarClaseRequest, db: Session = Depends(get_db)):
-    """Cancel a specific scheduled class instance."""
+    """Cancela la clase y todas sus reservas activas (los usuarios afectados
+    verán el cambio reflejado en 'Mis Reservas')."""
     cp = (
         db.query(models.ClaseProgramada)
         .filter(models.ClaseProgramada.id == data.clase_programada_id)
@@ -153,10 +201,22 @@ def cancelar_clase(data: CancelarClaseRequest, db: Session = Depends(get_db)):
             status_code=400, detail="La clase ya se encuentra cancelada."
         )
 
+    reservas_canceladas = (
+        db.query(models.Reserva)
+        .filter(
+            models.Reserva.clase_programada_id == cp.id,
+            models.Reserva.estado != models.EstadoReserva.cancelada,
+        )
+        .update(
+            {"estado": models.EstadoReserva.cancelada},
+            synchronize_session=False,
+        )
+    )
     cp.activo = False
     db.commit()
 
     return {
         "mensaje": "Clase cancelada exitosamente.",
         "clase_programada_id": cp.id,
+        "reservas_canceladas": reservas_canceladas,
     }

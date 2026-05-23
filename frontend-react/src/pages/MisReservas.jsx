@@ -957,6 +957,18 @@ export default function MisReservas() {
                             </>
                           )}
                         </div>
+                        {r.estado === 'cancelada' && r.clase_activa === false && (
+                          <div
+                            style={{
+                              marginTop: 6,
+                              fontSize: 12,
+                              color: '#c0435a',
+                              fontStyle: 'italic',
+                            }}
+                          >
+                            Esta clase fue cancelada por el centro.
+                          </div>
+                        )}
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
                         <span className={`mr-item-badge mr-item-badge--${estadoCfg.css}`}>
