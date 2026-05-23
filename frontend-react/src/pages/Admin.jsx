@@ -6,7 +6,7 @@ import { TurnosTab } from '../components/admin/TurnosTab'
 import { PacientesTab } from '../components/admin/PacientesTab'
 import { CuposTab } from '../components/admin/CuposTab'
 import { CancelarTab } from '../components/admin/CancelarTab'
-import { CrearTab } from '../components/admin/CrearTab'
+import { SalasTab } from '../components/admin/SalasTab'
 import { ProgramarTab } from '../components/admin/ProgramarTab'
 import { AsistenciaTab } from '../components/admin/AsistenciaTab'
 import { PriceTab } from '../components/admin/PriceTab'
@@ -16,6 +16,7 @@ import { fmtDate, fmtLargo } from '../utils/dates'
 import { RegistrarClienteTab } from '../components/admin/RegistrarClienteTab'
 import '../css/admin.css'
 import SecretariosTab from '../components/admin/SecretariosTab'
+import { HorarioTab } from '../components/admin/HorarioTab'
 
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -37,13 +38,14 @@ const TABS = [
   { id: 'pacientes', label: 'Pacientes', roles: ['admin'] },
   { id: 'cupos', label: 'Gestionar cupos', roles: ['admin'] },
   { id: 'asistencia', label: 'Asistencia', roles: ['secretario'] },
-  { id: 'crear', label: 'Crear clase', roles: ['admin', 'secretario'] },
+  { id: 'salas', label: 'Salas', roles: ['admin'] },
   { id: 'programar', label: 'Programar clases', roles: ['admin', 'secretario'] },
   { id: 'cancelar', label: 'Cancelar clase', roles: ['admin', 'secretario'] },
   { id: 'eliminar', label: 'Eliminar por profesional', roles: ['admin'] },
   { id: 'precios', label: 'Modificar precio', roles: ['admin'] },
   { id: 'secretarios', label: 'Secretarios', roles: ['admin'] },
   { id: 'registrar-paciente', label: 'Registrar cliente', roles: ['secretario'] },
+  { id: 'horarios', label: 'Modificar horario', roles: ['admin'] },
 ]
 
 const TAB_HEADERS = {
@@ -51,12 +53,14 @@ const TAB_HEADERS = {
   pacientes:   { title: 'Pacientes',               desc: 'Historial completo de pacientes del sistema.' },
   cupos:       { title: 'Gestionar cupos',         desc: 'Ajustá el cupo máximo de cada clase.' },
   asistencia:  { title: 'Asistencia',              desc: 'Marcá la presencia de cada paciente.' },
-  crear:       { title: 'Crear clase',             desc: 'Completá los datos para agregar una nueva clase.' },
+  salas:       { title: 'Gestión de salas',        desc: 'Administrá las salas físicas y su cupo. El cambio de cupo aplica a clases nuevas.' },
+  programar:   { title: 'Programar clases',        desc: 'Elegí zona, sala, profesional y horarios para crear las clases.' },
   cancelar:    { title: 'Cancelar clase',          desc: 'Seleccioná una clase activa para cancelarla.' },
   eliminar:    { title: 'Eliminar por profesional',desc: 'Cancelá todas las clases futuras de un profesional.' },
   precios:     { title: 'Modificar precio',        desc: 'Aplicá un nuevo precio a las próximas clases sin inscriptos.' },
   secretarios: { title: 'Secretarios', desc: 'Gestioná los usuarios secretarios del sistema.' },
   'registrar-paciente': { title: 'Registrar cliente', desc: 'Registrá un nuevo cliente en el sistema.' },
+  horarios:    { title: 'Modificar horario',        desc: 'Ajustá el horario de inicio de las clases.' },
 }
 
 export default function Admin() {
@@ -68,7 +72,7 @@ export default function Admin() {
 
   const visibleTabs = TABS.filter((t) => t.roles.includes(user?.rol))
 
-  const [activeTab, setActiveTab] = useState(visibleTabs[0]?.id ?? 'crear')
+  const [activeTab, setActiveTab] = useState(visibleTabs[0]?.id ?? 'programar')
   const [filterDate, setFilterDate] = useState(today)
   const [filterCuposDate, setFilterCuposDate] = useState('')
   const [filterCancelarDate, setFilterCancelarDate] = useState('')
@@ -87,6 +91,8 @@ export default function Admin() {
   const [precio, setPrecio] = useState(0)
   const [priceInput, setPriceInput] = useState('')
   const [upcomingClasses, setUpcomingClasses] = useState([])
+  const [horarioInput, setHorarioInput] = useState({})
+  const [filterHorarioDate, setFilterHorarioDate] = useState('')
 
   useEffect(() => {
     if (!user || !['admin', 'secretario'].includes(user.rol)) {
@@ -182,22 +188,6 @@ export default function Admin() {
     showToast(`Turno de ${nombre} cancelado`)
   }
 
-  async function crearClase(datos) {
-    const res = await fetch(`${API_URL}/api/clases`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(datos),
-    })
-    const body = await res.json().catch(() => ({}))
-    if (!res.ok) {
-      const msg = Array.isArray(body.detail)
-        ? body.detail[0].msg.replace('Value error, ', '')
-        : body.detail || 'Error al crear la clase.'
-      throw new Error(msg)
-    }
-    showToast('Clase creada exitosamente')
-  }
-
   async function cancelarClase(claseId) {
     const clase = clasesParaCancelar.find((c) => c.id === claseId)
     if (!clase) return
@@ -226,7 +216,15 @@ export default function Admin() {
       body: JSON.stringify(datos),
     })
     const body = await res.json().catch(() => ({}))
-    if (!res.ok) throw new Error(body.detail || 'Error al programar las clases.')
+    if (!res.ok) {
+      const err = new Error(
+        typeof body.detail === 'string'
+          ? body.detail
+          : body.detail?.mensaje || 'Error al programar las clases.'
+      )
+      err.detail = body.detail
+      throw err
+    }
     showToast(
       `${body.creadas} clase${body.creadas !== 1 ? 's' : ''} programada${body.creadas !== 1 ? 's' : ''} creada${body.creadas !== 1 ? 's' : ''} correctamente`
     )
@@ -261,9 +259,10 @@ export default function Admin() {
   }
 
   async function eliminarClasesPorProfesional(email) {
-    const res = await fetch(`${API_URL}/api/clases/por-profesional/${encodeURIComponent(email)}`, {
-      method: 'DELETE',
-    })
+    const res = await fetch(
+      `${API_URL}/api/clases-programadas/por-profesional/${encodeURIComponent(email)}`,
+      { method: 'DELETE' }
+    )
     const body = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(body.detail || 'Error al eliminar las clases.')
     showToast(`Clases de ${email} canceladas correctamente`)
@@ -375,6 +374,62 @@ export default function Admin() {
 
   const currentHeader = TAB_HEADERS[activeTab] ?? { title: '', desc: '' }
 
+  const handleHorarioInputChange = (claseId, campo, valor) => {
+    setHorarioInput({
+      ...horarioInput,
+      [claseId]: {
+        ...horarioInput[claseId],
+        [campo]: valor,
+      },
+    })
+  }
+
+  const handleModifyHorario = async (claseId) => {
+    const horario = horarioInput[claseId]
+
+    if (!horario?.inicio) {
+      showToast('Completa el horario de inicio')
+      return
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/api/clases/${claseId}/horario`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nueva_hora: horario.inicio }),
+      })
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        showToast(body.detail || 'Error al actualizar horario')
+        return
+      }
+
+      showToast('✓ Horario actualizado exitosamente')
+
+      try {
+        const resCupos = await fetch(`${API_URL}/api/cupos`)
+        if (resCupos.ok) {
+          const dataCupos = await resCupos.json()
+          setCuposClasses(dataCupos)
+          setUpcomingClasses(dataCupos)
+        }
+      } catch {}
+
+      try {
+        const resCancelar = await fetch(`${API_URL}/api/clases-cancelar`)
+        if (resCancelar.ok) {
+          const dataCancelar = await resCancelar.json()
+          setClasesParaCancelar(dataCancelar)
+        }
+      } catch {}
+
+      setHorarioInput({})
+    } catch (err) {
+      showToast('Error al conectar con el servidor')
+    }
+  }
+
   return (
     <div className='admin-page'>
       {/* Navbar solo con logo + badge + perfil */}
@@ -441,7 +496,7 @@ export default function Admin() {
           />
         )}
 
-        {activeTab === 'crear' && <CrearTab onCrear={crearClase} />}
+        {activeTab === 'salas' && <SalasTab onToast={showToast} />}
 
         {activeTab === 'programar' && <ProgramarTab onProgramar={crearClasesProgramadas} />}
 
@@ -468,6 +523,16 @@ export default function Admin() {
         {activeTab === 'secretarios' && <SecretariosTab />}
         {activeTab === 'registrar-paciente' && (
           <RegistrarClienteTab onToast={showToast} />
+        )}
+        {activeTab === 'horarios' && (
+          <HorarioTab
+            classes={cuposClasses}
+            horarioInput={horarioInput}
+            onInputChange={handleHorarioInputChange}
+            onModifyHorario={handleModifyHorario}
+            filterDate={filterHorarioDate}
+            onFilterChange={setFilterHorarioDate}
+          />
         )}
       </div>
 

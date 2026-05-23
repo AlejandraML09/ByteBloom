@@ -113,23 +113,29 @@ class Zona(Base):
     activo = Column(Boolean, nullable=False, default=True)
 
 
-class Clase(Base):
-    __tablename__ = "clases"
+class Sala(Base):
+    __tablename__ = "salas"
 
     id = Column(BigInteger, primary_key=True, index=True)
-    zona_id = Column(BigInteger, nullable=False, index=True)
-    cupo_maximo = Column(Integer, nullable=False, default=5)
+    nombre = Column(String(80), nullable=False, unique=True)
+    descripcion = Column(Text, nullable=True)
+    cupo = Column(Integer, nullable=False)
     activo = Column(Boolean, nullable=False, default=True)
-    profesional_email = Column(String(100), nullable=True)
+    fecha_creacion = Column(
+        DateTime(timezone=False), nullable=False, server_default=func.now()
+    )
 
 
 class ClaseProgramada(Base):
     __tablename__ = "clases_programadas"
 
     id = Column(BigInteger, primary_key=True, index=True)
-    clase_id = Column(BigInteger, nullable=False, index=True)
+    zona_id = Column(BigInteger, nullable=False, index=True)
+    sala_id = Column(BigInteger, nullable=False, index=True)
+    profesional_email = Column(String(100), nullable=True, index=True)
     fecha = Column(Date, nullable=False)
     hora = Column(Time, nullable=False)
+    cupo_inicial = Column(Integer, nullable=False)
     cupo_disponible = Column(Integer, nullable=False, default=0)
     fecha_creacion = Column(
         DateTime(timezone=False), nullable=False, server_default=func.now()

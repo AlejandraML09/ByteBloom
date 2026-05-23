@@ -9,6 +9,7 @@ from app.routers import (
     auth,
     abonos,
     lista_espera,
+    salas,
 )
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -37,3 +38,4 @@ app.include_router(zonas.router)
 app.include_router(auth.router)
 app.include_router(abonos.router)
 app.include_router(lista_espera.router, prefix="/turnos")
+app.include_router(salas.router)

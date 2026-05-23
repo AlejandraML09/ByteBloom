@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import cast, String as SAString
 from pydantic import BaseModel
+from typing import Optional
 from datetime import date
 from app.database import SessionLocal
 from app import models
+
 
 router = APIRouter(prefix="/api", tags=["servicios"])
 
@@ -19,9 +20,11 @@ def get_db():
 
 class ClaseProgramadaResponse(BaseModel):
     id: int
-    clase_id: int
     zona_id: int
     zona_nombre: str
+    sala_id: int
+    sala_nombre: str
+    profesional_email: Optional[str] = None
     fecha: str
     hora: str
     cupo_maximo: int
@@ -45,18 +48,19 @@ class CancelarClaseRequest(BaseModel):
 
 def _query_clases_programadas(db: Session, solo_sin_inscritos: bool = False):
     q = (
-        db.query(models.ClaseProgramada, models.Clase, models.Zona)
-        .join(models.Clase, models.ClaseProgramada.clase_id == models.Clase.id)
-        .join(models.Zona, models.Clase.zona_id == models.Zona.id)
+        db.query(models.ClaseProgramada, models.Zona, models.Sala)
+        .join(models.Zona, models.ClaseProgramada.zona_id == models.Zona.id)
+        .join(models.Sala, models.ClaseProgramada.sala_id == models.Sala.id)
         .filter(
             models.ClaseProgramada.fecha >= date.today(),
             models.ClaseProgramada.activo == True,
-            models.Clase.activo == True,
         )
     )
     if solo_sin_inscritos:
-        # No registrations yet: cupo_disponible equals cupo_maximo
-        q = q.filter(models.ClaseProgramada.cupo_disponible == models.Clase.cupo_maximo)
+        # No registrations yet: cupo_disponible equals cupo_inicial (snapshot)
+        q = q.filter(
+            models.ClaseProgramada.cupo_disponible == models.ClaseProgramada.cupo_inicial
+        )
     return q.order_by(models.ClaseProgramada.fecha, models.ClaseProgramada.hora).all()
 
 
@@ -64,16 +68,18 @@ def _rows_to_response(rows):
     return [
         ClaseProgramadaResponse(
             id=cp.id,
-            clase_id=cp.clase_id,
             zona_id=z.id,
             zona_nombre=z.nombre,
+            sala_id=s.id,
+            sala_nombre=s.nombre,
+            profesional_email=cp.profesional_email,
             fecha=str(cp.fecha),
             hora=str(cp.hora)[:5],  # TIME gives "HH:MM:SS", truncate to "HH:MM"
-            cupo_maximo=c.cupo_maximo,
+            cupo_maximo=cp.cupo_inicial,
             cupo_disponible=cp.cupo_disponible,
             precio=float(z.precio),
         )
-        for cp, c, z in rows
+        for cp, z, s in rows
     ]
 
 
@@ -91,20 +97,18 @@ def obtener_clases_para_cupos(db: Session = Depends(get_db)):
 
 @router.post("/cupos")
 def modificar_cupo(data: ModificarCupoRequest, db: Session = Depends(get_db)):
-    """Update cupo_disponible for a scheduled class (only if no bookings yet)."""
+    """Update cupo for a scheduled class (only if no bookings yet)."""
     if data.nuevo_cupo <= 0:
         raise HTTPException(status_code=400, detail="El cupo debe ser mayor a 0.")
 
     cp = (
         db.query(models.ClaseProgramada)
-        .join(models.Clase, models.ClaseProgramada.clase_id == models.Clase.id)
         .filter(
             models.ClaseProgramada.fecha == data.fecha,
             models.ClaseProgramada.hora == data.hora,
-            models.Clase.zona_id == data.zona_id,
+            models.ClaseProgramada.zona_id == data.zona_id,
             models.ClaseProgramada.activo == True,
-            models.Clase.activo == True,
-            models.ClaseProgramada.cupo_disponible == models.Clase.cupo_maximo,
+            models.ClaseProgramada.cupo_disponible == models.ClaseProgramada.cupo_inicial,
         )
         .first()
     )
@@ -115,10 +119,8 @@ def modificar_cupo(data: ModificarCupoRequest, db: Session = Depends(get_db)):
             detail="No se encontró una clase sin inscriptos para los datos ingresados.",
         )
 
+    cp.cupo_inicial = data.nuevo_cupo
     cp.cupo_disponible = data.nuevo_cupo
-    # Also update cupo_maximo on the clase template
-    clase = db.query(models.Clase).filter(models.Clase.id == cp.clase_id).first()
-    clase.cupo_maximo = data.nuevo_cupo
     db.commit()
 
     return {

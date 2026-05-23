@@ -49,15 +49,14 @@ def get_disponibilidad(mes: str, db: Session = Depends(get_db)):
         )
 
     rows = (
-        db.query(models.ClaseProgramada, models.Clase, models.Zona)
-        .join(models.Clase, models.ClaseProgramada.clase_id == models.Clase.id)
-        .join(models.Zona, models.Clase.zona_id == models.Zona.id)
+        db.query(models.ClaseProgramada, models.Zona, models.Sala)
+        .join(models.Zona, models.ClaseProgramada.zona_id == models.Zona.id)
+        .join(models.Sala, models.ClaseProgramada.sala_id == models.Sala.id)
         .filter(
             models.ClaseProgramada.fecha >= date_type(anio, month, 1),
             models.ClaseProgramada.fecha
             < date_type(anio + (month // 12), (month % 12) + 1, 1),
             models.ClaseProgramada.activo == True,
-            models.Clase.activo == True,
         )
         .order_by(models.ClaseProgramada.fecha, models.ClaseProgramada.hora)
         .all()
@@ -66,16 +65,18 @@ def get_disponibilidad(mes: str, db: Session = Depends(get_db)):
     return [
         {
             "id": cp.id,
-            "clase_id": cp.clase_id,
             "fecha": str(cp.fecha),
             "hora": str(cp.hora)[:5],
             "cupo_disponible": cp.cupo_disponible,
-            "cupo_maximo": c.cupo_maximo,
+            "cupo_maximo": cp.cupo_inicial,
             "zona_id": z.id,
             "zona_nombre": z.nombre,
+            "sala_id": s.id,
+            "sala_nombre": s.nombre,
+            "profesional_email": cp.profesional_email,
             "precio": float(z.precio),
         }
-        for cp, c, z in rows
+        for cp, z, s in rows
     ]
 
 
@@ -116,13 +117,11 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
 
         cp = (
             db.query(models.ClaseProgramada)
-            .join(models.Clase, models.ClaseProgramada.clase_id == models.Clase.id)
             .filter(
                 models.ClaseProgramada.fecha == fecha_obj,
                 models.ClaseProgramada.hora == item.hora,
-                models.Clase.zona_id == data.zona_id,
+                models.ClaseProgramada.zona_id == data.zona_id,
                 models.ClaseProgramada.activo == True,
-                models.Clase.activo == True,
             )
             .first()
         )
@@ -182,7 +181,6 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
         db.query(
             models.Reserva,
             models.ClaseProgramada,
-            models.Clase,
             models.Zona,
             models.MedioPago,
         )
@@ -190,8 +188,7 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
             models.ClaseProgramada,
             models.Reserva.clase_programada_id == models.ClaseProgramada.id,
         )
-        .join(models.Clase, models.ClaseProgramada.clase_id == models.Clase.id)
-        .join(models.Zona, models.Clase.zona_id == models.Zona.id)
+        .join(models.Zona, models.ClaseProgramada.zona_id == models.Zona.id)
         .join(models.MedioPago, models.Reserva.medio_pago_id == models.MedioPago.id)
         .filter(models.Reserva.usuario_id == usuario_id)
         .order_by(
@@ -211,5 +208,5 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
             "precio_pagado": float(r.precio_pagado),
             "fecha_reserva": r.fecha_reserva.isoformat() if r.fecha_reserva else None,
         }
-        for r, cp, c, z, mp in rows
+        for r, cp, z, mp in rows
     ]

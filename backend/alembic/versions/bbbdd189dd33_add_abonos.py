@@ -1,7 +1,7 @@
 """add_abonos
 
 Revision ID: bbbdd189dd33
-Revises: e5f6a7b8c9d0
+Revises: c3d4e5f6a1b2
 Create Date: 2026-05-19 18:49:27.513083
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'bbbdd189dd33'
-down_revision: Union[str, Sequence[str], None] = 'e5f6a7b8c9d0'
+down_revision: Union[str, Sequence[str], None] = 'c3d4e5f6a1b2'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
