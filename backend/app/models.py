@@ -159,6 +159,8 @@ class Reserva(Base):
     clase_programada_id = Column(BigInteger, nullable=False, index=True)
     medio_pago_id = Column(BigInteger, nullable=False)
     precio_pagado = Column(Numeric(10, 2), nullable=False)
+    monto_total = Column(Numeric(10, 2), nullable=False)
+    pack_id = Column(String(36), nullable=True, index=True)
     fecha_reserva = Column(
         DateTime(timezone=False), nullable=False, server_default=func.now()
     )
@@ -167,6 +169,12 @@ class Reserva(Base):
         nullable=False,
         default=EstadoReserva.pendiente,
     )
+
+    @property
+    def estado_pago(self) -> str:
+        if self.precio_pagado is None or self.monto_total is None:
+            return "pago_completo"
+        return "pago_pendiente" if self.precio_pagado < self.monto_total else "pago_completo"
 
 
 class Abono(Base):

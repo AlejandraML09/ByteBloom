@@ -23,15 +23,35 @@ const MEDIO_PAGO_DB = {
 
 /**
  * Books one or more shifts.
- * @param {{ zonaId: number, turnos: {fecha: string, hora: string}[], medioPago: string, usuarioId?: number }} payload
+ * @param {{ zonaId: number, turnos: {fecha: string, hora: string}[], medioPago: string, usuarioId?: number, tipoPago?: 'completo' | 'sena' }} payload
  */
-export async function reservarTurnos({ zonaId, turnos, medioPago, usuarioId }) {
+export async function reservarTurnos({ zonaId, turnos, medioPago, usuarioId, tipoPago = 'completo' }) {
   const { data } = await client.post('/turnos/reservar', {
     zona_id: zonaId,
     turnos,
     medio_pago: MEDIO_PAGO_DB[medioPago] ?? medioPago,
     usuario_id: usuarioId ?? null,
+    tipo_pago: tipoPago,
   })
+  return data
+}
+
+/**
+ * Checks whether the user can still receive pack discounts (no previous
+ * absence on a pack reservation).
+ */
+export async function getAplicaDescuentoPack(usuarioId) {
+  const { data } = await client.get('/turnos/aplica-descuento-pack', {
+    params: { usuario_id: usuarioId },
+  })
+  return data
+}
+
+/**
+ * Marks a reserva as fully paid (was previously partial / seña).
+ */
+export async function completarPagoReserva(reservaId) {
+  const { data } = await client.post(`/turnos/reservas/${reservaId}/completar-pago`)
   return data
 }
 

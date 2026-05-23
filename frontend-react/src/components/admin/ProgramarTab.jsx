@@ -216,7 +216,7 @@ export function ProgramarTab({ onProgramar }) {
       <div className='card'>
         <div className='card-header'>
           <div>
-            <h3>Programar clases</h3>
+            <h3>Crear clases</h3>
             <p>No hay salas activas. Creá una primero en "Salas".</p>
           </div>
         </div>
@@ -228,7 +228,7 @@ export function ProgramarTab({ onProgramar }) {
     <div className='card'>
       <div className='card-header'>
         <div>
-          <h3>Programar clases</h3>
+          <h3>Crear clases</h3>
           <p>Elegí zona, profesional y sala, luego marcá los días y horarios.</p>
         </div>
       </div>

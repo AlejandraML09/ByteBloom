@@ -11,7 +11,7 @@ import { MonthCalendar } from '../components/turnos/MonthCalendar'
 import { SlotGrid } from '../components/turnos/SlotGrid'
 import { PaymentSelector } from '../components/turnos/PaymentSelector'
 import { SummaryPanel } from '../components/turnos/SummaryPanel'
-import { getDisponibilidad, reservarTurnos, getMisTurnos } from '../api/turnos'
+import { getDisponibilidad, reservarTurnos, getMisTurnos, getAplicaDescuentoPack } from '../api/turnos'
 import { useWaitlist } from '../components/turnos/WaitList'
 import { fmtDate, fmtDiaLargo, nextHour } from '../utils/dates'
 import { ZONA_LABELS } from '../constants/turnos'
@@ -218,6 +218,8 @@ export default function Turnos() {
   const [slot, setSlot] = useState(null)
   const [shifts, setShifts] = useState([])
   const [medioPago, setMedioPago] = useState(null)
+  const [tipoPago, setTipoPago] = useState('completo')
+  const [aplicaDescuento, setAplicaDescuento] = useState(true)
   // clasesDelMes: { "YYYY-MM": [claseProgramada, ...] }
   const [clasesDelMes, setClasesDelMes] = useState({})
   // Set of clase_programada_id values the logged-in user has already booked (non-cancelled)
@@ -251,6 +253,13 @@ export default function Turnos() {
     refreshBookedIds()
   }, [refreshBookedIds])
 
+  useEffect(() => {
+    if (!user?.id) return
+    getAplicaDescuentoPack(user.id)
+      .then((r) => setAplicaDescuento(r?.aplica_descuento !== false))
+      .catch(() => setAplicaDescuento(true))
+  }, [user?.id])
+
   const fetchDisponibilidad = useCallback(async (displayDate) => {
     const mes = toMes(displayDate)
     setLoadingSlots(true)
@@ -271,37 +280,52 @@ useEffect(() => {
     if (status === 'approved') {
       const cantidad = parseInt(params.get('cantidad')) || 1
       const pending = localStorage.getItem('pending_shifts')
+      let okReservas = 0
+      let firstError = null
       if (pending) {
         localStorage.removeItem('pending_shifts')
         try {
           const parsed = JSON.parse(pending)
           const usuarioId = parsed.usuarioId
           const medioPago = parsed.medioPago
+          const tipoPagoPending = parsed.tipoPago ?? 'completo'
           // Support either single zona (legacy) or grouped zonas
           if (parsed.groups) {
-            // parsed.groups is an object keyed by zonaId
             for (const gid of Object.keys(parsed.groups)) {
               const group = parsed.groups[gid]
               try {
-                await reservarTurnos({ zonaId: group.zona.id, turnos: group.turnos, medioPago, usuarioId })
+                const res = await reservarTurnos({ zonaId: group.zona.id, turnos: group.turnos, medioPago, usuarioId, tipoPago: tipoPagoPending })
+                okReservas += res?.reservados ?? group.turnos.length
               } catch (err) {
                 console.error('Error al reservar tras pago (grupo):', err)
+                if (!firstError) {
+                  firstError = err?.response?.data?.detail || err?.message || 'Error al registrar la reserva.'
+                }
               }
             }
           } else {
             const { zonaId, turnos } = parsed
             try {
-              await reservarTurnos({ zonaId, turnos, medioPago, usuarioId })
+              const res = await reservarTurnos({ zonaId, turnos, medioPago, usuarioId, tipoPago: tipoPagoPending })
+              okReservas += res?.reservados ?? turnos.length
             } catch (err) {
               console.error('Error al reservar tras pago:', err)
+              firstError = err?.response?.data?.detail || err?.message || 'Error al registrar la reserva.'
             }
           }
           refreshBookedIds()
         } catch (err) {
           console.error('Error al procesar pending_shifts:', err)
+          firstError = firstError || 'No se pudo procesar la reserva tras el pago.'
         }
       }
-      showToast(`✓ ${cantidad} turno${cantidad > 1 ? 's' : ''} confirmado${cantidad > 1 ? 's' : ''}`)
+      if (firstError) {
+        showToast(`Pago recibido pero la reserva falló: ${firstError}`)
+      } else if (okReservas > 0) {
+        showToast(`✓ ${okReservas} turno${okReservas > 1 ? 's' : ''} confirmado${okReservas > 1 ? 's' : ''}`)
+      } else {
+        showToast(`✓ ${cantidad} turno${cantidad > 1 ? 's' : ''} confirmado${cantidad > 1 ? 's' : ''}`)
+      }
     }
     if (status === 'failure') showToast('✗ El pago fue rechazado. Intentá de nuevo.')
     if (status === 'pending') showToast('⏳ Tu pago está pendiente de confirmación.')
@@ -374,14 +398,23 @@ useEffect(() => {
         // Support online payment even when shifts span multiple zonas.
         // Build aggregated price and title from all selected shifts/zones.
         const zonaEntries = Object.values(shiftsByZona)
-        const totalPrecio = zonaEntries.reduce((sum, g) => sum + (g.zona?.precio ?? 0) * g.turnos.length, 0)
+        const subtotal = zonaEntries.reduce(
+          (sum, g) => sum + (g.zona?.precio ?? 0) * g.turnos.length,
+          0
+        )
+        const discountPctBase = shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
+        const discountPctEfectivo = aplicaDescuento ? discountPctBase : 0
+        const totalConDescuento = Math.round(subtotal * (100 - discountPctEfectivo) / 100)
+        const aPagarAhora =
+          tipoPago === 'sena' ? Math.round(totalConDescuento / 2) : totalConDescuento
+
         const titulo = zonaEntries.length === 1 ? `Clase ${zonaEntries[0].zona?.nombre ?? ''}` : `Turnos varias zonas (${zonaEntries.map((g) => g.zona?.nombre).filter(Boolean).join(', ')})`
         const servicio_id = zonaIds[0] ?? 1
 
         const { data } = await client.post('/api/crear-preferencia', null, {
           params: {
             servicio_id,
-            precio: totalPrecio,
+            precio: aPagarAhora,
             titulo,
             cantidad: shifts.length,
           },
@@ -394,6 +427,7 @@ useEffect(() => {
             groups: shiftsByZona,
             medioPago,
             usuarioId,
+            tipoPago,
           }))
           window.location.href = data.init_point
           return
@@ -415,6 +449,7 @@ useEffect(() => {
           turnos: group.turnos,
           medioPago,
           usuarioId,
+          tipoPago,
         })
         totalReserved += group.turnos.length
       }
@@ -439,6 +474,7 @@ useEffect(() => {
         setSlot(null)
         setShifts([])
         setMedioPago(null)
+        setTipoPago('completo')
       }, 2800)
     } catch (err) {
       const detail = err?.response?.data?.detail
@@ -553,6 +589,9 @@ useEffect(() => {
           medioPago={medioPago}
           onConfirm={confirmarTurno}
           confirmando={confirmando}
+          tipoPago={tipoPago}
+          onTipoPagoChange={setTipoPago}
+          aplicaDescuento={aplicaDescuento}
         />
       </div>
 

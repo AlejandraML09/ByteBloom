@@ -103,12 +103,23 @@ function IconDiscount() {
   )
 }
 
-export function SummaryPanel({ zona, shifts, medioPago, onConfirm, confirmando }) {
+export function SummaryPanel({
+  zona,
+  shifts,
+  medioPago,
+  onConfirm,
+  confirmando,
+  tipoPago = 'completo',
+  onTipoPagoChange,
+  aplicaDescuento = true,
+}) {
   const precioTurno = zona?.precio ?? 0
   const subtotal = shifts.length * precioTurno
-  const discountPct = shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
+  const discountPctBase = shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
+  const discountPct = aplicaDescuento ? discountPctBase : 0
   const discount = Math.round((subtotal * discountPct) / 100)
   const total = subtotal - discount
+  const aPagarAhora = tipoPago === 'sena' ? Math.round(total / 2) : total
 
   return (
     <div className='summary-v2'>
@@ -171,6 +182,15 @@ export function SummaryPanel({ zona, shifts, medioPago, onConfirm, confirmando }
                 </span>
               </div>
             )}
+            {!aplicaDescuento && discountPctBase > 0 && (
+              <div className='summary-v2-row'>
+                <IconDiscount />
+                <span className='summary-v2-row-label'>Descuento por pack</span>
+                <span className='summary-v2-row-value summary-v2-discount'>
+                  No aplica por ausencia previa
+                </span>
+              </div>
+            )}
           </div>
 
           <div className='summary-v2-total'>
@@ -180,6 +200,12 @@ export function SummaryPanel({ zona, shifts, medioPago, onConfirm, confirmando }
               {discountPct > 0 && <span className='summary-v2-original'>{fmt(subtotal)}</span>}
             </div>
           </div>
+          {tipoPago === 'sena' && (
+            <div className='summary-v2-total summary-v2-total--sena'>
+              <span className='summary-v2-total-label'>A pagar ahora (seña 50%)</span>
+              <div className='summary-v2-total-value'>{fmt(aPagarAhora)}</div>
+            </div>
+          )}
         </div>
 
         {/* Right: info cards */}
@@ -230,6 +256,30 @@ export function SummaryPanel({ zona, shifts, medioPago, onConfirm, confirmando }
             </div>
           </div>
         </div>
+      </div>
+
+      <div className='summary-v2-sena-info'>
+        Para que tus selecciones queden reservadas, es necesario pagar una seña del 50% del valor total
+        de las clases.
+      </div>
+
+      <div className='summary-v2-tipo-pago'>
+        <button
+          type='button'
+          className={`summary-v2-tipo-btn${tipoPago === 'completo' ? ' selected' : ''}`}
+          onClick={() => onTipoPagoChange?.('completo')}
+        >
+          <span className='summary-v2-tipo-title'>Pagar el total</span>
+          <span className='summary-v2-tipo-sub'>{fmt(total)}</span>
+        </button>
+        <button
+          type='button'
+          className={`summary-v2-tipo-btn${tipoPago === 'sena' ? ' selected' : ''}`}
+          onClick={() => onTipoPagoChange?.('sena')}
+        >
+          <span className='summary-v2-tipo-title'>Pagar seña (50%)</span>
+          <span className='summary-v2-tipo-sub'>{fmt(Math.round(total / 2))} ahora · saldo después</span>
+        </button>
       </div>
 
       <button className='btn-confirm-v2' disabled={confirmando} onClick={onConfirm}>

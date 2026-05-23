@@ -11,7 +11,7 @@ export function CancelarTab({ classes, onCancelar, filterDate, onFilterChange })
         Cancelar clase
       </h3>
       <p style={{ color: '#666', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-        Selecciona una clase no cancelada para cancelarla.
+        Selecciona una clase para cancelarla.
       </p>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>

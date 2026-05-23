@@ -1,0 +1,48 @@
+HU: Reservar una clase
+======================
+
+Título: Como usuario quiero reservar una clase para poder asistir a la misma.
+
+
+Reglas de Negocio:
+
+- Se pueden reservar hasta 3 clases en una misma operación.
+- Un pack de 2 clases tiene un 10% de descuento sobre el precio total.
+- Un pack de 3 clases tiene un 20% de descuento sobre el precio total.
+- Al confirmar, el usuario puede elegir pagar la seña (50% del total) o pagar el monto completo. Si paga sólo la seña, la reserva queda con estado de pago pendiente y el usuario puede completar el pago restante desde "Mis Reservas".
+- Si el usuario tiene una ausencia registrada en alguna clase de un pack previo, el descuento por pack no se aplica en su próxima compra de pack.
+- Si una clase no tiene cupos disponibles, el usuario puede registrarse en la lista de espera.
+- Sólo se pueden reservar fechas a futuro.
+- El usuario debe estar autenticado para reservar.
+
+
+Criterios de Aceptación:
+
+Escenario 1: Reserva individual exitosa.
+Dado: un usuario con email lorena@gmail.com, sin ausencias en packs previos, una clase de Tren superior el 03/06/2026 a las 09:00hs con cupo disponible y condiciones de pago adecuadas,
+Cuando: el usuario selecciona zona: "Tren superior", día: 03/06/2026 hora: 09:00hs y presiona "+ Agregar turno", selecciona medio de pago: "MercadoPago", elige "Pagar el total" y presiona "Realizar reserva",
+Entonces: el sistema redirige al usuario para realizar el pago e informa un mensaje de confirmación, y la reserva queda registrada con estado de pago completo.
+
+
+Escenario 2: Pack de 2 clases con descuento.
+Dado: un usuario con email rick@gmail.com, sin ausencias en packs previos, dos clases de Tren superior los días 03/06/2026 09:00hs y 09/06/2026 11:00hs con cupo disponible y condiciones de pago adecuadas,
+Cuando: el usuario selecciona zona: "Tren superior", día: 03/06/2026 hora: 09:00hs y presiona "+ Agregar turno", día: 09/06/2026 hora: 11:00hs y presiona "+ Agregar turno", selecciona medio de pago: "Efectivo/Transferencia", elige "Pagar el total" y presiona "Realizar reserva",
+Entonces: el sistema aplica un 10% de descuento sobre el precio total e informa un mensaje de confirmación, y ambas reservas quedan registradas con estado de pago completo.
+
+
+Escenario 3: Pack de 3 clases con descuento, pagando seña.
+Dado: un usuario con email lorena@gmail.com, sin ausencias en packs previos, tres clases de Tren inferior los días 03/06/2026 09:00hs, 09/06/2026 11:00hs y 11/06/2026 16:00hs con cupo disponible y condiciones de pago adecuadas,
+Cuando: el usuario selecciona zona: "Tren inferior", día: 03/06/2026 hora: 09:00hs y presiona "+ Agregar turno", día: 09/06/2026 hora: 11:00hs y presiona "+ Agregar turno", día: 11/06/2026 hora: 16:00hs y presiona "+ Agregar turno", selecciona medio de pago: "Crédito/Débito", elige "Pagar seña (50%)" y presiona "Realizar reserva",
+Entonces: el sistema aplica un 20% de descuento sobre el precio total, redirige al usuario para pagar el 50% del precio con descuento e informa un mensaje de confirmación, y las tres reservas quedan registradas con estado de pago pendiente.
+
+
+Escenario 4: Pack de 3 clases sin descuento por ausencia previa.
+Dado: un usuario con email tomas@gmail.com, con al menos una ausencia registrada en un pack previo, tres clases de Tren inferior los días 03/06/2026 09:00hs, 09/06/2026 11:00hs y 11/06/2026 16:00hs con cupo disponible y condiciones de pago adecuadas,
+Cuando: el usuario selecciona zona: "Tren inferior", día: 03/06/2026 hora: 09:00hs y presiona "+ Agregar turno", día: 09/06/2026 hora: 11:00hs y presiona "+ Agregar turno", día: 11/06/2026 hora: 16:00hs y presiona "+ Agregar turno", selecciona medio de pago: "MercadoPago", elige "Pagar el total" y presiona "Realizar reserva",
+Entonces: el sistema no aplica el descuento por pack, redirige al usuario para realizar el pago e informa un mensaje de confirmación, y las tres reservas quedan registradas con estado de pago completo, descontando la penalización del usuario.
+
+
+Escenario 5: Reserva fallida por error en el pago.
+Dado: un usuario con email wilson@gmail.com, sin ausencias en packs previos, una clase de Zona media el 03/06/2026 a las 10:00hs con cupo disponible y condiciones de pago no adecuadas,
+Cuando: el usuario selecciona zona: "Zona media", día: 03/06/2026 hora: 10:00hs y presiona "+ Agregar turno", selecciona medio de pago: "Crédito/Débito", elige "Pagar el total" y presiona "Realizar reserva",
+Entonces: el sistema redirige al usuario para realizar el pago e informa un mensaje de error.
