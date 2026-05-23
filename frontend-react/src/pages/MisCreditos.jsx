@@ -74,12 +74,12 @@ export default function MisCreditos() {
               </ul>
             </div>
 
-            <button 
+            {/* <button 
               className='creditos-btn-comprar'
               onClick={() => navigate('/turnos')}
             >
               Usar mis creditos
-            </button>
+            </button> */}
           </div>
         </div>
       </div>

@@ -24,6 +24,7 @@ export function RegistrarClienteTab({ onToast }) {
     if (!form.nombre.trim()) return 'El nombre es obligatorio.'
     if (!form.apellido.trim()) return 'El apellido es obligatorio.'
     if (!form.email.trim()) return 'El email es obligatorio.'
+    if (!form.dni.trim()) return 'El DNI es obligatorio.'
     return ''
   }
 
@@ -43,12 +44,14 @@ export function RegistrarClienteTab({ onToast }) {
           email: form.email.trim(),
         }),
       })
-
+      console.log(res)
       const data = await res.json().catch(() => ({}))
-
+      console.log(data)
       if (!res.ok) {
         if (data.detail === 'Email ya registrado') {
           setError('Este email ya tiene una cuenta registrada.')
+        } else if (data.detail === 'DNI ya registrado') {
+          setError('Este DNI ya tiene una cuenta registrada.')
         } else {
           setError(data.detail || 'Ocurrió un error. Intentá de nuevo.')
         }
@@ -57,7 +60,7 @@ export function RegistrarClienteTab({ onToast }) {
 
       setForm({ nombre: '', apellido: '', dni: '', email: '' })
       setExito(true)
-      onToast('Cliente registrado. Se envió la contraseña por mail.')
+      onToast('Usuario registrado. Se envió la contraseña por mail.')
     } catch {
       setError('No se pudo conectar con el servidor.')
     } finally {
@@ -69,7 +72,7 @@ export function RegistrarClienteTab({ onToast }) {
     <div className='card' style={{ maxWidth: '560px', margin: '0 auto' }}>
       <div className='card-header'>
         <div>
-          <h3>Registrar cliente</h3>
+          <h3>Registrar usuario</h3>
           <p>Se generará una contraseña automática y se enviará por mail</p>
         </div>
       </div>
@@ -82,7 +85,7 @@ export function RegistrarClienteTab({ onToast }) {
         )}
         {exito && (
           <div style={{ color: 'var(--p)', marginBottom: '1rem', fontWeight: 500 }}>
-            ✓ Paciente registrado correctamente
+            ✓ Usuario registrado correctamente
           </div>
         )}
 
@@ -112,7 +115,7 @@ export function RegistrarClienteTab({ onToast }) {
           onClick={handleSubmit}
           disabled={cargando}
         >
-          {cargando ? 'Registrando...' : 'Registrar cliente'}
+          {cargando ? 'Registrando...' : 'Registrar usuario'}
         </button>
       </div>
     </div>

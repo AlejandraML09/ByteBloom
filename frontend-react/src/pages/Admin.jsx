@@ -44,7 +44,7 @@ const TABS = [
   { id: 'eliminar', label: 'Eliminar por profesional', roles: ['admin'] },
   { id: 'precios', label: 'Modificar precio', roles: ['admin'] },
   { id: 'secretarios', label: 'Secretarios', roles: ['admin'] },
-  { id: 'registrar-paciente', label: 'Registrar cliente', roles: ['secretario'] },
+  { id: 'registrar-paciente', label: 'Registrar usuario', roles: ['secretario'] },
   { id: 'horarios', label: 'Modificar horario', roles: ['admin'] },
 ]
 
@@ -59,7 +59,7 @@ const TAB_HEADERS = {
   eliminar:    { title: 'Eliminar por profesional',desc: 'Cancelá todas las clases futuras de un profesional.' },
   precios:     { title: 'Modificar precio',        desc: 'Aplicá un nuevo precio a las próximas clases sin inscriptos.' },
   secretarios: { title: 'Secretarios', desc: 'Gestioná los usuarios secretarios del sistema.' },
-  'registrar-paciente': { title: 'Registrar cliente', desc: 'Registrá un nuevo cliente en el sistema.' },
+  'registrar-paciente': { title: 'Registrar usuario', desc: 'Registrá un nuevo usuario en el sistema.' },
   horarios:    { title: 'Modificar horario',        desc: 'Ajustá el horario de inicio de las clases.' },
 }
 
