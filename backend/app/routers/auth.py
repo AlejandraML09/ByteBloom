@@ -9,6 +9,7 @@ from email.mime.multipart import MIMEMultipart
 import os
 from app.database import SessionLocal
 from app import models
+import re
 
 router = APIRouter()
 
@@ -77,6 +78,8 @@ def restablecer_password(data: RestablecerRequest, db: Session = Depends(get_db)
     if not user or user.reset_token_expira < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Token inválido o expirado")
 
+    if not re.match(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$', data.password):
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número")
     user.set_password(data.password)
     user.reset_token = None
     user.reset_token_expira = None

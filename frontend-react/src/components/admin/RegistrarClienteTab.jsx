@@ -9,11 +9,23 @@ export function RegistrarClienteTab({ onToast }) {
     apellido: '',
     dni: '',
     email: '',
+    fechaNacimiento: '', 
   })
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
   const [exito, setExito] = useState(false)
 
+  const fechaMaxima = (() => {   // ← acá
+    const d = new Date()
+    d.setFullYear(d.getFullYear() - 14)
+    return d.toISOString().split('T')[0]
+  })()
+   const formularioCompleto =   // ← acá
+    form.nombre.trim() &&
+    form.apellido.trim() &&
+    form.email.trim() &&
+    form.dni &&
+    form.fechaNacimiento
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value })
     setError('')
@@ -24,6 +36,10 @@ export function RegistrarClienteTab({ onToast }) {
     if (!form.nombre.trim()) return 'El nombre es obligatorio.'
     if (!form.apellido.trim()) return 'El apellido es obligatorio.'
     if (!form.email.trim()) return 'El email es obligatorio.'
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(form.email.trim())) return 'El formato del email no es válido.'
+    if (!/^\d{7,8}$/.test(form.dni)) return 'El DNI debe tener 7 u 8 dígitos.'
+    if (!form.fechaNacimiento) return 'La fecha de nacimiento es obligatoria.'
     return ''
   }
 
@@ -41,21 +57,25 @@ export function RegistrarClienteTab({ onToast }) {
           apellido: form.apellido.trim(),
           dni: form.dni ? parseInt(form.dni) : null,
           email: form.email.trim(),
+          fecha_nacimiento: form.fechaNacimiento,
         }),
       })
 
       const data = await res.json().catch(() => ({}))
-
+      console.log('status:', res.status)
+      console.log('data:', data)
       if (!res.ok) {
         if (data.detail === 'Email ya registrado') {
           setError('Este email ya tiene una cuenta registrada.')
+        } else if (data.detail === 'DNI ya registrado') {
+          setError('Este DNI ya tiene una cuenta registrada.')
         } else {
           setError(data.detail || 'Ocurrió un error. Intentá de nuevo.')
         }
         return
       }
 
-      setForm({ nombre: '', apellido: '', dni: '', email: '' })
+      setForm({ nombre: '', apellido: '', dni: '', email: '', fechaNacimiento: '' })
       setExito(true)
       onToast('Cliente registrado. Se envió la contraseña por mail.')
     } catch {
@@ -105,12 +125,25 @@ export function RegistrarClienteTab({ onToast }) {
           <label>Email</label>
           <input type='email' name='email' value={form.email} onChange={handleChange} placeholder='juan@email.com' />
         </div>
-
+        <div className='form-group'>
+          <label>Fecha de nacimiento</label>
+          <input
+            type='date'
+            name='fechaNacimiento'
+            value={form.fechaNacimiento}
+            onChange={handleChange}
+            max={fechaMaxima}
+          />
+        </div>
         <button
           className='btn-nuevo'
-          style={{ marginTop: '0.5rem' }}
+          style={{
+            marginTop: '0.5rem',
+            opacity: formularioCompleto ? 1 : 0.5,
+            cursor: formularioCompleto ? 'pointer' : 'not-allowed',
+          }}
           onClick={handleSubmit}
-          disabled={cargando}
+          disabled={cargando || !formularioCompleto}
         >
           {cargando ? 'Registrando...' : 'Registrar cliente'}
         </button>

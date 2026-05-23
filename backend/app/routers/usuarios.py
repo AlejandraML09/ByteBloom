@@ -12,6 +12,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
+import re
 
 load_dotenv()
 
@@ -59,7 +60,7 @@ class RegistrarClienteRequest(BaseModel):
     apellido: str
     email: str
     dni: int | None = None
-
+    fecha_nacimiento: date
 
 def get_db():
     db = SessionLocal()
@@ -93,8 +94,8 @@ def registrar(data: UsuarioRequest, db: Session = Depends(get_db)):
         nombre=data.nombre,
         apellido=data.apellido,
         email=email_lower,
-        fecha_nacimiento=data.fecha_nacimiento,
         dni=data.dni,
+        fecha_nacimiento=data.fecha_nacimiento,
         rol=models.RolUsuario.usuario,
     )
     nuevo.set_password(data.password)
@@ -286,8 +287,8 @@ def actualizar_usuario(data: ActualizarUsuarioRequest, db: Session = Depends(get
             raise HTTPException(status_code=400, detail="Debés completar la contraseña actual y la nueva")
         if not user.check_password(data.password_actual):
             raise HTTPException(status_code=401, detail="La contraseña actual es incorrecta")
-        if len(data.password_nueva) < 6:
-            raise HTTPException(status_code=400, detail="La nueva contraseña debe tener al menos 6 caracteres")
+        if not re.match(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$', data.password_nueva):
+            raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número")
         user.set_password(data.password_nueva)
 
     db.commit()

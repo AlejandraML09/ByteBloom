@@ -24,7 +24,12 @@ export default function MisDatos() {
   const [cargando, setCargando] = useState(false)
 
   const formularioCompleto = nombre.trim() && apellido.trim() && fechaNacimiento
-
+  //funcion para validar que la contraseña cumpla con el formato
+  const passwordValida = (pwd) =>
+  pwd.length >= 8 &&
+  /[A-Z]/.test(pwd) &&
+  /[a-z]/.test(pwd) &&
+  /\d/.test(pwd)
   function handleCancelar() {
     const u = JSON.parse(localStorage.getItem('usuario') || '{}')
     setNombre(u.nombre || '')
@@ -62,8 +67,8 @@ export default function MisDatos() {
         setError('Completá todos los campos de contraseña.')
         return
       }
-      if (passwordNueva.length < 6) {
-        setError('La nueva contraseña debe tener al menos 6 caracteres.')
+      if (!passwordValida(passwordNueva)) {
+        setError('La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número.')
         return
       }
       if (passwordNueva !== passwordConfirmar) {

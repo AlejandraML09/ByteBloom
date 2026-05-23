@@ -6,6 +6,12 @@ import Footer from '../components/Footer'
 import '../css/vars.css'
 import '../css/registro.css'
 
+//funcion para validar que la contraseña cumpla con el formato
+  const passwordValida = (pwd) =>
+  pwd.length >= 8 &&
+  /[A-Z]/.test(pwd) &&
+  /[a-z]/.test(pwd) &&
+  /\d/.test(pwd)
 export default function Registro() {
   const navigate = useNavigate()
 
@@ -62,7 +68,7 @@ export default function Registro() {
       (hoy.getMonth() === nacimiento.getMonth() && hoy.getDate() >= nacimiento.getDate())
     const edadReal = cumplioEsteAnio ? edad : edad - 1
     if (edadReal < 14) return 'Debés tener al menos 14 años para registrarte.'
-    if (form.password.length < 6) return 'La contraseña debe tener al menos 6 caracteres.'
+    if (!passwordValida(form.password)) return 'La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número.'
     if (form.password !== form.confirmarPassword) return 'Las contraseñas no coinciden.'
     return ''
   }
@@ -82,6 +88,8 @@ export default function Registro() {
       const detalle = err.response?.data?.detail
       if (detalle === 'Email ya registrado') {
         setError('Este email ya tiene una cuenta registrada.')
+      } else if (detalle === 'DNI ya registrado') {
+        setError('Este DNI ya tiene una cuenta registrada.')
       } else {
         setError('Ocurrió un error al registrarse. Intentá de nuevo.')
       }
@@ -186,7 +194,7 @@ export default function Registro() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name='password'
-                  placeholder='Mínimo 6 caracteres'
+                  placeholder='Mínimo 8 caracteres'
                   value={form.password}
                   onChange={handleChange}
                   style={{ width: '100%', padding: '8px', paddingRight: '35px', boxSizing: 'border-box' }}
@@ -199,6 +207,9 @@ export default function Registro() {
                   {showPassword ? '👁️' : '👁️‍🗨️'}
                 </button>
               </div>
+              <small style={{ color: 'var(--text-muted, #888)', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                Debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número.
+              </small>
             </div>
             <div className='form-group'>
               <label>Confirmar contraseña</label>

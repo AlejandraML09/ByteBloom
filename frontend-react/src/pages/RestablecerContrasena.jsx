@@ -4,6 +4,11 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import client from '../api/client'
 
+const passwordValida = (pwd) =>
+  pwd.length >= 8 &&
+  /[A-Z]/.test(pwd) &&
+  /[a-z]/.test(pwd) &&
+  /\d/.test(pwd)
 export default function RestablecerContrasena() {
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token')
@@ -22,7 +27,10 @@ export default function RestablecerContrasena() {
       setError('Las contraseñas no coinciden.')
       return
     }
-
+    if (!passwordValida(password)) {         
+      setError('La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número.')
+      return
+    }
     setCargando(true)
     try {
       setError('')
