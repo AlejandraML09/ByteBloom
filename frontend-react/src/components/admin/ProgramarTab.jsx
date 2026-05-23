@@ -96,7 +96,7 @@ export function ProgramarTab({ onProgramar }) {
     [selection]
   )
 
-  const seleccionListo = zonaId !== null && salaId !== null
+  const seleccionListo = zonaId !== null && profesionalEmail !== '' && salaId !== null
 
   const isOcupado = useCallback(
     (fecha, hora) =>
@@ -176,7 +176,7 @@ export function ProgramarTab({ onProgramar }) {
       const payload = {
         zona_id: zonaId,
         sala_id: salaId,
-        profesional_email: profesionalEmail || null,
+        profesional_email: profesionalEmail,
         slots,
       }
       const res = await onProgramar(payload)
@@ -257,7 +257,13 @@ export function ProgramarTab({ onProgramar }) {
             {zonas.map((z) => (
               <button
                 key={z.id}
-                onClick={() => setZonaId(z.id)}
+                onClick={() => {
+                  if (zonaId !== z.id) {
+                    setZonaId(z.id)
+                    setProfesionalEmail('')
+                    setSalaId(null)
+                  }
+                }}
                 style={{
                   padding: '0.5rem 0.9rem',
                   border: `2px solid ${zonaId === z.id ? 'var(--primary)' : 'var(--border)'}`,
@@ -274,59 +280,66 @@ export function ProgramarTab({ onProgramar }) {
           </div>
         </div>
 
-        {/* Profesional */}
-        <div style={{ marginBottom: '1rem' }}>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
-            Profesional (opcional)
+        {/* Profesional — habilitado tras elegir Zona */}
+        {zonaId !== null && (
+          <div style={{ marginBottom: '1rem' }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
+              Profesional
+            </div>
+            <select
+              value={profesionalEmail}
+              onChange={(e) => {
+                setProfesionalEmail(e.target.value)
+                setSalaId(null)
+              }}
+              style={{
+                padding: '0.5rem 0.7rem',
+                border: '1px solid var(--border)',
+                borderRadius: '6px',
+                fontSize: '0.9rem',
+                minWidth: '320px',
+              }}
+            >
+              <option value='' disabled>Elegí un profesional</option>
+              {PROFESIONALES.map((p) => (
+                <option key={p.email} value={p.email}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
           </div>
-          <select
-            value={profesionalEmail}
-            onChange={(e) => setProfesionalEmail(e.target.value)}
-            style={{
-              padding: '0.5rem 0.7rem',
-              border: '1px solid var(--border)',
-              borderRadius: '6px',
-              fontSize: '0.9rem',
-              minWidth: '320px',
-            }}
-          >
-            <option value=''>Sin asignar</option>
-            {PROFESIONALES.map((p) => (
-              <option key={p.email} value={p.email}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        )}
 
-        {/* Sala */}
-        <div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
-            Sala
+        {/* Sala — habilitada tras elegir Profesional */}
+        {zonaId !== null && profesionalEmail !== '' && (
+          <div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
+              Sala
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+              {salas.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setSalaId(s.id)}
+                  style={{
+                    padding: '0.5rem 0.9rem',
+                    border: `2px solid ${salaId === s.id ? 'var(--primary)' : 'var(--border)'}`,
+                    borderRadius: '8px',
+                    background: salaId === s.id ? 'var(--primary-tint)' : 'var(--white)',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    minWidth: '160px',
+                  }}
+                >
+                  <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{s.nombre}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                    Cupo: {s.cupo}
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-            {salas.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => setSalaId(s.id)}
-                style={{
-                  padding: '0.5rem 0.9rem',
-                  border: `2px solid ${salaId === s.id ? 'var(--primary)' : 'var(--border)'}`,
-                  borderRadius: '8px',
-                  background: salaId === s.id ? 'var(--primary-tint)' : 'var(--white)',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  minWidth: '160px',
-                }}
-              >
-                <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>{s.nombre}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
-                  Cupo: {s.cupo}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+        )}
       </section>
 
       {seleccionListo && (
