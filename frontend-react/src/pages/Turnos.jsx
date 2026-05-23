@@ -182,7 +182,7 @@ export default function Turnos() {
         <div className='welcome-container' style={{ background: 'none', flex: 1 }}>
           <div className='welcome-content'>
             <div className='welcome-header'>
-              <h1 style={{ color: 'var(--danger-muted)' }}>Bienvenido a ByteBloom</h1>
+              <h1 style={{ color: 'var(--danger-muted)' }}>Bienvenido a Endereza2</h1>
               <p style={{ color: 'var(--danger-muted)' }}>Accedé a tu cuenta o crea una nueva para comenzar</p>
             </div>
 
@@ -201,8 +201,8 @@ export default function Turnos() {
                 className='welcome-btn register'
               >
                 <span className='welcome-btn-icon'>✨</span>
-                <h3 style={{ color: 'var(--danger-muted)' }}>Crear Cuenta</h3>
-                <p style={{ color: 'var(--danger-muted)' }}>Nuevos en ByteBloom?</p>
+                <h3 style={{ color: 'var(--danger-muted)' }}>Registrarse</h3>
+                <p style={{ color: 'var(--danger-muted)' }}>Nuevos en Endereza2?</p>
               </button>
             </div>
           </div>

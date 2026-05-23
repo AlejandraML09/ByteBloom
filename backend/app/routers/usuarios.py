@@ -149,10 +149,10 @@ def crear_secretario(data: CrearSecretarioRequest, db: Session = Depends(get_db)
     try:
         enviar_mail(
             destinatario=email_lower,
-            asunto="ByteBloom - Completa tu registro como secretario",
+            asunto="Endereza2 - Completa tu registro como secretario",
             cuerpo_html=f"""
                 <p>Hola {nuevo_secretario.nombre},</p>
-                <p>Tu cuenta como secretario en ByteBloom ha sido creada.</p>
+                <p>Tu cuenta como secretario en Endereza2 ha sido creada.</p>
                 <p><strong>Contraseña temporal: {temp_password}</strong></p>
                 <p><a href="{enlace}">Hacé clic acá para establecer tu contraseña definitiva</a></p>
                 <p>El enlace expira en 24 horas.</p>

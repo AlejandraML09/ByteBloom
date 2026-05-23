@@ -67,6 +67,8 @@ export default function Registro() {
       const detalle = err.response?.data?.detail
       if (detalle === 'Email ya registrado') {
         setError('Este email ya tiene una cuenta registrada.')
+      } else if (detalle === 'DNI ya registrado') {
+        setError('Este DNI ya tiene una cuenta registrada.')
       } else {
         setError('Ocurrió un error al registrarse. Intentá de nuevo.')
       }
@@ -102,7 +104,7 @@ export default function Registro() {
       <div className='registro-page'>
         <div className='registro-card'>
           <div className='registro-header'>
-            <h2>Crear cuenta</h2>
+            <h2>Registrarse</h2>
             <p>Completá tus datos para registrarte</p>
           </div>
 
