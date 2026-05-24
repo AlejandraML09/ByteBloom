@@ -46,8 +46,28 @@ def upgrade():
             ON reservas(pack_id);
     """)
 
+ # fix_abonos_unique_constraint
+    op.execute("""
+        ALTER TABLE abonos
+        DROP CONSTRAINT IF EXISTS uq_usuario_zona;
+
+        CREATE UNIQUE INDEX uq_abonos_usuario_zona_activo
+        ON abonos(usuario_id, zona_id)
+        WHERE activo = true;
+    """)
+
 
 def downgrade():
+    op.execute("""
+        DROP INDEX IF EXISTS idx_reservas_pack_id;
+
+        ALTER TABLE reservas
+            DROP COLUMN IF EXISTS pack_id;
+
+        ALTER TABLE reservas
+            DROP COLUMN IF EXISTS monto_total;
+    """)
+    # fix_abonos_unique_constraint
     op.execute("""
         DROP INDEX IF EXISTS idx_reservas_pack_id;
 
