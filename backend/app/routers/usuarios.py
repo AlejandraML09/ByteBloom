@@ -13,6 +13,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 import re
+from sqlalchemy.exc import IntegrityError
 
 load_dotenv()
 
@@ -322,6 +323,8 @@ def registrar_cliente_secretario(data: RegistrarClienteRequest, db: Session = De
 
     if db.query(models.Usuario).filter(models.Usuario.email == email_lower).first():
         raise HTTPException(status_code=400, detail="Email ya registrado")
+    if db.query(models.Usuario).filter(models.Usuario.dni == data.dni).first():
+        raise HTTPException(status_code=400, detail="DNI ya registrado")
 
     password_generada = secrets.token_urlsafe(10)
 
