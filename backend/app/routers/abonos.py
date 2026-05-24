@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-import logging
+
 
 from app.database import SessionLocal
 
@@ -19,7 +19,8 @@ _MEDIO_PAGO_MAP = {
     "mercadopago": "Mercado Pago",
 }
 
-logger = logging.getLogger("uvicorn.error")
+
+
 
 def get_db():
     db = SessionLocal()
@@ -219,7 +220,7 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
 
     cantidad = len(clase_programadas)
     monto_mensual = float(zona.precio) * cantidad
-    logger.info(f"Abono mensual: {monto_mensual} por {cantidad} clases a precio {zona.precio} cada una")
+
 
     try:
         today = date_type.today()
@@ -691,23 +692,24 @@ def modificar_sesion_abono(
             ),
             {"id": old_r.clase_programada_id},
         )
-
         # Crear nueva reserva
-        nueva_reserva = db.execute(
-            text("""
-                INSERT INTO reservas
-                    (usuario_id, clase_programada_id, medio_pago_id, precio_pagado)
-                VALUES (:uid, :cpid, :mpid, :precio)
-                RETURNING id
-            """),
-            {
-                "uid": abono.usuario_id,
-                "cpid": new_cp.id,
-                "mpid": mp_id,
-                "precio": float(zona.precio),
-            },
-        ).fetchone()
-
+        
+        result = db.execute(
+        text("""
+            INSERT INTO reservas
+                (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total)
+            VALUES (:uid, :cpid, :mpid, :precio, :monto_total)
+            RETURNING id
+        """),
+        {
+            "uid": abono.usuario_id,
+            "cpid": new_cp.id,
+            "mpid": mp_id,
+            "precio": float(zona.precio),
+            "monto_total": float(zona.precio),
+        },
+        )
+        nueva_reserva = result.fetchone()
         # Actualizar abono_reservas: quitar la vieja, agregar la nueva
         db.execute(
             text(
@@ -722,16 +724,14 @@ def modificar_sesion_abono(
             """),
             {"abono_id": abono_id, "reserva_id": nueva_reserva.id},
         )
-
         db.execute(
             text(
                 "UPDATE clases_programadas SET cupo_disponible = cupo_disponible - 1 WHERE id = :id"
             ),
             {"id": new_cp.id},
         )
-
         db.commit()
-    except IntegrityError:
+    except IntegrityError as exc:
         db.rollback()
         raise HTTPException(
             status_code=500, detail="Error al modificar la sesión. Intentá de nuevo."
