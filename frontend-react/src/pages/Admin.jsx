@@ -36,7 +36,7 @@ function initOcupados() {
 const TABS = [
   { id: 'turnos', label: 'Turnos del día', roles: ['admin'] },
   { id: 'pacientes', label: 'Pacientes', roles: ['admin'] },
-  { id: 'cupos', label: 'Gestionar cupos', roles: ['admin'] },
+  { id: 'cupos', label: 'Modificar cupos', roles: ['admin'] },
   { id: 'asistencia', label: 'Asistencia', roles: ['secretario'] },
   { id: 'salas', label: 'Salas', roles: ['admin'] },
   { id: 'programar', label: 'Crear clases', roles: ['admin', 'secretario'] },
@@ -51,7 +51,7 @@ const TABS = [
 const TAB_HEADERS = {
   turnos:      { title: 'Turnos del día',          desc: 'Consultá y gestioná los turnos de hoy.' },
   pacientes:   { title: 'Pacientes',               desc: 'Historial completo de pacientes del sistema.' },
-  cupos:       { title: 'Gestionar cupos',         desc: 'Ajustá el cupo máximo de cada clase.' },
+  cupos:       { title: 'Modificar cupos',         desc: 'Ajustá el cupo máximo de cada clase.' },
   asistencia:  { title: 'Asistencia',              desc: 'Marcá la presencia de cada paciente.' },
   salas:       { title: 'Gestión de salas',        desc: 'Administrá las salas físicas y su cupo. El cambio de cupo aplica a clases nuevas.' },
   programar:   { title: 'Crear clases',        desc: 'Elegí zona, sala, profesional y horarios para crear las clases.' },
