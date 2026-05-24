@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import { getMisTurnos, getDisponibilidad, getMiListaEspera, salirListaEspera } from '../api/turnos'
+import { getMisTurnos, getDisponibilidad, getMiListaEspera, salirListaEspera, completarPagoReserva } from '../api/turnos'
 import { getMisAbonos, renovarAbono, getSesionesAbono, modificarSesionAbono } from '../api/abonos'
 import client from '../api/client'
 import { ZONA_LABELS } from '../constants/turnos'
@@ -586,7 +586,7 @@ function AbonoCard({ abono, onModificar, onRenovarDone }) {
                 className='ma-action-btn ma-action-btn--outline'
                 onClick={() => onModificar(abono)}
               >
-                ✎ Modificar fechas
+                ✎ Modificar abono
               </button>
             </>
           )}
@@ -676,6 +676,7 @@ export default function MisReservas() {
   const [reservas, setReservas] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('todas')
+  const [completandoId, setCompletandoId] = useState(null)
 
   // Abonos state
   const [abonos, setAbonos] = useState([])
@@ -691,6 +692,25 @@ export default function MisReservas() {
   function showAppToast(msg) {
     setToastMsg(msg)
     setTimeout(() => setToastMsg(null), 3500)
+  }
+
+  async function handleCompletarPago(reserva) {
+    setCompletandoId(reserva.id)
+    try {
+      const r = await completarPagoReserva(reserva.id)
+      setReservas((prev) =>
+        prev.map((x) =>
+          x.id === reserva.id
+            ? { ...x, precio_pagado: x.monto_total, estado_pago: r?.estado_pago ?? 'pago_completo' }
+            : x
+        )
+      )
+      showAppToast('Pago completado correctamente.')
+    } catch (err) {
+      showAppToast(err?.response?.data?.detail || 'No se pudo completar el pago.')
+    } finally {
+      setCompletandoId(null)
+    }
   }
 
   useEffect(() => {
@@ -903,6 +923,11 @@ export default function MisReservas() {
                 {filtered.map((r) => {
                   const proxima = isProxima(r)
                   const estadoCfg = ESTADO_CONFIG[r.estado] ?? { label: r.estado, css: 'pendiente' }
+                  const pagoPendiente = r.estado_pago === 'pago_pendiente'
+                  const saldo =
+                    r.monto_total != null && r.precio_pagado != null
+                      ? Math.max(0, Number(r.monto_total) - Number(r.precio_pagado))
+                      : 0
                   return (
                     <div key={r.id} className='mr-item'>
                       <div className={`mr-item-icon${proxima ? '' : ' mr-item-icon--completada'}`}>
@@ -923,14 +948,57 @@ export default function MisReservas() {
                           {r.precio_pagado != null && (
                             <>
                               <span className='mr-item-meta-dot' />
-                              <span>{fmt(r.precio_pagado)}</span>
+                              <span>
+                                {fmt(r.precio_pagado)}
+                                {r.monto_total != null && r.monto_total !== r.precio_pagado
+                                  ? ` / ${fmt(r.monto_total)}`
+                                  : ''}
+                              </span>
                             </>
                           )}
                         </div>
+                        {r.estado === 'cancelada' && r.clase_activa === false && (
+                          <div
+                            style={{
+                              marginTop: 6,
+                              fontSize: 12,
+                              color: '#c0435a',
+                              fontStyle: 'italic',
+                            }}
+                          >
+                            Esta clase fue cancelada por el centro.
+                          </div>
+                        )}
                       </div>
-                      <span className={`mr-item-badge mr-item-badge--${estadoCfg.css}`}>
-                        {estadoCfg.label}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                        <span className={`mr-item-badge mr-item-badge--${estadoCfg.css}`}>
+                          {estadoCfg.label}
+                        </span>
+                        {pagoPendiente ? (
+                          <>
+                            <span className='mr-item-badge mr-item-badge--pendiente'>
+                              Pago pendiente
+                            </span>
+                            {proxima && (
+                              <button
+                                className='ma-action-btn ma-action-btn--outline'
+                                style={{ fontSize: 11, padding: '3px 10px' }}
+                                disabled={completandoId === r.id}
+                                onClick={() => handleCompletarPago(r)}
+                                title={`Saldo a pagar: ${fmt(saldo)}`}
+                              >
+                                {completandoId === r.id
+                                  ? 'Procesando…'
+                                  : `Completar pago (${fmt(saldo)})`}
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          r.precio_pagado != null && (
+                            <span className='mr-item-badge mr-item-badge--asistio'>Pago completo</span>
+                          )
+                        )}
+                      </div>
                     </div>
                   )
                 })}

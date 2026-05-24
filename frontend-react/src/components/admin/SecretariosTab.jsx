@@ -12,9 +12,12 @@ export default function SecretariosTab() {
     email: '',
     fecha_nacimiento: '',
     password: '',
-    dni: '', // Nuevo campo DNI
+    dni: '',
   })
   const [showForm, setShowForm] = useState(false)
+  const [emailBusqueda, setEmailBusqueda] = useState('')
+  const [secretarioEncontrado, setSecretarioEncontrado] = useState(null)
+  const [loadingBusqueda, setLoadingBusqueda] = useState(false)
 
   useEffect(() => {
     cargarSecretarios()
@@ -45,7 +48,7 @@ export default function SecretariosTab() {
         email: form.email,
         fecha_nacimiento: form.fecha_nacimiento,
         password: form.password,
-        dni: form.dni, // Enviar DNI
+        dni: form.dni,
       })
 
       setSecretarios([...secretarios, response.data])
@@ -59,11 +62,35 @@ export default function SecretariosTab() {
     }
   }
 
-  async function handleEliminarSecretario(secretarioId) {
-    if (confirm('¿Estás seguro de que deseas eliminar este secretario?')) {
+  async function handleBuscarPorEmail(e) {
+    e.preventDefault()
+    setLoadingBusqueda(true)
+    setSecretarioEncontrado(null)
+
+    try {
+      const secretario = secretarios.find((s) => s.email === emailBusqueda.toLowerCase())
+      if (secretario) {
+        setSecretarioEncontrado(secretario)
+      } else {
+        setError('Secretario no encontrado')
+      }
+    } catch (err) {
+      setError('Error al buscar secretario')
+    } finally {
+      setLoadingBusqueda(false)
+    }
+  }
+
+  async function handleEliminarSecretario() {
+    if (!secretarioEncontrado) return
+    
+    if (confirm(`¿Estás seguro de que deseas eliminar a ${secretarioEncontrado.nombre} ${secretarioEncontrado.apellido}?`)) {
       try {
-        await client.delete(`/secretarios/${secretarioId}`)
-        setSecretarios(secretarios.filter((s) => s.id !== secretarioId))
+        await client.delete(`/secretarios/${secretarioEncontrado.id}`)
+        setSecretarios(secretarios.filter((s) => s.id !== secretarioEncontrado.id))
+        setSecretarioEncontrado(null)
+        setEmailBusqueda('')
+        setError('')
       } catch (err) {
         setError('Error al eliminar secretario')
         console.error('Error:', err)
@@ -71,7 +98,6 @@ export default function SecretariosTab() {
     }
   }
 
-  // Filtrar y ordenar secretarios
   const secretariosOrdenados = secretarios
     .filter(
       (s) =>
@@ -191,7 +217,6 @@ export default function SecretariosTab() {
                 <th>Apellido</th>
                 <th>Nombre</th>
                 <th>Email</th>
-                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -200,18 +225,58 @@ export default function SecretariosTab() {
                   <td>{secretario.apellido || '-'}</td>
                   <td>{secretario.nombre || '-'}</td>
                   <td>{secretario.email}</td>
-                  <td>
-                    <button
-                      className='btn-nuevo btn-eliminar-form'
-                      onClick={() => handleEliminarSecretario(secretario.id)}
-                    >
-                      Eliminar
-                    </button>
-                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        )}
+      </div>
+
+      <div className='card' style={{ marginTop: '2rem' }}>
+        <div className='card-header'>
+          <h3>Eliminar Secretario</h3>
+          <p>Ingresa el email del secretario que deseas eliminar.</p>
+        </div>
+
+        <form onSubmit={handleBuscarPorEmail} style={{ padding: '1.5rem' }}>
+          <div className='form-group' style={{ marginBottom: '1rem' }}>
+            <label>Email del Secretario</label>
+            <input
+              type='email'
+              placeholder='secretario@email.com'
+              value={emailBusqueda}
+              onChange={(e) => {
+                setEmailBusqueda(e.target.value)
+                setSecretarioEncontrado(null)
+                setError('')
+              }}
+              required
+            />
+          </div>
+
+          <button type='submit' disabled={loadingBusqueda} className='btn-nuevo'>
+            {loadingBusqueda ? 'Buscando...' : 'Buscar'}
+          </button>
+        </form>
+
+        {secretarioEncontrado && (
+          <div style={{ padding: '1.5rem', borderTop: '1px solid #ddd' }}>
+            <div style={{ marginBottom: '1rem' }}>
+              <p>
+                <strong>Nombre:</strong> {secretarioEncontrado.nombre} {secretarioEncontrado.apellido}
+              </p>
+              <p>
+                <strong>Email:</strong> {secretarioEncontrado.email}
+              </p>
+            </div>
+            <button
+              onClick={handleEliminarSecretario}
+              className='btn-nuevo btn-eliminar-form'
+              style={{ width: '100%' }}
+            >
+              Eliminar Secretario
+            </button>
+          </div>
         )}
       </div>
     </div>

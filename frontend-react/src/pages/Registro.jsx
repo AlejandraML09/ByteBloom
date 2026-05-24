@@ -125,7 +125,7 @@ export default function Registro() {
       <div className='registro-page'>
         <div className='registro-card'>
           <div className='registro-header'>
-            <h2>Crear cuenta</h2>
+            <h2>Registrarse</h2>
             <p>Completá tus datos para registrarte</p>
           </div>
 

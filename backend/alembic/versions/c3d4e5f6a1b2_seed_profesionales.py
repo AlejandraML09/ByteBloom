@@ -16,8 +16,8 @@ down_revision: Union[str, Sequence[str], None] = "a1b2c3d4e5f6"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
-# bcrypt hash of "profesional123"
-_PWD = "$2b$12$Y75GaNysdPe2Pso2q6CKju8OAgEe8mIBqF/lVgZg5z0HYTmrug.ti"
+# bcrypt hash of "Test1234"
+_PWD = "$2b$12$.l/4WTnBaCkxSxqayVq5ZOQcCOTMtzeu04xZouhj2mrEb6mN9hsWG"
 
 
 def upgrade():

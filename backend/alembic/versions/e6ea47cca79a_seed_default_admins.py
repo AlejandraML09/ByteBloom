@@ -32,7 +32,7 @@ def upgrade():
     VALUES
     (
         'jose@endereza2.com',
-        '$2b$12$3K2Gx6qJY0b9uKkwM91wh.w0dCiOxlIL/murLtvCkJNnZ4wnSUqzS',
+        '$2b$12$.l/4WTnBaCkxSxqayVq5ZOQcCOTMtzeu04xZouhj2mrEb6mN9hsWG',
         'Jose',
         'Pepe',
         '1990-01-15',
@@ -41,7 +41,7 @@ def upgrade():
     ),
     (
         'laura@endereza2.com',
-        '$2b$12$3K2Gx6qJY0b9uKkwM91wh.w0dCiOxlIL/murLtvCkJNnZ4wnSUqzS',
+        '$2b$12$.l/4WTnBaCkxSxqayVq5ZOQcCOTMtzeu04xZouhj2mrEb6mN9hsWG',
         'Laura',
         'Gonzalez',
         '1992-03-20',
@@ -50,7 +50,7 @@ def upgrade():
     ),
     (
         'admin@test.com',
-        '$2b$12$yl4dPu3PImQyW/yfRxhwYuw23RiMwRHdEHqrdun5dKhbnZC3a2BJq',
+        '$2b$12$.l/4WTnBaCkxSxqayVq5ZOQcCOTMtzeu04xZouhj2mrEb6mN9hsWG',
         'Admin',
         'Test',
         '1990-01-01',

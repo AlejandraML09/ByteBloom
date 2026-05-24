@@ -1,9 +1,13 @@
+import uuid
+from decimal import Decimal
+from datetime import date as date_type
+from typing import Optional, Literal
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel
-from typing import Optional
-from datetime import date as date_type
+
 from app.database import SessionLocal
 from app import models
 
@@ -28,6 +32,37 @@ class ReservaRequest(BaseModel):
     turnos: list[TurnoItem]
     medio_pago: str
     usuario_id: Optional[int] = None
+    tipo_pago: Literal["completo", "sena"] = "completo"
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+
+def usuario_tiene_ausencia_en_pack_previo(db: Session, usuario_id: Optional[int]) -> bool:
+    """True si el usuario tiene al menos una reserva marcada 'ausente'
+    perteneciente a un pack (pack_id != NULL). Sirve para decidir si se aplica
+    el descuento por pack en su próxima compra."""
+    if not usuario_id:
+        return False
+    row = (
+        db.query(models.Reserva.id)
+        .filter(
+            models.Reserva.usuario_id == usuario_id,
+            models.Reserva.pack_id.isnot(None),
+            models.Reserva.estado == models.EstadoReserva.ausente,
+        )
+        .first()
+    )
+    return row is not None
+
+
+def calcular_descuento_pct(cantidad: int) -> int:
+    """Pack 2 → 10%, pack 3 → 20%, 1 clase → 0%."""
+    if cantidad == 2:
+        return 10
+    if cantidad == 3:
+        return 20
+    return 0
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -80,11 +115,20 @@ def get_disponibilidad(mes: str, db: Session = Depends(get_db)):
     ]
 
 
+@router.get("/aplica-descuento-pack")
+def aplica_descuento_pack(usuario_id: int, db: Session = Depends(get_db)):
+    """Indica si el usuario puede recibir descuento por pack o si está penalizado
+    por una ausencia previa en otro pack."""
+    penalizado = usuario_tiene_ausencia_en_pack_previo(db, usuario_id)
+    return {"aplica_descuento": not penalizado, "penalizado_por_ausencia": penalizado}
+
+
 @router.post("/reservar")
 def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
     """
-    Reserva uno o más turnos. Busca la clase_programada por fecha/hora/zona_id.
-    No vincula a abono — para reservas con abono usar /abonos/solicitar.
+    Reserva uno o más turnos. Calcula descuento por pack (10% / 20%), aplica
+    seña si corresponde y agrupa las reservas con un mismo pack_id cuando son
+    2 ó 3 turnos.
     """
     zona = db.query(models.Zona).filter(models.Zona.id == data.zona_id).first()
     if not zona:
@@ -152,6 +196,29 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
                 )
         clase_programadas.append(cp)
 
+    # Cálculo de precio con regla de descuento + penalización
+    cantidad = len(clase_programadas)
+    descuento_pct = calcular_descuento_pct(cantidad)
+    if descuento_pct > 0 and usuario_tiene_ausencia_en_pack_previo(db, data.usuario_id):
+        descuento_pct = 0
+
+    precio_unit = Decimal(zona.precio)
+    subtotal = precio_unit * cantidad
+    monto_total_pack = (subtotal * (100 - descuento_pct) / 100).quantize(Decimal("0.01"))
+    # Importe efectivamente cobrado en esta operación
+    if data.tipo_pago == "sena":
+        cobrado_pack = (monto_total_pack / 2).quantize(Decimal("0.01"))
+    else:
+        cobrado_pack = monto_total_pack
+
+    # Repartimos los montos por reserva proporcionalmente al precio_unit
+    # (los totales por reserva suman exactamente monto_total_pack / cobrado_pack).
+    monto_total_por_reserva = (monto_total_pack / cantidad).quantize(Decimal("0.01"))
+    precio_pagado_por_reserva = (cobrado_pack / cantidad).quantize(Decimal("0.01"))
+
+    # pack_id sólo para 2 ó 3 turnos (descuento aplicable)
+    pack_id = str(uuid.uuid4()) if cantidad >= 2 else None
+
     try:
         for cp in clase_programadas:
             db.add(
@@ -159,7 +226,9 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
                     usuario_id=data.usuario_id,
                     clase_programada_id=cp.id,
                     medio_pago_id=medio_pago.id,
-                    precio_pagado=zona.precio,
+                    precio_pagado=precio_pagado_por_reserva,
+                    monto_total=monto_total_por_reserva,
+                    pack_id=pack_id,
                 )
             )
             cp.cupo_disponible -= 1
@@ -170,8 +239,22 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
             status_code=400,
             detail="Ya tenés una reserva activa para uno de los horarios seleccionados.",
         )
+    except Exception as exc:  # noqa: BLE001
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"No se pudo registrar la reserva: {exc}",
+        )
 
-    return {"ok": True, "reservados": len(clase_programadas)}
+    return {
+        "ok": True,
+        "reservados": len(clase_programadas),
+        "descuento_pct": descuento_pct,
+        "monto_total": float(monto_total_pack),
+        "precio_pagado": float(cobrado_pack),
+        "tipo_pago": data.tipo_pago,
+        "pack_id": pack_id,
+    }
 
 
 @router.get("/mis-turnos")
@@ -206,7 +289,37 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
             "medio_pago": mp.nombre,
             "estado": r.estado,
             "precio_pagado": float(r.precio_pagado),
+            "monto_total": float(r.monto_total) if r.monto_total is not None else None,
+            "estado_pago": r.estado_pago,
+            "pack_id": r.pack_id,
+            "clase_activa": bool(cp.activo),
             "fecha_reserva": r.fecha_reserva.isoformat() if r.fecha_reserva else None,
         }
         for r, cp, z, mp in rows
     ]
+
+
+@router.post("/reservas/{reserva_id}/completar-pago")
+def completar_pago(reserva_id: int, db: Session = Depends(get_db)):
+    """Marca la reserva como pago completo (precio_pagado := monto_total).
+    En un flujo real con MercadoPago, este endpoint debería dispararse desde el
+    callback exitoso de la pasarela tras cobrar el saldo. Acá lo simplificamos
+    para que el front pueda completar el pago directamente."""
+    reserva = (
+        db.query(models.Reserva).filter(models.Reserva.id == reserva_id).first()
+    )
+    if not reserva:
+        raise HTTPException(status_code=404, detail="Reserva no encontrada.")
+    if reserva.precio_pagado >= reserva.monto_total:
+        raise HTTPException(
+            status_code=400, detail="La reserva ya tiene el pago completo."
+        )
+    saldo = Decimal(reserva.monto_total) - Decimal(reserva.precio_pagado)
+    reserva.precio_pagado = reserva.monto_total
+    db.commit()
+    return {
+        "ok": True,
+        "reserva_id": reserva.id,
+        "saldo_cobrado": float(saldo),
+        "estado_pago": reserva.estado_pago,
+    }

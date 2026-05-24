@@ -34,8 +34,8 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
-# bcrypt hash de "prueba" (cost 12) — reutilizado en todos los usuarios demo
-PWD = "$2b$12$GSJXo3ZqON3BXRIOPUZL2ub5AsWlb6yjPzRz8m/bsfxATD.YoNQAW"
+# bcrypt hash de "Test1234" (cost 12) — reutilizado en todos los usuarios demo
+PWD = "$2b$12$.l/4WTnBaCkxSxqayVq5ZOQcCOTMtzeu04xZouhj2mrEb6mN9hsWG"
 
 START = date(2026, 5, 22)
 END = date(2026, 7, 31)

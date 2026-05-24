@@ -39,12 +39,12 @@ const TABS = [
   { id: 'cupos', label: 'Gestionar cupos', roles: ['admin'] },
   { id: 'asistencia', label: 'Asistencia', roles: ['secretario'] },
   { id: 'salas', label: 'Salas', roles: ['admin'] },
-  { id: 'programar', label: 'Programar clases', roles: ['admin', 'secretario'] },
+  { id: 'programar', label: 'Crear clases', roles: ['admin', 'secretario'] },
   { id: 'cancelar', label: 'Cancelar clase', roles: ['admin', 'secretario'] },
   { id: 'eliminar', label: 'Eliminar por profesional', roles: ['admin'] },
   { id: 'precios', label: 'Modificar precio', roles: ['admin'] },
   { id: 'secretarios', label: 'Secretarios', roles: ['admin'] },
-  { id: 'registrar-paciente', label: 'Registrar cliente', roles: ['secretario'] },
+  { id: 'registrar-paciente', label: 'Registrar usuario', roles: ['secretario'] },
   { id: 'horarios', label: 'Modificar horario', roles: ['admin'] },
 ]
 
@@ -54,12 +54,12 @@ const TAB_HEADERS = {
   cupos:       { title: 'Gestionar cupos',         desc: 'Ajustá el cupo máximo de cada clase.' },
   asistencia:  { title: 'Asistencia',              desc: 'Marcá la presencia de cada paciente.' },
   salas:       { title: 'Gestión de salas',        desc: 'Administrá las salas físicas y su cupo. El cambio de cupo aplica a clases nuevas.' },
-  programar:   { title: 'Programar clases',        desc: 'Elegí zona, sala, profesional y horarios para crear las clases.' },
+  programar:   { title: 'Crear clases',        desc: 'Elegí zona, sala, profesional y horarios para crear las clases.' },
   cancelar:    { title: 'Cancelar clase',          desc: 'Seleccioná una clase activa para cancelarla.' },
   eliminar:    { title: 'Eliminar por profesional',desc: 'Cancelá todas las clases futuras de un profesional.' },
   precios:     { title: 'Modificar precio',        desc: 'Aplicá un nuevo precio a las próximas clases sin inscriptos.' },
   secretarios: { title: 'Secretarios', desc: 'Gestioná los usuarios secretarios del sistema.' },
-  'registrar-paciente': { title: 'Registrar cliente', desc: 'Registrá un nuevo cliente en el sistema.' },
+  'registrar-paciente': { title: 'Registrar usuario', desc: 'Registrá un nuevo usuario en el sistema.' },
   horarios:    { title: 'Modificar horario',        desc: 'Ajustá el horario de inicio de las clases.' },
 }
 
@@ -75,14 +75,12 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState(visibleTabs[0]?.id ?? 'programar')
   const [filterDate, setFilterDate] = useState(today)
   const [filterCuposDate, setFilterCuposDate] = useState('')
-  const [filterCancelarDate, setFilterCancelarDate] = useState('')
   const [filterAsistDate, setFilterAsistDate] = useState(today)
   const [filterAsistHora, setFilterAsistHora] = useState(HORARIOS[0])
   const [cuposMax, setCuposMax] = useState(() => Object.fromEntries(HORARIOS.map((h) => [h, 5])))
   const [cuposInput, setCuposInput] = useState({})
   const [ocupados] = useState(() => initOcupados())
   const [cuposClasses, setCuposClasses] = useState([])
-  const [clasesParaCancelar, setClasesParaCancelar] = useState([])
   const [asistencia, setAsistencia] = useState({})
   const [cancelados, setCancelados] = useState({})
   const [toastMsg, setToastMsg] = useState('')
@@ -147,21 +145,6 @@ export default function Admin() {
     cargarPrecios()
   }, [])
 
-  useEffect(() => {
-    const cargarClasesCancelar = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/clases-cancelar`)
-        if (res.ok) {
-          const data = await res.json()
-          setClasesParaCancelar(data)
-        }
-      } catch {
-        console.log('No se pudieron cargar las clases para cancelar')
-      }
-    }
-    cargarClasesCancelar()
-  }, [])
-
   const turnos = useMemo(() => buildTurnos(), [])
 
   const turnosFiltrados = turnos.map((t) => ({
@@ -186,27 +169,6 @@ export default function Admin() {
   function cancelarTurno(id, nombre) {
     setCancelados((prev) => ({ ...prev, [id]: true }))
     showToast(`Turno de ${nombre} cancelado`)
-  }
-
-  async function cancelarClase(claseId) {
-    const clase = clasesParaCancelar.find((c) => c.id === claseId)
-    if (!clase) return
-    try {
-      const res = await fetch(`${API_URL}/api/clases-cancelar`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clase_programada_id: claseId }),
-      })
-      const body = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        showToast(body.detail || 'Error al cancelar clase')
-        return
-      }
-      setClasesParaCancelar((prev) => prev.filter((c) => c.id !== claseId))
-      showToast('La clase ha sido cancelada exitosamente')
-    } catch {
-      showToast('Error al cancelar clase en backend')
-    }
   }
 
   async function crearClasesProgramadas(datos) {
@@ -501,12 +463,7 @@ export default function Admin() {
         {activeTab === 'programar' && <ProgramarTab onProgramar={crearClasesProgramadas} />}
 
         {activeTab === 'cancelar' && (
-          <CancelarTab
-            classes={clasesParaCancelar}
-            onCancelar={cancelarClase}
-            filterDate={filterCancelarDate}
-            onFilterChange={setFilterCancelarDate}
-          />
+          <CancelarTab onToast={showToast} />
         )}
 
         {activeTab === 'eliminar' && <EliminarTab onEliminar={eliminarClasesPorProfesional} />}

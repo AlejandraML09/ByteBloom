@@ -6,7 +6,7 @@ Create Date: 2026-05-22 00:00:00.000000
 
 Cambios:
   - Actualiza el precio de las 3 zonas a $5000
-  - Crea 2 usuarios con rol secretario (contraseña: 'prueba')
+  - Crea 2 usuarios con rol secretario (contraseña: 'Test1234')
 """
 from typing import Sequence, Union
 from alembic import op
@@ -16,7 +16,7 @@ down_revision: Union[str, Sequence[str], None] = "a7f3e2d1c8b9"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
-PWD = "$2b$12$GSJXo3ZqON3BXRIOPUZL2ub5AsWlb6yjPzRz8m/bsfxATD.YoNQAW"
+PWD = "$2b$12$.l/4WTnBaCkxSxqayVq5ZOQcCOTMtzeu04xZouhj2mrEb6mN9hsWG"
 
 
 def upgrade():
