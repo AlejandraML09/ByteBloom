@@ -119,30 +119,49 @@ export default function PagosEfectivoTab() {
                         <span className={`badge ${status.css}`}>{status.label}</span>
                       </td>
                       <td>
-                        {reserva.estado_pago === 'pago_completo' ? (
-                          <span>—</span>
-                        ) : (
-                          <div>
-                            <small>{new Date(reserva.fecha_vencimiento).toLocaleString('es-AR')}</small><br />
-                            <span className={`badge ${vencido ? 'badge-gray' : 'badge-gray'}`}>
-                              {`${reserva.horas_restantes}h`}
-                            </span>
-                          </div>
-                        )}
+                        <div>
+                          <small>{new Date(reserva.fecha_vencimiento).toLocaleString('es-AR')}</small><br />
+                          <span className={`badge ${vencido ? 'badge-gray' : 'badge-gray'}`}>
+                            {`${reserva.horas_restantes}h`}
+                          </span>
+                        </div>
                       </td>
                       <td>
-                        <button
-                          className='btn-action'
-                          type='button'
-                          disabled={reserva.estado_pago !== 'pago_pendiente' || savingId === reserva.id}
-                          onClick={() => handleConfirmarPago(reserva)}
-                        >
-                          {reserva.estado_pago === 'pago_completo'
-                            ? 'Recibido'
-                            : savingId === reserva.id
-                            ? 'Guardando...'
-                            : 'Marcar como recibido'}
-                        </button>
+                        {(() => {
+                          if (vencido || reserva.estado_pago === 'pago_completo') {
+                            return <span>—</span>
+                          }
+
+                          const disabled = reserva.estado_pago !== 'pago_pendiente' || savingId === reserva.id
+                          let label = 'Marcar como recibido'
+                          if (disabled) {
+                            const disabledStyle = {
+                              background: '#e6e6e6',
+                              color: '#777',
+                              borderColor: '#d0d0d0',
+                              cursor: 'not-allowed',
+                              pointerEvents: 'none',
+                              boxShadow: 'none'
+                            }
+                            return (
+                              <button
+                                className={`btn-action btn-action--disabled`}
+                                type='button'
+                                disabled
+                                aria-disabled='true'
+                                tabIndex={-1}
+                                style={disabledStyle}
+                              >
+                                {label}
+                              </button>
+                            )
+                          }
+                          return (
+                            <button className='btn-action' type='button' onClick={() => handleConfirmarPago(reserva)}>
+                              {savingId === reserva.id ? 'Guardando...' : label}
+                            </button>
+                          )
+                        })()}
                       </td>
                     </tr>
                   )

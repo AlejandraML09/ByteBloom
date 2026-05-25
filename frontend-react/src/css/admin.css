@@ -475,6 +475,17 @@
   cursor: not-allowed;
 }
 
+/* explicit modifier to force disabled gray appearance */
+.btn-action--disabled,
+.btn-action.btn-action--disabled,
+.btn-action.btn-action--disabled:disabled {
+  background: #d3d3d3 !important;
+  color: #888 !important;
+  border-color: #bbb !important;
+  cursor: not-allowed !important;
+  opacity: 1 !important;
+}
+
 /* btn-action primario (reemplaza style inline de AsistenciaTab) */
 .btn-action.primary {
   background: var(--primary);
