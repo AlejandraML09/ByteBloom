@@ -97,7 +97,6 @@ export function CuposTab({
                         <input
                           type="number"
                           min="1"
-                          max={cupoSala ?? undefined}
                           value={cuposInput[clase.id] ?? clase.cupo_maximo}
                           onChange={(e) => onInputChange(clase.id, e.target.value)}
                           style={{
@@ -122,9 +121,9 @@ export function CuposTab({
                         onClick={() => !superaCupo && onModifyCupo(clase.id)}
                         disabled={superaCupo}
                         style={{
-                          background: superaCupo ? 'transparent' : '#c0435a',
-                          color: superaCupo ? 'transparent' : '#fff',
-                          border: superaCupo ? '1px solid #ddd' : 'none',
+background: superaCupo ? '#d1d5db' : '#c0435a',
+color: superaCupo ? '#9ca3af' : '#fff',
+border: 'none',
                           borderRadius: '6px',
                           padding: '0.4rem 1rem',
                           fontSize: '0.85rem',
