@@ -9,6 +9,7 @@ const PAYMENT_LABELS = {
   debito: 'Tarjeta de Débito',
   efectivo: 'Efectivo',
   transferencia: 'Transferencia',
+  'Crédito a favor': 'Crédito a favor',
 }
 
 const fmt = (n) => `$${n.toLocaleString('es-AR')}`
@@ -120,6 +121,7 @@ export function SummaryPanel({
   const discount = Math.round((subtotal * discountPct) / 100)
   const total = subtotal - discount
   const aPagarAhora = tipoPago === 'sena' ? Math.round(total / 2) : total
+  const usandoCreditos = medioPago === 'Crédito a favor'
 
   return (
     <div className='summary-v2'>
@@ -173,7 +175,7 @@ export function SummaryPanel({
               </span>
             </div>
 
-            {discountPct > 0 && (
+            {!usandoCreditos && discountPct > 0 && (
               <div className='summary-v2-row'>
                 <IconDiscount />
                 <span className='summary-v2-row-label'>Pack {shifts.length} clases</span>
@@ -182,7 +184,7 @@ export function SummaryPanel({
                 </span>
               </div>
             )}
-            {!aplicaDescuento && discountPctBase > 0 && (
+            {!usandoCreditos && !aplicaDescuento && discountPctBase > 0 && (
               <div className='summary-v2-row'>
                 <IconDiscount />
                 <span className='summary-v2-row-label'>Descuento por pack</span>
@@ -193,17 +195,31 @@ export function SummaryPanel({
             )}
           </div>
 
-          <div className='summary-v2-total'>
-            <span className='summary-v2-total-label'>Total</span>
-            <div className='summary-v2-total-value'>
-              {fmt(total)}
-              {discountPct > 0 && <span className='summary-v2-original'>{fmt(subtotal)}</span>}
-            </div>
-          </div>
-          {tipoPago === 'sena' && (
-            <div className='summary-v2-total summary-v2-total--sena'>
-              <span className='summary-v2-total-label'>A pagar ahora (seña 50%)</span>
-              <div className='summary-v2-total-value'>{fmt(aPagarAhora)}</div>
+          {!usandoCreditos && (
+            <>
+              <div className='summary-v2-total'>
+                <span className='summary-v2-total-label'>Total</span>
+                <div className='summary-v2-total-value'>
+                  {fmt(total)}
+                  {discountPct > 0 && <span className='summary-v2-original'>{fmt(subtotal)}</span>}
+                </div>
+              </div>
+
+              {tipoPago === 'sena' && (
+                <div className='summary-v2-total summary-v2-total--sena'>
+                  <span className='summary-v2-total-label'>A pagar ahora (seña 50%)</span>
+                  <div className='summary-v2-total-value'>{fmt(aPagarAhora)}</div>
+                </div>
+              )}
+            </>
+          )}
+
+          {usandoCreditos && (
+            <div className='summary-v2-total'>
+              <span className='summary-v2-total-label'>Pago</span>
+              <div className='summary-v2-total-value'>
+                {shifts.length} crédito{shifts.length !== 1 ? 's' : ''}
+              </div>
             </div>
           )}
         </div>
@@ -258,29 +274,33 @@ export function SummaryPanel({
         </div>
       </div>
 
-      <div className='summary-v2-sena-info'>
-        Para que tus selecciones queden reservadas, es necesario pagar una seña del 50% del valor total
-        de las clases.
-      </div>
+      {!usandoCreditos && (
+      <>
+        <div className='summary-v2-sena-info'>
+          Para que tus selecciones queden reservadas, es necesario pagar una seña del 50% del valor total
+          de las clases.
+        </div>
 
-      <div className='summary-v2-tipo-pago'>
-        <button
-          type='button'
-          className={`summary-v2-tipo-btn${tipoPago === 'completo' ? ' selected' : ''}`}
-          onClick={() => onTipoPagoChange?.('completo')}
-        >
-          <span className='summary-v2-tipo-title'>Pagar el total</span>
-          <span className='summary-v2-tipo-sub'>{fmt(total)}</span>
-        </button>
-        <button
-          type='button'
-          className={`summary-v2-tipo-btn${tipoPago === 'sena' ? ' selected' : ''}`}
-          onClick={() => onTipoPagoChange?.('sena')}
-        >
-          <span className='summary-v2-tipo-title'>Pagar seña (50%)</span>
-          <span className='summary-v2-tipo-sub'>{fmt(Math.round(total / 2))} ahora · saldo después</span>
-        </button>
-      </div>
+        <div className='summary-v2-tipo-pago'>
+          <button
+            type='button'
+            className={`summary-v2-tipo-btn${tipoPago === 'completo' ? ' selected' : ''}`}
+            onClick={() => onTipoPagoChange?.('completo')}
+          >
+            <span className='summary-v2-tipo-title'>Pagar el total</span>
+            <span className='summary-v2-tipo-sub'>{fmt(total)}</span>
+          </button>
+          <button
+            type='button'
+            className={`summary-v2-tipo-btn${tipoPago === 'sena' ? ' selected' : ''}`}
+            onClick={() => onTipoPagoChange?.('sena')}
+          >
+            <span className='summary-v2-tipo-title'>Pagar seña (50%)</span>
+            <span className='summary-v2-tipo-sub'>{fmt(Math.round(total / 2))} ahora · saldo después</span>
+          </button>
+        </div>
+      </>
+      )}
 
       <button className='btn-confirm-v2' disabled={confirmando} onClick={onConfirm}>
         <svg

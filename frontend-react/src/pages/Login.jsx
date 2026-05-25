@@ -40,6 +40,15 @@ export default function Login() {
       }
       localStorage.setItem('usuario', JSON.stringify(usuarioActivo))
 
+      // ✅ Inicializar créditos solo para usuarios normales
+      if (data.rol === 'usuario') {
+        const creditKey = `creditos_${data.id}`
+
+        if (!localStorage.getItem(creditKey)) {
+          localStorage.setItem(creditKey, '3')
+        }
+      }
+
       navigate(data.rol === 'admin' || data.rol === 'secretario' ? '/admin' : '/')
     } catch (err) {
       console.error('Error completo:', err)

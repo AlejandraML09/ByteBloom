@@ -19,6 +19,7 @@ const MEDIO_PAGO_DB = {
   mercadopago: 'Mercado Pago',
   debito: 'Mercado Pago',
   credito: 'Mercado Pago',
+  credito_favor: 'Crédito a favor',
 }
 
 /**
