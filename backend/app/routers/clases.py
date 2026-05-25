@@ -5,7 +5,17 @@ from typing import Optional
 from datetime import datetime, date as date_type
 
 from app.database import SessionLocal
-from app.models import ClaseProgramada, Zona, Sala, Usuario, RolUsuario
+from app.models import (
+    ClaseProgramada,
+    Zona,
+    Sala,
+    Usuario,
+    RolUsuario,
+    Reserva,
+    ListaEspera,
+    EstadoReserva,
+    EstadoListaEspera,
+)
 
 router = APIRouter(prefix="/api", tags=["clases"])
 
@@ -22,8 +32,8 @@ def get_db():
 
 
 class SlotItem(BaseModel):
-    fecha: str  # "YYYY-MM-DD"
-    hora: str  # "HH:MM"
+    fecha: str
+    hora: str
 
     @field_validator("fecha")
     @classmethod
@@ -68,7 +78,7 @@ class ProgramarRequest(BaseModel):
 
 
 class ActualizarHorarioRequest(BaseModel):
-    nueva_hora: str  # "HH:MM"
+    nueva_hora: str
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -76,19 +86,33 @@ class ActualizarHorarioRequest(BaseModel):
 
 @router.post("/clases/programadas", status_code=201)
 def crear_clases_programadas(body: ProgramarRequest, db: Session = Depends(get_db)):
-    """Crear clases programadas en bulk. Valida conflictos sala/profesional."""
     if not body.slots:
         raise HTTPException(
-            status_code=400, detail="Debés seleccionar al menos un horario."
+            status_code=400,
+            detail="Debés seleccionar al menos un horario.",
         )
 
-    zona = db.query(Zona).filter(Zona.id == body.zona_id, Zona.activo == True).first()
-    if not zona:
-        raise HTTPException(status_code=404, detail="Zona no encontrada o inactiva.")
+    zona = db.query(Zona).filter(
+        Zona.id == body.zona_id,
+        Zona.activo == True,
+    ).first()
 
-    sala = db.query(Sala).filter(Sala.id == body.sala_id, Sala.activo == True).first()
+    if not zona:
+        raise HTTPException(
+            status_code=404,
+            detail="Zona no encontrada o inactiva.",
+        )
+
+    sala = db.query(Sala).filter(
+        Sala.id == body.sala_id,
+        Sala.activo == True,
+    ).first()
+
     if not sala:
-        raise HTTPException(status_code=404, detail="Sala no encontrada o inactiva.")
+        raise HTTPException(
+            status_code=404,
+            detail="Sala no encontrada o inactiva.",
+        )
 
     if body.profesional_email:
         prof = (
@@ -99,12 +123,13 @@ def crear_clases_programadas(body: ProgramarRequest, db: Session = Depends(get_d
             )
             .first()
         )
+
         if not prof:
             raise HTTPException(
-                status_code=404, detail="Profesional no encontrado."
+                status_code=404,
+                detail="Profesional no encontrado.",
             )
 
-    # Acumular conflictos antes de insertar
     conflictos_sala = []
     conflictos_profesional = []
     slots_a_crear = []
@@ -129,24 +154,35 @@ def crear_clases_programadas(body: ProgramarRequest, db: Session = Depends(get_d
             )
             .first()
         )
+
         if choque_sala:
-            conflictos_sala.append({"fecha": slot.fecha, "hora": slot.hora})
+            conflictos_sala.append(
+                {
+                    "fecha": slot.fecha,
+                    "hora": slot.hora,
+                }
+            )
             continue
 
         if body.profesional_email:
             choque_prof = (
                 db.query(ClaseProgramada)
                 .filter(
-                    ClaseProgramada.profesional_email == body.profesional_email,
+                    ClaseProgramada.profesional_email
+                    == body.profesional_email,
                     ClaseProgramada.fecha == fecha_obj,
                     ClaseProgramada.hora == hora_obj,
                     ClaseProgramada.activo == True,
                 )
                 .first()
             )
+
             if choque_prof:
                 conflictos_profesional.append(
-                    {"fecha": slot.fecha, "hora": slot.hora}
+                    {
+                        "fecha": slot.fecha,
+                        "hora": slot.hora,
+                    }
                 )
                 continue
 
@@ -177,61 +213,195 @@ def crear_clases_programadas(body: ProgramarRequest, db: Session = Depends(get_d
         db.flush()
 
     db.commit()
+
     return {"creadas": len(slots_a_crear)}
 
 
-@router.delete("/clases-programadas/por-profesional/{email}", status_code=200)
-def eliminar_clases_programadas_de_profesional(
-    email: str, db: Session = Depends(get_db)
-):
-    """Soft-delete de todas las clases programadas futuras del profesional."""
+# ── Resumen antes de cancelar ────────────────────────────────────────────────
+
+
+@router.get("/clases-programadas/por-profesional/{email}/resumen")
+def resumen_clases_profesional(email: str, db: Session = Depends(get_db)):
+    email = email.strip().lower()
+
     clases = (
         db.query(ClaseProgramada)
         .filter(
-            ClaseProgramada.profesional_email == email.strip().lower(),
+            ClaseProgramada.profesional_email == email,
             ClaseProgramada.activo == True,
             ClaseProgramada.fecha >= date_type.today(),
         )
         .all()
     )
+
     if not clases:
         raise HTTPException(
             status_code=404,
             detail="No se encontraron clases futuras para ese profesional.",
         )
+
+    cp_ids = [cp.id for cp in clases]
+
+    reservas_activas = (
+        db.query(Reserva)
+        .filter(
+            Reserva.clase_programada_id.in_(cp_ids),
+            Reserva.estado.in_(
+                [
+                    EstadoReserva.pendiente,
+                    EstadoReserva.confirmada,
+                ]
+            ),
+        )
+        .count()
+    )
+
+    lista_espera = (
+        db.query(ListaEspera)
+        .filter(
+            ListaEspera.clase_programada_id.in_(cp_ids),
+            ListaEspera.activo == True,
+            ListaEspera.estado.in_(
+                [
+                    EstadoListaEspera.esperando,
+                    EstadoListaEspera.notificado,
+                ]
+            ),
+        )
+        .count()
+    )
+
+    return {
+        "email": email,
+        "clases_programadas": len(clases),
+        "reservas_activas": reservas_activas,
+        "lista_espera": lista_espera,
+    }
+
+
+# ── Cancelación ──────────────────────────────────────────────────────────────
+
+
+@router.delete("/clases-programadas/por-profesional/{email}", status_code=200)
+def eliminar_clases_programadas_de_profesional(
+    email: str,
+    db: Session = Depends(get_db),
+):
+    email = email.strip().lower()
+
+    clases = (
+        db.query(ClaseProgramada)
+        .filter(
+            ClaseProgramada.profesional_email == email,
+            ClaseProgramada.activo == True,
+            ClaseProgramada.fecha >= date_type.today(),
+        )
+        .all()
+    )
+
+    if not clases:
+        raise HTTPException(
+            status_code=404,
+            detail="No se encontraron clases futuras para ese profesional.",
+        )
+
+    cp_ids = [cp.id for cp in clases]
+
+    reservas = (
+        db.query(Reserva)
+        .filter(
+            Reserva.clase_programada_id.in_(cp_ids),
+            Reserva.estado.in_(
+                [
+                    EstadoReserva.pendiente,
+                    EstadoReserva.confirmada,
+                ]
+            ),
+        )
+        .all()
+    )
+
+    lista_espera = (
+        db.query(ListaEspera)
+        .filter(
+            ListaEspera.clase_programada_id.in_(cp_ids),
+            ListaEspera.activo == True,
+            ListaEspera.estado.in_(
+                [
+                    EstadoListaEspera.esperando,
+                    EstadoListaEspera.notificado,
+                ]
+            ),
+        )
+        .all()
+    )
+
     for cp in clases:
         cp.activo = False
+
+    for reserva in reservas:
+        reserva.estado = EstadoReserva.cancelada
+
+    for entrada in lista_espera:
+        entrada.activo = False
+        entrada.estado = EstadoListaEspera.cancelado
+
     db.commit()
-    return {"eliminadas": len(clases), "profesional_email": email}
+
+    return {
+        "eliminadas": len(clases),
+        "reservas_canceladas": len(reservas),
+        "lista_espera_cancelada": len(lista_espera),
+        "profesional_email": email,
+    }
 
 
 @router.put("/clases/{clase_id}/horario")
 def actualizar_horario_clase(
-    clase_id: int, data: ActualizarHorarioRequest, db: Session = Depends(get_db)
+    clase_id: int,
+    data: ActualizarHorarioRequest,
+    db: Session = Depends(get_db),
 ):
-    clase_programada = db.query(ClaseProgramada).filter(
-        ClaseProgramada.id == clase_id,
-        ClaseProgramada.activo == True
-    ).first()
+    clase_programada = (
+        db.query(ClaseProgramada)
+        .filter(
+            ClaseProgramada.id == clase_id,
+            ClaseProgramada.activo == True,
+        )
+        .first()
+    )
 
     if not clase_programada:
-        raise HTTPException(status_code=404, detail="Clase programada no encontrada")
+        raise HTTPException(
+            status_code=404,
+            detail="Clase programada no encontrada",
+        )
 
     try:
-        nueva_hora_obj = datetime.strptime(data.nueva_hora, "%H:%M").time()
+        nueva_hora_obj = datetime.strptime(
+            data.nueva_hora,
+            "%H:%M",
+        ).time()
+
     except ValueError:
-        raise HTTPException(status_code=400, detail="Formato de hora inválido (HH:MM)")
+        raise HTTPException(
+            status_code=400,
+            detail="Formato de hora inválido (HH:MM)",
+        )
 
     clase_programada.hora = nueva_hora_obj
+
     db.commit()
     db.refresh(clase_programada)
 
-    return {"mensaje": "Horario actualizado correctamente", "id": clase_programada.id}
+    return {
+        "mensaje": "Horario actualizado correctamente",
+        "id": clase_programada.id,
+    }
 
 
 @router.get("/cupos")
 def listar_clases_programadas(db: Session = Depends(get_db)):
-    """Lista todas las clases programadas activas con info de zona y sala."""
     clases = (
         db.query(ClaseProgramada, Zona, Sala)
         .join(Zona, ClaseProgramada.zona_id == Zona.id)
@@ -240,28 +410,30 @@ def listar_clases_programadas(db: Session = Depends(get_db)):
         .order_by(ClaseProgramada.fecha, ClaseProgramada.hora)
         .all()
     )
-    
+
     result = []
+
     for clase, zona, sala in clases:
-        result.append({
-            "id": clase.id,
-            "zona_id": clase.zona_id,
-            "zona_nombre": zona.nombre,
-            "sala_id": clase.sala_id,
-            "sala_nombre": sala.nombre,
-            "fecha": clase.fecha.isoformat(),
-            "hora": clase.hora.strftime("%H:%M"),
-            "cupo_maximo": clase.cupo_inicial,
-            "cupo_disponible": clase.cupo_disponible,
-            "profesional_email": clase.profesional_email,
-        })
-    
+        result.append(
+            {
+                "id": clase.id,
+                "zona_id": clase.zona_id,
+                "zona_nombre": zona.nombre,
+                "sala_id": clase.sala_id,
+                "sala_nombre": sala.nombre,
+                "fecha": clase.fecha.isoformat(),
+                "hora": clase.hora.strftime("%H:%M"),
+                "cupo_maximo": clase.cupo_inicial,
+                "cupo_disponible": clase.cupo_disponible,
+                "profesional_email": clase.profesional_email,
+            }
+        )
+
     return result
 
 
 @router.get("/clases-cancelar")
 def listar_clases_para_cancelar(db: Session = Depends(get_db)):
-    """Lista clases programadas futuras para cancelar."""
     clases = (
         db.query(ClaseProgramada, Zona, Sala)
         .join(Zona, ClaseProgramada.zona_id == Zona.id)
@@ -273,19 +445,22 @@ def listar_clases_para_cancelar(db: Session = Depends(get_db)):
         .order_by(ClaseProgramada.fecha, ClaseProgramada.hora)
         .all()
     )
-    
+
     result = []
+
     for clase, zona, sala in clases:
-        result.append({
-            "id": clase.id,
-            "zona_id": clase.zona_id,
-            "zona_nombre": zona.nombre,
-            "sala_id": clase.sala_id,
-            "sala_nombre": sala.nombre,
-            "fecha": clase.fecha.isoformat(),
-            "hora": clase.hora.strftime("%H:%M"),
-            "cupo_maximo": clase.cupo_inicial,
-            "profesional_email": clase.profesional_email,
-        })
-    
+        result.append(
+            {
+                "id": clase.id,
+                "zona_id": clase.zona_id,
+                "zona_nombre": zona.nombre,
+                "sala_id": clase.sala_id,
+                "sala_nombre": sala.nombre,
+                "fecha": clase.fecha.isoformat(),
+                "hora": clase.hora.strftime("%H:%M"),
+                "cupo_maximo": clase.cupo_inicial,
+                "profesional_email": clase.profesional_email,
+            }
+        )
+
     return result

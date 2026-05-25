@@ -14,12 +14,23 @@ export default function MisDatos() {
   const [dni, setDni] = useState(usuario.dni || '')
   const [fechaNacimiento, setFechaNacimiento] = useState(usuario.fecha_nacimiento || '')
 
+  const [cambiarPassword, setCambiarPassword] = useState(false)
+  const [passwordActual, setPasswordActual] = useState('')
+  const [passwordNueva, setPasswordNueva] = useState('')
+  const [passwordConfirmar, setPasswordConfirmar] = useState('')
+
   const [exito, setExito] = useState('')
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
 
+  const formularioCompleto = nombre.trim() && apellido.trim() && fechaNacimiento
+  //funcion para validar que la contraseña cumpla con el formato
+  const passwordValida = (pwd) =>
+  pwd.length >= 8 &&
+  /[A-Z]/.test(pwd) &&
+  /[a-z]/.test(pwd) &&
+  /\d/.test(pwd)
   function handleCancelar() {
-    // Restaurar valores originales desde localStorage
     const u = JSON.parse(localStorage.getItem('usuario') || '{}')
     setNombre(u.nombre || '')
     setApellido(u.apellido || '')
@@ -28,6 +39,10 @@ export default function MisDatos() {
     setError('')
     setExito('')
     setEditando(false)
+    setCambiarPassword(false)
+    setPasswordActual('')
+    setPasswordNueva('')
+    setPasswordConfirmar('')
   }
 
   async function handleGuardar() {
@@ -46,6 +61,22 @@ export default function MisDatos() {
       setError('El DNI debe tener al menos 7 dígitos.')
       return
     }
+
+    if (cambiarPassword) {
+      if (!passwordActual || !passwordNueva || !passwordConfirmar) {
+        setError('Completá todos los campos de contraseña.')
+        return
+      }
+      if (!passwordValida(passwordNueva)) {
+        setError('La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número.')
+        return
+      }
+      if (passwordNueva !== passwordConfirmar) {
+        setError('Las contraseñas nuevas no coinciden.')
+        return
+      }
+    }
+
     setCargando(true)
     try {
       await client.put('/usuarios/me', {
@@ -54,9 +85,10 @@ export default function MisDatos() {
         apellido: apellido.trim(),
         dni: parseInt(dni),
         fecha_nacimiento: fechaNacimiento,
+        password_actual: cambiarPassword ? passwordActual : undefined,
+        password_nueva: cambiarPassword ? passwordNueva : undefined,
       })
 
-      // Actualizar localStorage
       const actualizado = {
         ...usuario,
         nombre: nombre.trim(),
@@ -67,6 +99,10 @@ export default function MisDatos() {
       localStorage.setItem('usuario', JSON.stringify(actualizado))
 
       setExito('¡Modificación exitosa!')
+      setCambiarPassword(false)
+      setPasswordActual('')
+      setPasswordNueva('')
+      setPasswordConfirmar('')
       setEditando(false)
     } catch (err) {
       const detalle = err.response?.data?.detail
@@ -112,17 +148,14 @@ export default function MisDatos() {
                   <label>Nombre</label>
                   <p className='dato-valor'>{nombre || <span className='dato-vacio'>—</span>}</p>
                 </div>
-
                 <div className='form-group'>
                   <label>Apellido</label>
                   <p className='dato-valor'>{apellido || <span className='dato-vacio'>—</span>}</p>
                 </div>
-
                 <div className='form-group'>
                   <label>DNI</label>
                   <p className='dato-valor'>{dni || <span className='dato-vacio'>—</span>}</p>
                 </div>
-
                 <div className='form-group'>
                   <label>Fecha de nacimiento</label>
                   <p className='dato-valor'>
@@ -131,12 +164,10 @@ export default function MisDatos() {
                       : <span className='dato-vacio'>—</span>}
                   </p>
                 </div>
-
                 <div className='form-group'>
                   <label>Email</label>
                   <p className='dato-valor'>{usuario.email || <span className='dato-vacio'>—</span>}</p>
                 </div>
-
                 <button className='btn-login' onClick={() => { setExito(''); setError(''); setEditando(true) }}>
                   Editar datos
                 </button>
@@ -148,31 +179,16 @@ export default function MisDatos() {
               <>
                 <div className='form-group'>
                   <label>Nombre</label>
-                  <input
-                    type='text'
-                    value={nombre}
-                    onChange={(e) => setNombre(e.target.value)}
-                  />
+                  <input type='text' value={nombre} onChange={(e) => setNombre(e.target.value)} />
                 </div>
-
                 <div className='form-group'>
                   <label>Apellido</label>
-                  <input
-                    type='text'
-                    value={apellido}
-                    onChange={(e) => setApellido(e.target.value)}
-                  />
+                  <input type='text' value={apellido} onChange={(e) => setApellido(e.target.value)} />
                 </div>
-
                 <div className='form-group'>
                   <label>DNI</label>
-                  <input
-                    type='number'
-                    value={dni}
-                    onChange={(e) => setDni(e.target.value)}
-                  />
+                  <input type='number' value={dni} onChange={(e) => setDni(e.target.value)} />
                 </div>
-
                 <div className='form-group'>
                   <label>Fecha de nacimiento</label>
                   <input
@@ -181,7 +197,6 @@ export default function MisDatos() {
                     onChange={(e) => setFechaNacimiento(e.target.value)}
                   />
                 </div>
-
                 <div className='form-group'>
                   <label>Email</label>
                   <input
@@ -192,7 +207,59 @@ export default function MisDatos() {
                   />
                 </div>
 
-                <button className='btn-login' onClick={handleGuardar} disabled={cargando}>
+                {/* CAMBIAR CONTRASEÑA */}
+                <div className='form-group'>
+                  <label
+                    onClick={() => {
+                      setCambiarPassword(!cambiarPassword)
+                      setPasswordActual('')
+                      setPasswordNueva('')
+                      setPasswordConfirmar('')
+                    }}
+                    style={{ cursor: 'pointer', color: 'var(--primary)', textDecoration: 'underline' }}
+                  >
+                    {cambiarPassword ? '✕ Cancelar cambio de contraseña' : '+ Cambiar contraseña'}
+                  </label>
+                </div>
+
+                {cambiarPassword && (
+                  <>
+                    <div className='form-group'>
+                      <label>Contraseña actual</label>
+                      <input
+                        type='password'
+                        value={passwordActual}
+                        onChange={(e) => setPasswordActual(e.target.value)}
+                      />
+                    </div>
+                    <div className='form-group'>
+                      <label>Nueva contraseña</label>
+                      <input
+                        type='password'
+                        value={passwordNueva}
+                        onChange={(e) => setPasswordNueva(e.target.value)}
+                      />
+                    </div>
+                    <div className='form-group'>
+                      <label>Confirmar nueva contraseña</label>
+                      <input
+                        type='password'
+                        value={passwordConfirmar}
+                        onChange={(e) => setPasswordConfirmar(e.target.value)}
+                      />
+                    </div>
+                  </>
+                )}
+
+                <button
+                  className='btn-login'
+                  onClick={handleGuardar}
+                  disabled={cargando || !formularioCompleto}
+                  style={{
+                    opacity: formularioCompleto ? 1 : 0.5,
+                    cursor: formularioCompleto ? 'pointer' : 'not-allowed',
+                  }}
+                >
                   {cargando ? 'Guardando...' : 'Guardar cambios'}
                 </button>
 

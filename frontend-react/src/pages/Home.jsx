@@ -78,7 +78,7 @@ export default function Home() {
               </svg>
             </div>
             <div>
-              <h3 className='cta-title'>Reservá tu turno hoy</h3>
+              <h3 className='cta-title'>Reservá tu clase hoy</h3>
               <p className='cta-info'>
                 Atención de lunes a sábado · 8:00 a 20:00 hs
                 <br />

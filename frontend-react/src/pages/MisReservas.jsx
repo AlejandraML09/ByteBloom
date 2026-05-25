@@ -586,7 +586,7 @@ function AbonoCard({ abono, onModificar, onRenovarDone }) {
                 className='ma-action-btn ma-action-btn--outline'
                 onClick={() => onModificar(abono)}
               >
-                ✎ Modificar fechas
+                ✎ Modificar abono
               </button>
             </>
           )}

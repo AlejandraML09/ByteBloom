@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
+
 from app.database import SessionLocal
 
 router = APIRouter(prefix="/abonos", tags=["abonos"])
@@ -17,6 +18,8 @@ _MEDIO_PAGO_MAP = {
     "mercado_pago": "Mercado Pago",
     "mercadopago": "Mercado Pago",
 }
+
+
 
 
 def get_db():
@@ -132,9 +135,18 @@ class SolicitudAbonoRequest(BaseModel):
 def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
     """Crea un abono para el usuario en la zona indicada y reserva las sesiones seleccionadas."""
 
-    # Validar que cada turno pertenece a una semana distinta
+    # Validar que cada turno pertenece a una semana distinta y no contiene fechas/hora duplicadas
     semanas = []
+    turnos_seleccionados = set()
     for item in data.turnos:
+        key = (item.fecha, item.hora)
+        if key in turnos_seleccionados:
+            raise HTTPException(
+                status_code=400,
+                detail=f"No podés seleccionar dos veces el mismo turno ({item.fecha} a las {item.hora}).",
+            )
+        turnos_seleccionados.add(key)
+
         fecha_obj = date_type.fromisoformat(item.fecha)
         semana = fecha_obj.isocalendar()[:2]  # (year, week)
         if semana in semanas:
@@ -163,11 +175,11 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
         )
 
     existing = db.execute(
-        text("SELECT id FROM abonos WHERE usuario_id = :uid AND zona_id = :zid"),
+        text("SELECT id FROM abonos WHERE usuario_id = :uid AND zona_id = :zid AND activo = true"),
         {"uid": data.usuario_id, "zid": data.zona_id},
     ).fetchone()
     if existing:
-        raise HTTPException(status_code=400, detail="Ya tenés un abono para esta zona.")
+        raise HTTPException(status_code=400, detail="Ya tenés un abono activo para esta zona.")
 
     # Validar todos los slots antes de escribir nada
     clase_programadas = []
@@ -193,7 +205,22 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
                 status_code=400,
                 detail=f"Sin cupos para {item.fecha} a las {item.hora}.",
             )
+
+        dup_reserva = db.execute(
+            text("SELECT id FROM reservas WHERE usuario_id = :uid AND clase_programada_id = :cpid AND estado NOT IN ('cancelada'::estado_reserva)"),
+            {"uid": data.usuario_id, "cpid": cp.id},
+        ).fetchone()
+        if dup_reserva:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Ya tenés una reserva para {item.fecha} a las {item.hora}.",
+            )
+
         clase_programadas.append(cp)
+
+    cantidad = len(clase_programadas)
+    monto_mensual = float(zona.precio) * cantidad
+
 
     try:
         today = date_type.today()
@@ -209,7 +236,7 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
                 "uid": data.usuario_id,
                 "zid": data.zona_id,
                 "fi": today,
-                "mm": float(zona.precio),
+                "mm": monto_mensual,
             },
         ).fetchone()
         abono_id = abono_row.id
@@ -218,8 +245,8 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
             reserva_row = db.execute(
                 text("""
                     INSERT INTO reservas
-                        (usuario_id, clase_programada_id, medio_pago_id, precio_pagado)
-                    VALUES (:uid, :cpid, :mpid, :precio)
+                        (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total)
+                    VALUES (:uid, :cpid, :mpid, :precio, :monto_total)
                     RETURNING id
                 """),
                 {
@@ -227,6 +254,7 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
                     "cpid": cp.id,
                     "mpid": medio_pago.id,
                     "precio": float(zona.precio),
+                    "monto_total": float(zona.precio),
                 },
             ).fetchone()
 
@@ -267,17 +295,25 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
                 "anio": pago_anio,
                 "mes": pago_mes,
                 "fv": fecha_venc,
-                "monto": float(zona.precio),
+                "monto": monto_mensual,
             },
         )
 
         db.commit()
-    except IntegrityError:
+    except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(
-            status_code=400,
-            detail="Ya tenés un abono activo para esta zona o una reserva duplicada.",
-        )
+        constraint = None
+        if hasattr(exc.orig, 'diag'):
+            constraint = getattr(exc.orig.diag, 'constraint_name', None)
+
+        if constraint in {'uq_usuario_zona', 'uq_abonos_usuario_zona_activo'}:
+            detail = 'Ya tenés un abono activo para esta zona.'
+        elif constraint == 'uq_usuario_clase':
+            detail = 'Ya tenés una reserva para uno de los horarios seleccionados.'
+        else:
+            detail = 'No se pudo crear el abono. Podría haber una reserva duplicada o un abono previo para esa zona.'
+
+        raise HTTPException(status_code=400, detail=detail)
 
     return {"ok": True, "abono_id": abono_id}
 
@@ -468,8 +504,8 @@ def renovar_abono(
             reserva_row = db.execute(
                 text("""
                     INSERT INTO reservas
-                        (usuario_id, clase_programada_id, medio_pago_id, precio_pagado)
-                    VALUES (:uid, :cpid, :mpid, :precio)
+                        (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total)
+                    VALUES (:uid, :cpid, :mpid, :precio, :monto_total)
                     ON CONFLICT DO NOTHING
                     RETURNING id
                 """),
@@ -478,6 +514,7 @@ def renovar_abono(
                     "cpid": cp_id,
                     "mpid": mp_id,
                     "precio": float(zona.precio),
+                    "monto_total": float(zona.precio),
                 },
             ).fetchone()
 
@@ -655,23 +692,24 @@ def modificar_sesion_abono(
             ),
             {"id": old_r.clase_programada_id},
         )
-
         # Crear nueva reserva
-        nueva_reserva = db.execute(
-            text("""
-                INSERT INTO reservas
-                    (usuario_id, clase_programada_id, medio_pago_id, precio_pagado)
-                VALUES (:uid, :cpid, :mpid, :precio)
-                RETURNING id
-            """),
-            {
-                "uid": abono.usuario_id,
-                "cpid": new_cp.id,
-                "mpid": mp_id,
-                "precio": float(zona.precio),
-            },
-        ).fetchone()
-
+        
+        result = db.execute(
+        text("""
+            INSERT INTO reservas
+                (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total)
+            VALUES (:uid, :cpid, :mpid, :precio, :monto_total)
+            RETURNING id
+        """),
+        {
+            "uid": abono.usuario_id,
+            "cpid": new_cp.id,
+            "mpid": mp_id,
+            "precio": float(zona.precio),
+            "monto_total": float(zona.precio),
+        },
+        )
+        nueva_reserva = result.fetchone()
         # Actualizar abono_reservas: quitar la vieja, agregar la nueva
         db.execute(
             text(
@@ -686,19 +724,17 @@ def modificar_sesion_abono(
             """),
             {"abono_id": abono_id, "reserva_id": nueva_reserva.id},
         )
-
         db.execute(
             text(
                 "UPDATE clases_programadas SET cupo_disponible = cupo_disponible - 1 WHERE id = :id"
             ),
             {"id": new_cp.id},
         )
-
         db.commit()
-    except IntegrityError:
+    except IntegrityError as exc:
         db.rollback()
         raise HTTPException(
-            status_code=400, detail="Error al modificar la sesión. Intentá de nuevo."
+            status_code=500, detail="Error al modificar la sesión. Intentá de nuevo."
         )
 
     return {"ok": True}
