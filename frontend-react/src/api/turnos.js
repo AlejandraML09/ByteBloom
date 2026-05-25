@@ -55,6 +55,16 @@ export async function completarPagoReserva(reservaId) {
   return data
 }
 
+export async function getPagosEfectivo() {
+  const { data } = await client.get('/turnos/reservas/efectivo')
+  return data
+}
+
+export async function confirmarPagoEfectivo(reservaId) {
+  const { data } = await client.post(`/turnos/reservas/${reservaId}/confirmar-pago-efectivo`)
+  return data
+}
+
 /**
  * Returns all reservas for the logged-in user.
  * @param {number} usuarioId

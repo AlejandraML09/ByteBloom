@@ -465,9 +465,13 @@ useEffect(() => {
       )
 
       refreshBookedIds()
-      showToast(
-        `✓ ${shifts.length} turno${shifts.length > 1 ? 's' : ''} confirmado${shifts.length > 1 ? 's' : ''}`
-      )
+     if (['efectivo', 'transferencia'].includes(medioPago)) {
+  showToast('✓ Reserva confirmada. Tenés 48 hs para abonar.')
+} else {
+  showToast(
+    `✓ ${shifts.length} turno${shifts.length > 1 ? 's' : ''} confirmado${shifts.length > 1 ? 's' : ''}`
+  )
+}
       setTimeout(() => {
         setZona(null)
         setDiaDate(null)

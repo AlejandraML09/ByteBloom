@@ -17,6 +17,7 @@ import { RegistrarClienteTab } from '../components/admin/RegistrarClienteTab'
 import '../css/admin.css'
 import SecretariosTab from '../components/admin/SecretariosTab'
 import { HorarioTab } from '../components/admin/HorarioTab'
+import PagosEfectivoTab from '../components/admin/PagosEfectivoTab'
 
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -41,6 +42,7 @@ const TABS = [
   { id: 'salas', label: 'Salas', roles: ['admin'] },
   { id: 'programar', label: 'Crear clases', roles: ['admin', 'secretario'] },
   { id: 'cancelar', label: 'Cancelar clase', roles: ['admin', 'secretario'] },
+  { id: 'pagos-efectivo', label: 'Pagos en efectivo', roles: ['admin', 'secretario'] },
   { id: 'eliminar', label: 'Eliminar por profesional', roles: ['admin'] },
   { id: 'precios', label: 'Modificar precio', roles: ['admin'] },
   { id: 'secretarios', label: 'Secretarios', roles: ['admin'] },
@@ -58,6 +60,7 @@ const TAB_HEADERS = {
   cancelar:    { title: 'Cancelar clase',          desc: 'Seleccioná una clase activa para cancelarla.' },
   eliminar:    { title: 'Eliminar por profesional',desc: 'Cancelá todas las clases futuras de un profesional.' },
   precios:     { title: 'Modificar precio',        desc: 'Aplicá un nuevo precio a las próximas clases sin inscriptos.' },
+  'pagos-efectivo': { title: 'Pagos en efectivo', desc: 'Revisa reservas con pago en efectivo y confirma recepción en el centro.' },
   secretarios: { title: 'Secretarios', desc: 'Gestioná los usuarios secretarios del sistema.' },
   'registrar-paciente': { title: 'Registrar usuario', desc: 'Registrá un nuevo usuario en el sistema.' },
   horarios:    { title: 'Modificar horario',        desc: 'Ajustá el horario de inicio de las clases.' },
@@ -494,6 +497,7 @@ export default function Admin() {
             currentPrice={precio}
           />
         )}
+        {activeTab === 'pagos-efectivo' && <PagosEfectivoTab />}
         {activeTab === 'secretarios' && <SecretariosTab />}
         {activeTab === 'registrar-paciente' && (
           <RegistrarClienteTab onToast={showToast} />

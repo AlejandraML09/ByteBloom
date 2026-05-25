@@ -1,6 +1,6 @@
 import uuid
 from decimal import Decimal
-from datetime import date as date_type
+from datetime import date as date_type, datetime
 from typing import Optional, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -299,9 +299,70 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
     ]
 
 
+@router.get("/reservas/efectivo")
+def get_reservas_efectivo(db: Session = Depends(get_db)):
+    """Devuelve las reservas con pago en efectivo para uso administrativo."""
+    from datetime import timedelta
+    now = datetime.now()
+    rows = (
+        db.query(
+            models.Reserva,
+            models.ClaseProgramada,
+            models.Zona,
+            models.MedioPago,
+            models.Usuario,
+        )
+        .join(
+            models.ClaseProgramada,
+            models.Reserva.clase_programada_id == models.ClaseProgramada.id,
+        )
+        .join(models.Zona, models.ClaseProgramada.zona_id == models.Zona.id)
+        .join(models.MedioPago, models.Reserva.medio_pago_id == models.MedioPago.id)
+        .join(models.Usuario, models.Reserva.usuario_id == models.Usuario.id)
+        .filter(
+            models.MedioPago.nombre == 'Efectivo',
+            models.Reserva.estado != models.EstadoReserva.cancelada,
+        )
+        .order_by(models.Reserva.fecha_reserva.desc())
+        .all()
+    )
+
+    result = []
+    for reserva, cp, zona, mp, usuario in rows:
+        elapsed_hours = int((now - reserva.fecha_reserva).total_seconds() // 3600)
+        if elapsed_hours < 0:
+            elapsed_hours = 0
+        horas_restantes = max(0, 48 - elapsed_hours)
+        fecha_vencimiento = reserva.fecha_reserva + timedelta(hours=48)
+        payment_status = 'pago_completo' if reserva.estado == models.EstadoReserva.confirmada else 'pago_pendiente'
+
+        result.append(
+            {
+                "id": reserva.id,
+                "usuario_id": usuario.id,
+                "cliente": f"{usuario.nombre} {usuario.apellido}",
+                "email": usuario.email,
+                "fecha": str(cp.fecha),
+                "hora": str(cp.hora)[:5],
+                "zona": zona.nombre,
+                "medio_pago": mp.nombre,
+                "estado": reserva.estado.value,
+                "precio_pagado": float(reserva.precio_pagado),
+                "monto_total": float(reserva.monto_total) if reserva.monto_total is not None else None,
+                "estado_pago": payment_status,
+                "fecha_reserva": reserva.fecha_reserva.isoformat() if reserva.fecha_reserva else None,
+                "fecha_vencimiento": fecha_vencimiento.isoformat(),
+                "horas_restantes": horas_restantes,
+                "vencido": horas_restantes == 0,
+            }
+        )
+    return result
+
+
 @router.post("/reservas/{reserva_id}/completar-pago")
 def completar_pago(reserva_id: int, db: Session = Depends(get_db)):
-    """Marca la reserva como pago completo (precio_pagado := monto_total).
+    """Marca la reserva como pago completo (precio_pagado := monto_total) y
+    cambia su estado a 'confirmada' para indicar que fue recibido.
     En un flujo real con MercadoPago, este endpoint debería dispararse desde el
     callback exitoso de la pasarela tras cobrar el saldo. Acá lo simplificamos
     para que el front pueda completar el pago directamente."""
@@ -316,10 +377,34 @@ def completar_pago(reserva_id: int, db: Session = Depends(get_db)):
         )
     saldo = Decimal(reserva.monto_total) - Decimal(reserva.precio_pagado)
     reserva.precio_pagado = reserva.monto_total
+    reserva.estado = models.EstadoReserva.confirmada
     db.commit()
     return {
         "ok": True,
         "reserva_id": reserva.id,
         "saldo_cobrado": float(saldo),
         "estado_pago": reserva.estado_pago,
+        "estado_reserva": reserva.estado.value,
+    }
+
+
+@router.post("/reservas/{reserva_id}/confirmar-pago-efectivo")
+def confirmar_pago_efectivo(reserva_id: int, db: Session = Depends(get_db)):
+    """Confirma un pago en efectivo: cambia el estado de la reserva a 'confirmada'.
+    Este endpoint es específico para pagos en efectivo y NO valida el monto,
+    ya que en efectivo precio_pagado siempre es igual a monto_total desde el inicio."""
+    reserva = (
+        db.query(models.Reserva).filter(models.Reserva.id == reserva_id).first()
+    )
+    if not reserva:
+        raise HTTPException(status_code=404, detail="Reserva no encontrada.")
+    
+    # Cambiar estado a confirmada
+    reserva.estado = models.EstadoReserva.confirmada
+    db.commit()
+    
+    return {
+        "ok": True,
+        "reserva_id": reserva.id,
+        "estado_reserva": reserva.estado.value,
     }

@@ -456,7 +456,10 @@
   color: var(--white);
 }
 .btn-action:disabled {
-  opacity: 0.45;
+  background: #d3d3d3;
+  color: #888;
+  border-color: #bbb;
+  opacity: 1;
   cursor: not-allowed;
 }
 .btn-action.danger {
