@@ -5,11 +5,16 @@ export function CuposTab({
   onModifyCupo,
   filterDate,
   onFilterChange,
+  salas = [], 
 }) {
   const filteredClasses = filterDate
     ? classes.filter((clase) => clase.fecha === filterDate)
     : classes
-
+ 
+  function getCupoSala(salaNombre) {
+    const sala = salas.find((s) => s.nombre === salaNombre)
+    return sala ? sala.cupo : null
+  }
   return (
     <div style={{ padding: '1.5rem' }}>
       {/* Header igual al de Modificar precio */}
@@ -70,54 +75,70 @@ export function CuposTab({
                 </td>
               </tr>
             ) : (
-              filteredClasses.map((clase, index) => (
-                <tr
-                  key={clase.id}
-                  style={{ background: index % 2 === 0 ? '#fff' : '#fafafa' }}
-                >
-                  <td style={{ padding: '0.75rem 1rem' }}>{clase.zona_nombre}</td>
-                  <td style={{ padding: '0.75rem 1rem' }}>{clase.sala_nombre ?? '—'}</td>
-                  <td style={{ padding: '0.75rem 1rem', color: '#666', fontSize: '0.85rem' }}>
-                    {clase.profesional_email ? clase.profesional_email.split('@')[0] : 'Sin asignar'}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>{clase.fecha}</td>
-                  <td style={{ padding: '0.75rem 1rem' }}>{clase.hora}</td>
-                  <td style={{ padding: '0.75rem 1rem' }}>{clase.cupo_maximo}</td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <input
-                      type="number"
-                      min="1"
-                      value={cuposInput[clase.id] ?? clase.cupo_maximo}
-                      onChange={(e) => onInputChange(clase.id, e.target.value)}
-                      style={{
-                        width: '80px',
-                        border: '1px solid #ddd',
-                        borderRadius: '6px',
-                        padding: '0.35rem 0.6rem',
-                        fontSize: '0.875rem',
-                        outline: 'none',
-                      }}
-                    />
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <button
-                      onClick={() => onModifyCupo(clase.id)}
-                      style={{
-                        background: '#c0435a',   // botón vino igual al de Modificar precio
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '6px',
-                        padding: '0.4rem 1rem',
-                        fontSize: '0.85rem',
-                        cursor: 'pointer',
-                        fontWeight: '500',
-                      }}
-                    >
-                      Modificar
-                    </button>
-                  </td>
-                </tr>
-              ))
+             filteredClasses.map((clase, index) => {
+                const cupoSala = getCupoSala(clase.sala_nombre)
+                const valorInput = parseInt(cuposInput[clase.id] ?? clase.cupo_maximo, 10)
+                const superaCupo = cupoSala !== null && valorInput > cupoSala
+                return (
+                  <tr
+                    key={clase.id}
+                    style={{ background: index % 2 === 0 ? '#fff' : '#fafafa' }}
+                  >
+                    <td style={{ padding: '0.75rem 1rem' }}>{clase.zona_nombre}</td>
+                    <td style={{ padding: '0.75rem 1rem' }}>{clase.sala_nombre ?? '—'}</td>
+                    <td style={{ padding: '0.75rem 1rem', color: '#666', fontSize: '0.85rem' }}>
+                      {clase.profesional_email ? clase.profesional_email.split('@')[0] : 'Sin asignar'}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem' }}>{clase.fecha}</td>
+                    <td style={{ padding: '0.75rem 1rem' }}>{clase.hora}</td>
+                    <td style={{ padding: '0.75rem 1rem' }}>{clase.cupo_maximo}</td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                        <input
+                          type="number"
+                          min="1"
+                          max={cupoSala ?? undefined}
+                          value={cuposInput[clase.id] ?? clase.cupo_maximo}
+                          onChange={(e) => onInputChange(clase.id, e.target.value)}
+                          style={{
+                            width: '80px',
+                            border: `1px solid ${superaCupo ? '#f87171' : '#ddd'}`,
+                            borderRadius: '6px',
+                            padding: '0.35rem 0.6rem',
+                            fontSize: '0.875rem',
+                            outline: 'none',
+                            background: superaCupo ? '#fee2e2' : 'transparent',
+                          }}
+                        />
+                        {superaCupo && (
+                          <span style={{ fontSize: '0.72rem', color: '#c0435a' }}>
+                            Máx. sala: {cupoSala}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem' }}>
+                      <button
+                        onClick={() => !superaCupo && onModifyCupo(clase.id)}
+                        disabled={superaCupo}
+                        style={{
+                          background: superaCupo ? 'transparent' : '#c0435a',
+                          color: superaCupo ? 'transparent' : '#fff',
+                          border: superaCupo ? '1px solid #ddd' : 'none',
+                          borderRadius: '6px',
+                          padding: '0.4rem 1rem',
+                          fontSize: '0.85rem',
+                          cursor: superaCupo ? 'not-allowed' : 'pointer',
+                          fontWeight: '500',
+                          pointerEvents: superaCupo ? 'none' : 'auto',
+                        }}
+                      >
+                        Modificar
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })
             )}
           </tbody>
         </table>

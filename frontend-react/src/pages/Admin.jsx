@@ -91,7 +91,7 @@ export default function Admin() {
   const [upcomingClasses, setUpcomingClasses] = useState([])
   const [horarioInput, setHorarioInput] = useState({})
   const [filterHorarioDate, setFilterHorarioDate] = useState('')
-
+  const [salas, setSalas] = useState([])
   useEffect(() => {
     if (!user || !['admin', 'secretario'].includes(user.rol)) {
       navigate('/login')
@@ -145,8 +145,24 @@ export default function Admin() {
     cargarPrecios()
   }, [])
 
-  const turnos = useMemo(() => buildTurnos(), [])
 
+
+    useEffect(() => {
+    const cargarSalas = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/salas`)
+        if (res.ok) {
+          const data = await res.json()
+          setSalas(data)
+        }
+      } catch {
+        console.log('No se pudieron cargar las salas')
+      }
+    }
+    cargarSalas()
+  }, [])
+
+  const turnos = useMemo(() => buildTurnos(), [])
   const turnosFiltrados = turnos.map((t) => ({
     ...t,
     estado: cancelados[t.id] ? 'cancelado' : t.estado,
@@ -443,6 +459,7 @@ export default function Admin() {
             onModifyCupo={modificarCupo}
             filterDate={filterCuposDate}
             onFilterChange={setFilterCuposDate}
+            salas={salas}
           />
         )}
         {activeTab === 'asistencia' && (
@@ -496,4 +513,7 @@ export default function Admin() {
       <div className={`admin-toast${toastVisible ? ' show' : ''}`}>{toastMsg}</div>
     </div>
   )
+
+
+  
 }
