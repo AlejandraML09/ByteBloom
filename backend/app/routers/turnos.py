@@ -1,6 +1,6 @@
 import uuid
 from decimal import Decimal
-from datetime import date as date_type, datetime
+from datetime import date as date_type, datetime, timedelta
 from typing import Optional, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -20,6 +20,20 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def actualizar_reserva_efectivo_vencida(reserva: models.Reserva, now: datetime) -> bool:
+    """Marca una reserva en efectivo como cancelada si expiró el plazo de 48 horas."""
+    if reserva.estado != models.EstadoReserva.pendiente:
+        return False
+    if reserva.precio_pagado is None or reserva.monto_total is None:
+        return False
+    if reserva.precio_pagado < reserva.monto_total:
+        fecha_vencimiento = reserva.fecha_reserva + timedelta(hours=48)
+        if now > fecha_vencimiento:
+            reserva.estado = models.EstadoReserva.cancelada
+            return True
+    return False
 
 
 class TurnoItem(BaseModel):
@@ -260,6 +274,7 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
 @router.get("/mis-turnos")
 def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
     """Devuelve todas las reservas del usuario, ordenadas por fecha descendente."""
+    now = datetime.now()
     rows = (
         db.query(
             models.Reserva,
@@ -279,24 +294,55 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
         )
         .all()
     )
-    return [
-        {
-            "id": r.id,
-            "clase_programada_id": r.clase_programada_id,
-            "fecha": str(cp.fecha),
-            "hora": str(cp.hora)[:5],
-            "zona": z.nombre,
-            "medio_pago": mp.nombre,
-            "estado": r.estado,
-            "precio_pagado": float(r.precio_pagado),
-            "monto_total": float(r.monto_total) if r.monto_total is not None else None,
-            "estado_pago": r.estado_pago,
-            "pack_id": r.pack_id,
-            "clase_activa": bool(cp.activo),
-            "fecha_reserva": r.fecha_reserva.isoformat() if r.fecha_reserva else None,
-        }
-        for r, cp, z, mp in rows
-    ]
+    result = []
+    dirty = False
+    for r, cp, z, mp in rows:
+        # calcular expiración y estado de pago como en la vista administrativa
+        elapsed_hours = int((now - r.fecha_reserva).total_seconds() // 3600) if r.fecha_reserva else 0
+        if elapsed_hours < 0:
+            elapsed_hours = 0
+        horas_restantes = max(0, 48 - elapsed_hours)
+        fecha_vencimiento = (r.fecha_reserva + timedelta(hours=48)) if r.fecha_reserva else None
+
+        # determinar estado de pago
+        payment_status = 'pago_completo'
+        if r.estado == models.EstadoReserva.confirmada:
+            payment_status = 'pago_completo'
+        elif r.estado == models.EstadoReserva.cancelada and horas_restantes == 0 and r.precio_pagado < r.monto_total:
+            payment_status = 'vencido'
+        else:
+            payment_status = 'pago_pendiente'
+
+        # si la reserva está pendiente y venció, marcar como cancelada y vencida
+        if r.estado == models.EstadoReserva.pendiente and r.precio_pagado < r.monto_total and fecha_vencimiento and now > fecha_vencimiento:
+            r.estado = models.EstadoReserva.cancelada
+            payment_status = 'vencido'
+            dirty = True
+
+        result.append(
+            {
+                "id": r.id,
+                "clase_programada_id": r.clase_programada_id,
+                "fecha": str(cp.fecha),
+                "hora": str(cp.hora)[:5],
+                "zona": z.nombre,
+                "medio_pago": mp.nombre,
+                "estado": r.estado.value,
+                "precio_pagado": float(r.precio_pagado),
+                "monto_total": float(r.monto_total) if r.monto_total is not None else None,
+                "estado_pago": payment_status,
+                "pack_id": r.pack_id,
+                "clase_activa": bool(cp.activo),
+                "fecha_reserva": r.fecha_reserva.isoformat() if r.fecha_reserva else None,
+                "fecha_vencimiento": fecha_vencimiento.isoformat() if fecha_vencimiento else None,
+                "horas_restantes": horas_restantes,
+                "vencido": horas_restantes == 0,
+            }
+        )
+
+    if dirty:
+        db.commit()
+    return result
 
 
 @router.get("/reservas/efectivo")
@@ -319,22 +365,32 @@ def get_reservas_efectivo(db: Session = Depends(get_db)):
         .join(models.Zona, models.ClaseProgramada.zona_id == models.Zona.id)
         .join(models.MedioPago, models.Reserva.medio_pago_id == models.MedioPago.id)
         .join(models.Usuario, models.Reserva.usuario_id == models.Usuario.id)
-        .filter(
-            models.MedioPago.nombre == 'Efectivo',
-            models.Reserva.estado != models.EstadoReserva.cancelada,
-        )
+        .filter(models.MedioPago.nombre == 'Efectivo')
         .order_by(models.Reserva.fecha_reserva.desc())
         .all()
     )
 
     result = []
+    dirty = False
     for reserva, cp, zona, mp, usuario in rows:
         elapsed_hours = int((now - reserva.fecha_reserva).total_seconds() // 3600)
         if elapsed_hours < 0:
             elapsed_hours = 0
         horas_restantes = max(0, 48 - elapsed_hours)
         fecha_vencimiento = reserva.fecha_reserva + timedelta(hours=48)
-        payment_status = 'pago_completo' if reserva.estado == models.EstadoReserva.confirmada else 'pago_pendiente'
+        payment_status = 'pago_completo'
+
+        if reserva.estado == models.EstadoReserva.confirmada:
+            payment_status = 'pago_completo'
+        elif reserva.estado == models.EstadoReserva.cancelada and horas_restantes == 0 and reserva.precio_pagado < reserva.monto_total:
+            payment_status = 'vencido'
+        else:
+            payment_status = 'pago_pendiente'
+
+        if reserva.estado == models.EstadoReserva.pendiente and reserva.precio_pagado < reserva.monto_total and now > fecha_vencimiento:
+            reserva.estado = models.EstadoReserva.cancelada
+            payment_status = 'vencido'
+            dirty = True
 
         result.append(
             {
@@ -356,6 +412,9 @@ def get_reservas_efectivo(db: Session = Depends(get_db)):
                 "vencido": horas_restantes == 0,
             }
         )
+
+    if dirty:
+        db.commit()
     return result
 
 

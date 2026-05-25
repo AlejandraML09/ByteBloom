@@ -5,6 +5,7 @@ import { fmtLargo } from '../../utils/dates'
 const PAYMENT_STATUS = {
   pago_completo: { label: 'Pago recibido', css: 'badge-green' },
   pago_pendiente: { label: 'Pago pendiente', css: 'badge-amber' },
+  vencido: { label: 'Pago vencido', css: 'badge-red' },
 }
 
 export default function PagosEfectivoTab() {
@@ -94,15 +95,12 @@ export default function PagosEfectivoTab() {
               </thead>
               <tbody>
                 {ordered.map((reserva) => {
-                  const status = PAYMENT_STATUS[reserva.estado_pago] || {
-                    label: reserva.estado_pago,
-                    css: 'badge-gray',
-                  }
-                  const vencido = reserva.estado_pago === 'pago_pendiente' && reserva.horas_restantes === 0
+                  const vencido = reserva.estado_pago === 'vencido' || (reserva.estado_pago === 'pago_pendiente' && reserva.horas_restantes === 0)
+                  const status = vencido
+                    ? PAYMENT_STATUS['vencido']
+                    : PAYMENT_STATUS[reserva.estado_pago] || { label: reserva.estado_pago, css: 'badge-gray' }
                   const expiresLabel = reserva.estado_pago === 'pago_completo'
                     ? 'Pago recibido'
-                    : vencido
-                    ? 'Vencido'
                     : `${reserva.horas_restantes}h`
                   return (
                     <tr key={reserva.id}>
@@ -126,8 +124,8 @@ export default function PagosEfectivoTab() {
                         ) : (
                           <div>
                             <small>{new Date(reserva.fecha_vencimiento).toLocaleString('es-AR')}</small><br />
-                            <span className={`badge ${vencido ? 'badge-red' : 'badge-gray'}`}>
-                              {vencido ? 'Vencido' : `${reserva.horas_restantes}h`}
+                            <span className={`badge ${vencido ? 'badge-gray' : 'badge-gray'}`}>
+                              {`${reserva.horas_restantes}h`}
                             </span>
                           </div>
                         )}

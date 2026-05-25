@@ -922,8 +922,10 @@ export default function MisReservas() {
               <div className='mr-list'>
                 {filtered.map((r) => {
                   const proxima = isProxima(r)
-                  const estadoCfg = ESTADO_CONFIG[r.estado] ?? { label: r.estado, css: 'pendiente' }
-                  const pagoPendiente = r.estado_pago === 'pago_pendiente'
+                  const isVencido = r.estado_pago === 'vencido' || r.vencido === true
+                  const estadoKey = isVencido ? 'cancelada' : r.estado
+                  const estadoCfg = ESTADO_CONFIG[estadoKey] ?? { label: estadoKey, css: 'pendiente' }
+                  const pagoPendiente = r.estado_pago === 'pago_pendiente' && !isVencido
                   const saldo =
                     r.monto_total != null && r.precio_pagado != null
                       ? Math.max(0, Number(r.monto_total) - Number(r.precio_pagado))
@@ -957,7 +959,7 @@ export default function MisReservas() {
                             </>
                           )}
                         </div>
-                        {r.estado === 'cancelada' && r.clase_activa === false && (
+                        {(r.estado === 'cancelada' || r.estado_pago === 'vencido') && r.clase_activa === false && (
                           <div
                             style={{
                               marginTop: 6,
@@ -966,7 +968,7 @@ export default function MisReservas() {
                               fontStyle: 'italic',
                             }}
                           >
-                            Esta clase fue cancelada por el centro.
+                            Esta clase fue cancelada.
                           </div>
                         )}
                       </div>
@@ -975,24 +977,9 @@ export default function MisReservas() {
                           {estadoCfg.label}
                         </span>
                         {pagoPendiente ? (
-                          <>
-                            <span className='mr-item-badge mr-item-badge--pendiente'>
-                              Pago pendiente
-                            </span>
-                            {proxima && (
-                              <button
-                                className='ma-action-btn ma-action-btn--outline'
-                                style={{ fontSize: 11, padding: '3px 10px' }}
-                                disabled={completandoId === r.id}
-                                onClick={() => handleCompletarPago(r)}
-                                title={`Saldo a pagar: ${fmt(saldo)}`}
-                              >
-                                {completandoId === r.id
-                                  ? 'Procesando…'
-                                  : `Completar pago (${fmt(saldo)})`}
-                              </button>
-                            )}
-                          </>
+                          <span className='mr-item-badge mr-item-badge--pendiente'>Pago pendiente</span>
+                        ) : isVencido ? (
+                          <span className='mr-item-badge mr-item-badge--vencido'>Pago vencido</span>
                         ) : (
                           r.precio_pagado != null && (
                             <span className='mr-item-badge mr-item-badge--asistio'>Pago completo</span>
