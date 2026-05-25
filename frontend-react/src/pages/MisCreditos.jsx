@@ -28,7 +28,10 @@ export default function MisCreditos() {
         // setCreditos(data.creditos_disponibles)
         
         // Por ahora solo usamos el valor hardcodeado
-        setCreditos(3)
+        const creditosGuardados =
+          Number(localStorage.getItem(`creditos_${user.id}`)) || 0
+
+        setCreditos(creditosGuardados)
       } catch (err) {
         console.error('Error:', err)
       } finally {

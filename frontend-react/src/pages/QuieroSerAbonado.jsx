@@ -352,24 +352,32 @@ export default function QuieroSerAbonado() {
       navigate('/login')
       return
     }
+
     if (shifts.length < requiredShifts) {
       showToast(`Necesitás seleccionar exactamente ${requiredShifts} sesiones.`)
       return
     }
+
     if (!medioPago) {
       showToast('Por favor seleccioná un medio de pago.')
       return
     }
+
     setConfirmando(true)
+
     try {
-      // Mismo patrón que Turnos: MP/crédito/débito → redirigir a pasarela
+      // ✅ PAGOS CON MERCADOPAGO
       if (['mercadopago', 'credito', 'debito'].includes(medioPago)) {
         const payload = {
           usuario_id: usuario.id,
           zona_id: zona.id,
-          turnos: shifts.map((s) => ({ fecha: fmtDate(s.diaDate), hora: s.slot })),
+          turnos: shifts.map((s) => ({
+            fecha: fmtDate(s.diaDate),
+            hora: s.slot,
+          })),
           medio_pago: MEDIO_PAGO_DB[medioPago] ?? medioPago,
         }
+
         sessionStorage.setItem('pending_abono', JSON.stringify(payload))
 
         sessionStorage.setItem(
@@ -391,27 +399,39 @@ export default function QuieroSerAbonado() {
             pending_path: '/quiero-ser-abonado?status=pending',
           },
         })
+
         if (data?.init_point) {
           window.location.href = data.init_point
           return
         }
+
         showToast('No se pudo obtener el link de pago.')
         return
       }
 
       if (activeAbonoZonaIds.has(zona.id)) {
-        showToast('No podés crear otro abono en la misma zona. Modificá tu abono desde Mis Reservas.')
+        showToast(
+          'No podés crear otro abono en la misma zona. Modificá tu abono desde Mis Reservas.'
+        )
         return
       }
+
       await client.post('/abonos/solicitar', {
         usuario_id: usuario.id,
         zona_id: zona.id,
-        turnos: shifts.map((s) => ({ fecha: fmtDate(s.diaDate), hora: s.slot })),
+        turnos: shifts.map((s) => ({
+          fecha: fmtDate(s.diaDate),
+          hora: s.slot,
+        })),
         medio_pago: MEDIO_PAGO_DB[medioPago] ?? medioPago,
       })
+
       setSuccess(true)
     } catch (err) {
-      showToast(err?.response?.data?.detail || 'No se pudo crear el abono. Intentá de nuevo.')
+      showToast(
+        err?.response?.data?.detail ||
+        'No se pudo crear el abono. Intentá de nuevo.'
+      )
     } finally {
       setConfirmando(false)
     }
@@ -588,7 +608,12 @@ export default function QuieroSerAbonado() {
           <div
             className={`fade-slide ${shifts.length === requiredShifts ? 'fade-slide--visible' : ''}`}
           >
-            <PaymentSelector selected={medioPago} onSelect={setMedioPago} />
+            <PaymentSelector
+              selected={medioPago}
+              onSelect={setMedioPago}
+              allowCreditos={false}
+              showCreditsNotice={false}
+            />
           </div>
 
           {shifts.length === requiredShifts && (

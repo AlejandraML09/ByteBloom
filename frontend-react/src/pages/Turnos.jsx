@@ -376,6 +376,11 @@ useEffect(() => {
     setShifts((prev) => prev.filter((_, idx) => idx !== i))
   }
 
+  const isCreditoFavor = medioPago === 'Crédito a favor'
+  const discountPct = isCreditoFavor ? 0 : shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
+  const allFilled = zona && shifts.length > 0 && medioPago
+  const canAddMore = diaDate && slot && shifts.length < MAX_SHIFTS
+  
   async function confirmarTurno() {
     if (!medioPago) {
       showToast('Por favor seleccioná un medio de pago.')
@@ -402,8 +407,8 @@ useEffect(() => {
           (sum, g) => sum + (g.zona?.precio ?? 0) * g.turnos.length,
           0
         )
-        const discountPctBase = shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
-        const discountPctEfectivo = aplicaDescuento ? discountPctBase : 0
+        const discountPctBase = isCreditoFavor ? 0 : shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
+        const discountPctEfectivo = isCreditoFavor ? 0 : (aplicaDescuento ? discountPctBase : 0)
         const totalConDescuento = Math.round(subtotal * (100 - discountPctEfectivo) / 100)
         const aPagarAhora =
           tipoPago === 'sena' ? Math.round(totalConDescuento / 2) : totalConDescuento
@@ -468,6 +473,14 @@ useEffect(() => {
      if (['efectivo', 'transferencia'].includes(medioPago)) {
   showToast('✓ Reserva confirmada. Tenés 48 hs para abonar.')
 } else {
+
+      if (medioPago === 'Crédito a favor') {
+        const key = `creditos_${user.id}`
+        const actuales = Number(localStorage.getItem(key) || 0)
+
+        localStorage.setItem(key, actuales - shifts.length)
+      }
+
   showToast(
     `✓ ${shifts.length} turno${shifts.length > 1 ? 's' : ''} confirmado${shifts.length > 1 ? 's' : ''}`
   )
@@ -488,9 +501,6 @@ useEffect(() => {
     }
   }
 
-  const discountPct = shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
-  const allFilled = zona && shifts.length > 0 && medioPago
-  const canAddMore = diaDate && slot && shifts.length < MAX_SHIFTS
   const [showDiscounts, setShowDiscounts] = useState(() => !sessionStorage.getItem('discountSeen'))
 
   return (
@@ -568,7 +578,7 @@ useEffect(() => {
                   </div>
                 ))}
               </div>
-              {discountPct > 0 && (
+              {!isCreditoFavor && discountPct > 0 && (
                 <div className='discount-banner'>
                   🏷️ ¡Tenés un pack de descuento del {discountPct}%!
                 </div>
@@ -577,7 +587,7 @@ useEffect(() => {
           )}
 
           <div className={`fade-slide ${shifts.length > 0 ? 'fade-slide--visible' : ''}`}>
-            <PaymentSelector selected={medioPago} onSelect={setMedioPago} />
+            <PaymentSelector selected={medioPago} onSelect={setMedioPago} shiftsCount={shifts.length || 1} />
           </div>
         </div>
 
