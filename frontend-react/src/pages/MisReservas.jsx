@@ -1239,6 +1239,7 @@ export default function MisReservas() {
                 ))}
               </div>
             ) : abonos.length === 0 ? (
+              <div>
               <div className='mr-empty'>
                 <div className='mr-empty-icon'>
                   <StarIcon size={48} />
@@ -1246,6 +1247,18 @@ export default function MisReservas() {
                 <h3>No tenés abonos activos</h3>
                 <p>Consultá con el centro para suscribirte a una zona.</p>
               </div>
+              <div style={{marginTop: 20 }}>
+                <Link to='/quiero-ser-abonado' className='mr-cta'>
+                  <div className='mr-cta-left'>
+                    <CalendarIcon size={20} />
+                    Nuevo abono
+                  </div>
+                  <span className='mr-cta-arrow'>
+                    <ArrowRightIcon />
+                  </span>
+                </Link>
+                </div>
+                </div>
             ) : (
               <div className='ma-list'>
                 {abonos.map((a) => (
