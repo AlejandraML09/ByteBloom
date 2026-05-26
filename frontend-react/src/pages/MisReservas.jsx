@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { getMisTurnos, getDisponibilidad, getMiListaEspera, salirListaEspera, completarPagoReserva } from '../api/turnos'
@@ -9,6 +9,7 @@ import { ZONA_LABELS } from '../constants/turnos'
 import { fmtLargo, fmtDate, fmtDiaLargo, nextHour, getISOWeekKey, MESES_ES } from '../utils/dates'
 import { MonthCalendar } from '../components/turnos/MonthCalendar'
 import { SlotGrid } from '../components/turnos/SlotGrid'
+import { PaymentSelector } from '../components/turnos/PaymentSelector'
 import '../css/mis-reservas.css'
 
 function getUsuario() {
@@ -37,8 +38,8 @@ const ESTADO_ABONO_CONFIG = {
 }
 
 const ESTADO_PAGO_CONFIG = {
-  pendiente: { label: 'Pendiente', css: 'pendiente' },
-  pagado: { label: 'Pagado', css: 'pagado' },
+  pago_pendiente: { label: 'Pendiente', css: 'pendiente' },
+  pago_completo: { label: 'Pago completo', css: 'pagado' },
   vencido: { label: 'Vencido', css: 'vencido' },
 }
 
@@ -683,16 +684,59 @@ export default function MisReservas() {
   const [loadingAbonos, setLoadingAbonos] = useState(false)
   const [modificarAbono, setModificarAbono] = useState(null)
   const [toastMsg, setToastMsg] = useState(null)
+  const [pagoSaldoReserva, setPagoSaldoReserva] = useState(null)
+  const [pagoSaldoMetodo, setPagoSaldoMetodo] = useState(null)
+  const [pagoSaldoLoading, setPagoSaldoLoading] = useState(false)
+  const [pagoSaldoError, setPagoSaldoError] = useState(null)
 
   // Lista de espera state
   const [listaEspera, setListaEspera] = useState([])
   const [loadingEspera, setLoadingEspera] = useState(false)
   const [esperaLoaded, setEsperaLoaded] = useState(false)
+  const location = useLocation()
 
   function showAppToast(msg) {
     setToastMsg(msg)
     setTimeout(() => setToastMsg(null), 3500)
   }
+
+  function getSaldoRestante(reserva) {
+    return reserva?.monto_total != null && reserva?.precio_pagado != null
+      ? Math.max(0, Number(reserva.monto_total) - Number(reserva.precio_pagado))
+      : 0
+  }
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const status = params.get('status')
+    const reservaId = params.get('reserva_id')
+    if (!status) return
+
+    if (status === 'approved' && reservaId) {
+      completarPagoReserva(Number(reservaId))
+        .then((r) => {
+          setReservas((prev) =>
+            prev.map((x) =>
+              x.id === Number(reservaId)
+                ? { ...x, precio_pagado: x.monto_total, estado_pago: r?.estado_pago ?? 'pago_completo' }
+                : x
+            )
+          )
+          showAppToast('Pago completo registrado correctamente.')
+        })
+        .catch((err) => {
+          showAppToast(err?.response?.data?.detail || 'No se pudo completar el pago.')
+        })
+    }
+    if (status === 'failure') {
+      showAppToast('✗ El pago fue rechazado. Intentá de nuevo.')
+    }
+    if (status === 'pending') {
+      showAppToast('⏳ Tu pago está pendiente de confirmación.')
+    }
+
+    window.history.replaceState(null, '', window.location.pathname)
+  }, [location.search])
 
   async function handleCompletarPago(reserva) {
     setCompletandoId(reserva.id)
@@ -710,6 +754,67 @@ export default function MisReservas() {
       showAppToast(err?.response?.data?.detail || 'No se pudo completar el pago.')
     } finally {
       setCompletandoId(null)
+    }
+  }
+
+  function openPagoSaldo(reserva) {
+    setPagoSaldoReserva(reserva)
+    setPagoSaldoMetodo(null)
+    setPagoSaldoError(null)
+  }
+
+  function closePagoSaldo() {
+    setPagoSaldoReserva(null)
+    setPagoSaldoMetodo(null)
+    setPagoSaldoError(null)
+  }
+
+  async function handleConfirmarPagoSaldo() {
+    if (!pagoSaldoReserva || !pagoSaldoMetodo) return
+    const reserva = pagoSaldoReserva
+    const saldo = getSaldoRestante(reserva)
+    if (saldo <= 0) {
+      setPagoSaldoError('No hay saldo pendiente para pagar.')
+      return
+    }
+    setPagoSaldoLoading(true)
+    setPagoSaldoError(null)
+
+    try {
+      if (['mercadopago', 'credito', 'debito'].includes(pagoSaldoMetodo)) {
+        const { data } = await client.post('/api/crear-preferencia', null, {
+          params: {
+            servicio_id: reserva.id,
+            precio: saldo,
+            titulo: `Pago restante reserva ${reserva.fecha} ${reserva.hora}`,
+            cantidad: 1,
+            success_path: `/mis-reservas?status=approved&reserva_id=${reserva.id}`,
+            failure_path: '/mis-reservas?status=failure',
+            pending_path: '/mis-reservas?status=pending',
+          },
+        })
+        if (data?.init_point) {
+          window.location.href = data.init_point
+          return
+        }
+        setPagoSaldoError('No se pudo obtener el link de pago.')
+        return
+      }
+
+      await completarPagoReserva(reserva.id)
+      setReservas((prev) =>
+        prev.map((x) =>
+          x.id === reserva.id
+            ? { ...x, precio_pagado: x.monto_total, estado_pago: 'pago_completo' }
+            : x
+        )
+      )
+      showAppToast('Pago completo registrado correctamente.')
+      closePagoSaldo()
+    } catch (err) {
+      setPagoSaldoError(err?.response?.data?.detail || 'No se pudo completar el pago.')
+    } finally {
+      setPagoSaldoLoading(false)
     }
   }
 
@@ -926,6 +1031,8 @@ export default function MisReservas() {
                   const estadoKey = isVencido ? 'cancelada' : r.estado
                   const estadoCfg = ESTADO_CONFIG[estadoKey] ?? { label: estadoKey, css: 'pendiente' }
                   const pagoPendiente = r.estado_pago === 'pago_pendiente' && !isVencido
+                  const pagoCompleto  = r.estado_pago === 'pago_completo'
+
                   const saldo =
                     r.monto_total != null && r.precio_pagado != null
                       ? Math.max(0, Number(r.monto_total) - Number(r.precio_pagado))
@@ -977,15 +1084,57 @@ export default function MisReservas() {
                           {estadoCfg.label}
                         </span>
                         {pagoPendiente ? (
-                          <span className='mr-item-badge mr-item-badge--pendiente'>Pago pendiente</span>
+                          <>
+                            <span className='mr-item-badge mr-item-badge--pendiente'>Pago pendiente</span>
+                            <button
+                              className='mr-action-btn'
+                              style={{ fontSize: 12, padding: '6px 10px' }}
+                              onClick={() => openPagoSaldo(r)}
+                            >
+                              {pagoSaldoReserva?.id === r.id ? 'Cerrar pago' : 'Pagar saldo restante'}
+                            </button>
+                          </>
                         ) : isVencido ? (
                           <span className='mr-item-badge mr-item-badge--vencido'>Pago vencido</span>
-                        ) : (
-                          r.precio_pagado != null && (
-                            <span className='mr-item-badge mr-item-badge--asistio'>Pago completo</span>
-                          )
-                        )}
+                        ) : pagoCompleto ? (
+                          <span className='mr-item-badge mr-item-badge--asistio'>Pago completo</span>
+                        ) : null}
                       </div>
+                      {pagoSaldoReserva?.id === r.id && (
+                        <div className='mr-item-payment-panel'>
+                          <div className='mr-payment-panel-info'>
+                            Saldo pendiente: <strong>{fmt(saldo)}</strong>
+                          </div>
+                          <PaymentSelector
+                            selected={pagoSaldoMetodo}
+                            onSelect={setPagoSaldoMetodo}
+                            allowCreditos={false}
+                            showCreditsNotice={false}
+                            shiftsCount={1}
+                          />
+                          {pagoSaldoError && <div className='mr-payment-panel-error'>{pagoSaldoError}</div>}
+                          <div className='mr-payment-panel-actions'>
+                            <button
+                              className='mr-action-btn mr-action-btn--outline'
+                              onClick={closePagoSaldo}
+                              disabled={pagoSaldoLoading}
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              className='mr-action-btn'
+                              onClick={handleConfirmarPagoSaldo}
+                              disabled={!pagoSaldoMetodo || pagoSaldoLoading}
+                            >
+                              {pagoSaldoLoading
+                                ? 'Procesando…'
+                                : ['mercadopago', 'credito', 'debito'].includes(pagoSaldoMetodo)
+                                ? 'Pagar con MercadoPago'
+                                : 'Marcar pago recibido'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )
                 })}

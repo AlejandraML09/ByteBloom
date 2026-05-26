@@ -222,8 +222,10 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
     # Importe efectivamente cobrado en esta operación
     if data.tipo_pago == "sena":
         cobrado_pack = (monto_total_pack / 2).quantize(Decimal("0.01"))
+        estado = models.EstadoReserva.pendiente
     else:
         cobrado_pack = monto_total_pack
+        estado = models.EstadoReserva.confirmada
 
     # Repartimos los montos por reserva proporcionalmente al precio_unit
     # (los totales por reserva suman exactamente monto_total_pack / cobrado_pack).
@@ -243,6 +245,7 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
                     precio_pagado=precio_pagado_por_reserva,
                     monto_total=monto_total_por_reserva,
                     pack_id=pack_id,
+                    estado=estado,
                 )
             )
             cp.cupo_disponible -= 1
@@ -266,6 +269,7 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
         "descuento_pct": descuento_pct,
         "monto_total": float(monto_total_pack),
         "precio_pagado": float(cobrado_pack),
+        "estado": estado.value,
         "tipo_pago": data.tipo_pago,
         "pack_id": pack_id,
     }
