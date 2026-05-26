@@ -31,7 +31,7 @@ const METHODS = [
   },
   {
     id: 'efectivo',
-    label: 'Efectivo/Transferencia',
+    label: 'Efectivo',
     logo: (
       <svg viewBox='0 0 48 30' fill='none' xmlns='http://www.w3.org/2000/svg'>
         <rect
