@@ -1113,6 +1113,7 @@ export default function MisReservas() {
                             allowCreditos={false}
                             showCreditsNotice={false}
                             shiftsCount={1}
+                            excludeMethods={['efectivo']}
                           />
                           {pagoSaldoError && <div className='mr-payment-panel-error'>{pagoSaldoError}</div>}
                           <div className='mr-payment-panel-actions'>

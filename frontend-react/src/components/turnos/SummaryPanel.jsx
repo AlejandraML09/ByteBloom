@@ -122,6 +122,12 @@ export function SummaryPanel({
   const total = subtotal - discount
   const aPagarAhora = tipoPago === 'sena' ? Math.round(total / 2) : total
   const usandoCreditos = medioPago === 'Crédito a favor'
+  const senaDisabled = medioPago === 'efectivo'
+  const handleMedioPagoChange = (id) => {
+
+  setMedioPago(id)
+  if (id === 'efectivo') setTipoPago('completo') // 👈 reset
+  }
 
   return (
     <div className='summary-v2'>
@@ -294,6 +300,9 @@ export function SummaryPanel({
             type='button'
             className={`summary-v2-tipo-btn${tipoPago === 'sena' ? ' selected' : ''}`}
             onClick={() => onTipoPagoChange?.('sena')}
+            disabled={senaDisabled}
+            title={senaDisabled ? 'La seña no está disponible para pago en efectivo' : undefined}
+            style={senaDisabled ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
           >
             <span className='summary-v2-tipo-title'>Pagar seña (50%)</span>
             <span className='summary-v2-tipo-sub'>{fmt(Math.round(total / 2))} ahora · saldo después</span>
