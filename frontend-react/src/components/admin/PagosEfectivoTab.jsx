@@ -79,7 +79,9 @@ export default function PagosEfectivoTab() {
           {loading ? (
             <div>Cargando pagos...</div>
           ) : ordered.length === 0 ? (
-            <div className='admin-page td-empty'>No hay reservas en efectivo para mostrar.</div>
+            <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+  No hay reservas en efectivo para mostrar.
+</div>
           ) : (
             <table className='data-table'>
               <thead>
