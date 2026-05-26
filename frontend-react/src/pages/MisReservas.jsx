@@ -2,7 +2,13 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import { getMisTurnos, getDisponibilidad, getMiListaEspera, salirListaEspera, completarPagoReserva } from '../api/turnos'
+import {
+  getMisTurnos,
+  getDisponibilidad,
+  getMiListaEspera,
+  salirListaEspera,
+  completarPagoReserva,
+} from '../api/turnos'
 import { getMisAbonos, renovarAbono, getSesionesAbono, modificarSesionAbono } from '../api/abonos'
 import client from '../api/client'
 import { ZONA_LABELS } from '../constants/turnos'
@@ -307,10 +313,25 @@ function ModificarModal({ abono, onClose, onSuccess }) {
   }
 
   function handleSelectSesion(reservaId) {
-    setSelectedReservaId(reservaId === selectedReservaId ? null : reservaId)
-    setDiaDate(null)
+    if (reservaId === selectedReservaId) {
+      setSelectedReservaId(null)
+      setDiaDate(null)
+      setSlot(null)
+      return
+    }
+
+    const sesion = sesiones.find((s) => s.reserva_id === reservaId)
+
+    setSelectedReservaId(reservaId)
+    setDiaDate(sesion?.fecha ? new Date(sesion.fecha + 'T00:00:00') : null)
     setSlot(null)
   }
+
+  useEffect(() => {
+    if (diaDate) {
+      fetchDisponibilidad(diaDate)
+    }
+  }, [diaDate, fetchDisponibilidad])
 
   async function handleGuardar() {
     if (!selectedReservaId || !diaDate || !slot) return
@@ -450,7 +471,10 @@ function AbonoCard({ abono, onModificar, onRenovarDone }) {
   const [renovando, setRenovando] = useState(null) // null | 'confirm' | 'loading'
   const [renovarMedio, setRenovarMedio] = useState(null)
   const estadoKey = abono.estado ?? (abono.activo ? 'activo' : 'vencido')
-  const cfg = ESTADO_ABONO_CONFIG[estadoKey] ?? { label: estadoKey, css: abono.activo ? 'activo' : 'vencido' }
+  const cfg = ESTADO_ABONO_CONFIG[estadoKey] ?? {
+    label: estadoKey,
+    css: abono.activo ? 'activo' : 'vencido',
+  }
   const pagosVisibles = expanded ? abono.pagos : abono.pagos.slice(0, 3)
   const nextMonthName = getNextMonthName()
 
@@ -718,7 +742,11 @@ export default function MisReservas() {
           setReservas((prev) =>
             prev.map((x) =>
               x.id === Number(reservaId)
-                ? { ...x, precio_pagado: x.monto_total, estado_pago: r?.estado_pago ?? 'pago_completo' }
+                ? {
+                    ...x,
+                    precio_pagado: x.monto_total,
+                    estado_pago: r?.estado_pago ?? 'pago_completo',
+                  }
                 : x
             )
           )
@@ -1029,9 +1057,12 @@ export default function MisReservas() {
                   const proxima = isProxima(r)
                   const isVencido = r.estado_pago === 'vencido' || r.vencido === true
                   const estadoKey = isVencido ? 'cancelada' : r.estado
-                  const estadoCfg = ESTADO_CONFIG[estadoKey] ?? { label: estadoKey, css: 'pendiente' }
+                  const estadoCfg = ESTADO_CONFIG[estadoKey] ?? {
+                    label: estadoKey,
+                    css: 'pendiente',
+                  }
                   const pagoPendiente = r.estado_pago === 'pago_pendiente' && !isVencido
-                  const pagoCompleto  = r.estado_pago === 'pago_completo'
+                  const pagoCompleto = r.estado_pago === 'pago_completo'
 
                   const saldo =
                     r.monto_total != null && r.precio_pagado != null
@@ -1066,40 +1097,54 @@ export default function MisReservas() {
                             </>
                           )}
                         </div>
-                        {(r.estado === 'cancelada' || r.estado_pago === 'vencido') && r.clase_activa === false && (
-                          <div
-                            style={{
-                              marginTop: 6,
-                              fontSize: 12,
-                              color: '#c0435a',
-                              fontStyle: 'italic',
-                            }}
-                          >
-                            Esta clase fue cancelada.
-                          </div>
-                        )}
+                        {(r.estado === 'cancelada' || r.estado_pago === 'vencido') &&
+                          r.clase_activa === false && (
+                            <div
+                              style={{
+                                marginTop: 6,
+                                fontSize: 12,
+                                color: '#c0435a',
+                                fontStyle: 'italic',
+                              }}
+                            >
+                              Esta clase fue cancelada.
+                            </div>
+                          )}
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'flex-end',
+                          gap: 6,
+                        }}
+                      >
                         <span className={`mr-item-badge mr-item-badge--${estadoCfg.css}`}>
                           {estadoCfg.label}
                         </span>
                         {pagoPendiente ? (
                           <>
-                            <span className='mr-item-badge mr-item-badge--pendiente'>Pago pendiente</span>
-                            {  r.medio_pago !== "Efectivo" && (<button
-                              className='mr-action-btn'
-                              style={{ fontSize: 12, padding: '6px 10px' }}
-                              onClick={() => openPagoSaldo(r)}
-                            >
-                              {pagoSaldoReserva?.id === r.id ? 'Cerrar pago' : 'Pagar saldo restante'}
-                            </button>) 
-                            }
-                        
+                            <span className='mr-item-badge mr-item-badge--pendiente'>
+                              Pago pendiente
+                            </span>
+                            {r.medio_pago !== 'Efectivo' && (
+                              <button
+                                className='mr-action-btn'
+                                style={{ fontSize: 12, padding: '6px 10px' }}
+                                onClick={() => openPagoSaldo(r)}
+                              >
+                                {pagoSaldoReserva?.id === r.id
+                                  ? 'Cerrar pago'
+                                  : 'Pagar saldo restante'}
+                              </button>
+                            )}
                           </>
                         ) : isVencido ? (
                           <span className='mr-item-badge mr-item-badge--vencido'>Pago vencido</span>
                         ) : pagoCompleto ? (
-                          <span className='mr-item-badge mr-item-badge--asistio'>Pago completo</span>
+                          <span className='mr-item-badge mr-item-badge--asistio'>
+                            Pago completo
+                          </span>
                         ) : null}
                       </div>
                       {pagoSaldoReserva?.id === r.id && (
@@ -1115,7 +1160,9 @@ export default function MisReservas() {
                             shiftsCount={1}
                             excludeMethods={['efectivo']}
                           />
-                          {pagoSaldoError && <div className='mr-payment-panel-error'>{pagoSaldoError}</div>}
+                          {pagoSaldoError && (
+                            <div className='mr-payment-panel-error'>{pagoSaldoError}</div>
+                          )}
                           <div className='mr-payment-panel-actions'>
                             <button
                               className='mr-action-btn mr-action-btn--outline'
@@ -1132,8 +1179,8 @@ export default function MisReservas() {
                               {pagoSaldoLoading
                                 ? 'Procesando…'
                                 : ['mercadopago', 'credito', 'debito'].includes(pagoSaldoMetodo)
-                                ? 'Pagar con MercadoPago'
-                                : 'Pagar saldo restante'}
+                                  ? 'Pagar con MercadoPago'
+                                  : 'Pagar saldo restante'}
                             </button>
                           </div>
                         </div>
