@@ -53,7 +53,7 @@ export default function PagosEfectivoTab() {
     }
   }
 
-  const ordered = reservas.slice().sort((a, b) => {
+  const ordered = reservas.filter(r => r.clase_activa).slice().sort((a, b) => {
     if (a.estado_pago !== b.estado_pago) {
       return a.estado_pago === 'pago_pendiente' ? -1 : 1
     }

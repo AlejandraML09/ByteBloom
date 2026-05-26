@@ -220,14 +220,10 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
     subtotal = precio_unit * cantidad
     monto_total_pack = (subtotal * (100 - descuento_pct) / 100).quantize(Decimal("0.01"))
     # Importe efectivamente cobrado en esta operación
-    cobrado_pack = monto_total_pack
     if data.tipo_pago == "sena":
         cobrado_pack = (monto_total_pack / 2).quantize(Decimal("0.01"))
-        estado = models.EstadoReserva.pendiente
-    elif (medio_pago.nombre == "Efectivo"):
-        estado = models.EstadoReserva.pendiente
     else:
-        estado = models.EstadoReserva.confirmada
+        cobrado_pack = monto_total_pack
 
     # Repartimos los montos por reserva proporcionalmente al precio_unit
     # (los totales por reserva suman exactamente monto_total_pack / cobrado_pack).
@@ -247,7 +243,6 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
                     precio_pagado=precio_pagado_por_reserva,
                     monto_total=monto_total_por_reserva,
                     pack_id=pack_id,
-                    estado=estado,
                 )
             )
             cp.cupo_disponible -= 1
@@ -271,7 +266,6 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
         "descuento_pct": descuento_pct,
         "monto_total": float(monto_total_pack),
         "precio_pagado": float(cobrado_pack),
-        "estado": estado.value,
         "tipo_pago": data.tipo_pago,
         "pack_id": pack_id,
     }
@@ -344,6 +338,7 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
                 "fecha_vencimiento": fecha_vencimiento.isoformat() if fecha_vencimiento else None,
                 "horas_restantes": horas_restantes,
                 "vencido": horas_restantes == 0,
+                "clase_activa": bool(cp.activo),
             }
         )
 
@@ -418,7 +413,9 @@ def get_reservas_efectivo(db: Session = Depends(get_db)):
                 "fecha_vencimiento": fecha_vencimiento.isoformat(),
                 "horas_restantes": horas_restantes,
                 "vencido": horas_restantes == 0,
+                "clase_activa": bool(cp.activo),
             }
+
         )
 
     if dirty:
