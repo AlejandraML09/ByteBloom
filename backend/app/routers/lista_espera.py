@@ -109,6 +109,7 @@ def get_mi_lista_espera(usuario_id: int, db: Session = Depends(get_db)):
             models.ListaEspera.usuario_id == usuario_id,
             models.ListaEspera.activo == True,
             models.ListaEspera.estado == models.EstadoListaEspera.esperando,
+            models.ClaseProgramada.activo == True,
         )
         .order_by(models.ClaseProgramada.fecha, models.ClaseProgramada.hora)
         .all()
