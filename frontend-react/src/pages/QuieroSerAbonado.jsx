@@ -649,7 +649,7 @@ export default function QuieroSerAbonado() {
                       ? medioPago === 'mercadopago'
                         ? 'MercadoPago'
                         : medioPago === 'efectivo'
-                          ? 'Efectivo / Transferencia'
+                          ? 'Efectivo'
                           : medioPago
                       : '—'}
                   </strong>

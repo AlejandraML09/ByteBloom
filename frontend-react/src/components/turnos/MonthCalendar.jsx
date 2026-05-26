@@ -17,6 +17,15 @@ export function MonthCalendar({
 }) {
   const [monthOffset, setMonthOffset] = useState(defaultMonthOffset)
 
+  useEffect(() => {
+    if (!selectedDay) return
+
+    const todayMonthIndex = today.getFullYear() * 12 + today.getMonth()
+    const selectedMonthIndex = selectedDay.getFullYear() * 12 + selectedDay.getMonth()
+
+    setMonthOffset(selectedMonthIndex - todayMonthIndex)
+  }, [selectedDay, today])
+
   const displayDate = useMemo(() => {
     return new Date(today.getFullYear(), today.getMonth() + monthOffset, 1)
   }, [today, monthOffset])

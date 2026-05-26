@@ -240,13 +240,15 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
             },
         ).fetchone()
         abono_id = abono_row.id
-
+        estado = "confirmada"
+        if (db_medio == "Efectivo"):
+            estado = "pendiente"
         for cp in clase_programadas:
             reserva_row = db.execute(
                 text("""
                     INSERT INTO reservas
-                        (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total)
-                    VALUES (:uid, :cpid, :mpid, :precio, :monto_total)
+                        (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, pack_id, estado)
+                    VALUES (:uid, :cpid, :mpid, :precio, :monto_total, :pack_id, :estado)
                     RETURNING id
                 """),
                 {
@@ -255,6 +257,8 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
                     "mpid": medio_pago.id,
                     "precio": float(zona.precio),
                     "monto_total": float(zona.precio),
+                    "pack_id": None,
+                    "estado": estado,
                 },
             ).fetchone()
 

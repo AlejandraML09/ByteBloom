@@ -11,10 +11,16 @@ import { MonthCalendar } from '../components/turnos/MonthCalendar'
 import { SlotGrid } from '../components/turnos/SlotGrid'
 import { PaymentSelector } from '../components/turnos/PaymentSelector'
 import { SummaryPanel } from '../components/turnos/SummaryPanel'
-import { getDisponibilidad, reservarTurnos, getMisTurnos, getAplicaDescuentoPack } from '../api/turnos'
+import {
+  getDisponibilidad,
+  reservarTurnos,
+  getMisTurnos,
+  getAplicaDescuentoPack,
+} from '../api/turnos'
 import { useWaitlist } from '../components/turnos/WaitList'
 import { fmtDate, fmtDiaLargo, nextHour } from '../utils/dates'
 import { ZONA_LABELS } from '../constants/turnos'
+import { getMisAbonos } from '../api/abonos'
 import DiscountModal from '../components/turnos/Discountmodal'
 import '../css/turnos.css'
 
@@ -177,29 +183,32 @@ export default function Turnos() {
   // ✅ SI NO HAY SESIÓN, MOSTRAR PANTALLA DE BIENVENIDA CON NAVBAR Y FOOTER
   if (!user) {
     return (
-      <div style={{ background: 'linear-gradient(135deg, var(--danger) 0%, var(--danger-dark) 100%)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div
+        style={{
+          background: 'linear-gradient(135deg, var(--danger) 0%, var(--danger-dark) 100%)',
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
         <Navbar />
         <div className='welcome-container' style={{ background: 'none', flex: 1 }}>
           <div className='welcome-content'>
             <div className='welcome-header'>
               <h1 style={{ color: 'var(--danger-muted)' }}>Bienvenido a Endereza2</h1>
-              <p style={{ color: 'var(--danger-muted)' }}>Accedé a tu cuenta o crea una nueva para comenzar</p>
+              <p style={{ color: 'var(--danger-muted)' }}>
+                Accedé a tu cuenta o crea una nueva para comenzar
+              </p>
             </div>
 
             <div className='welcome-buttons'>
-              <button
-                onClick={() => navigate('/login')}
-                className='welcome-btn login'
-              >
+              <button onClick={() => navigate('/login')} className='welcome-btn login'>
                 <span className='welcome-btn-icon'>🔐</span>
                 <h3 style={{ color: 'var(--danger-muted)' }}>Iniciar Sesión</h3>
                 <p style={{ color: 'var(--danger-muted)' }}>¿Ya tenés cuenta?</p>
               </button>
 
-              <button
-                onClick={() => navigate('/registro')}
-                className='welcome-btn register'
-              >
+              <button onClick={() => navigate('/registro')} className='welcome-btn register'>
                 <span className='welcome-btn-icon'>✨</span>
                 <h3 style={{ color: 'var(--danger-muted)' }}>Registrarse</h3>
                 <p style={{ color: 'var(--danger-muted)' }}>Nuevos en Endereza2?</p>
@@ -228,6 +237,9 @@ export default function Turnos() {
   const [confirmando, setConfirmando] = useState(false)
   const { msg, visible, showToast } = useToast()
   const { waitlistClaseIds, handleWaitlistToggle } = useWaitlist(showToast)
+  // Para que traiga info sobre Abonos
+  const [activeAbonoZonaIds, setActiveAbonoZonaIds] = useState(new Set())
+  const [blockedZonaName, setBlockedZonaName] = useState(null)
 
   const today = useMemo(() => {
     const d = new Date()
@@ -273,65 +285,85 @@ export default function Turnos() {
     }
   }, [])
 
-useEffect(() => {
-  const run = async () => {
-    const params = new URLSearchParams(window.location.search)
-    const status = params.get('status')
-    if (status === 'approved') {
-      const cantidad = parseInt(params.get('cantidad')) || 1
-      const pending = localStorage.getItem('pending_shifts')
-      let okReservas = 0
-      let firstError = null
-      if (pending) {
-        localStorage.removeItem('pending_shifts')
-        try {
-          const parsed = JSON.parse(pending)
-          const usuarioId = parsed.usuarioId
-          const medioPago = parsed.medioPago
-          const tipoPagoPending = parsed.tipoPago ?? 'completo'
-          // Support either single zona (legacy) or grouped zonas
-          if (parsed.groups) {
-            for (const gid of Object.keys(parsed.groups)) {
-              const group = parsed.groups[gid]
-              try {
-                const res = await reservarTurnos({ zonaId: group.zona.id, turnos: group.turnos, medioPago, usuarioId, tipoPago: tipoPagoPending })
-                okReservas += res?.reservados ?? group.turnos.length
-              } catch (err) {
-                console.error('Error al reservar tras pago (grupo):', err)
-                if (!firstError) {
-                  firstError = err?.response?.data?.detail || err?.message || 'Error al registrar la reserva.'
+  useEffect(() => {
+    const run = async () => {
+      const params = new URLSearchParams(window.location.search)
+      const status = params.get('status')
+      if (status === 'approved') {
+        const cantidad = parseInt(params.get('cantidad')) || 1
+        const pending = localStorage.getItem('pending_shifts')
+        let okReservas = 0
+        let firstError = null
+        if (pending) {
+          localStorage.removeItem('pending_shifts')
+          try {
+            const parsed = JSON.parse(pending)
+            const usuarioId = parsed.usuarioId
+            const medioPago = parsed.medioPago
+            const tipoPagoPending = parsed.tipoPago ?? 'completo'
+            // Support either single zona (legacy) or grouped zonas
+            if (parsed.groups) {
+              for (const gid of Object.keys(parsed.groups)) {
+                const group = parsed.groups[gid]
+                try {
+                  const res = await reservarTurnos({
+                    zonaId: group.zona.id,
+                    turnos: group.turnos,
+                    medioPago,
+                    usuarioId,
+                    tipoPago: tipoPagoPending,
+                  })
+                  okReservas += res?.reservados ?? group.turnos.length
+                } catch (err) {
+                  console.error('Error al reservar tras pago (grupo):', err)
+                  if (!firstError) {
+                    firstError =
+                      err?.response?.data?.detail ||
+                      err?.message ||
+                      'Error al registrar la reserva.'
+                  }
                 }
               }
+            } else {
+              const { zonaId, turnos } = parsed
+              try {
+                const res = await reservarTurnos({
+                  zonaId,
+                  turnos,
+                  medioPago,
+                  usuarioId,
+                  tipoPago: tipoPagoPending,
+                })
+                okReservas += res?.reservados ?? turnos.length
+              } catch (err) {
+                console.error('Error al reservar tras pago:', err)
+                firstError =
+                  err?.response?.data?.detail || err?.message || 'Error al registrar la reserva.'
+              }
             }
-          } else {
-            const { zonaId, turnos } = parsed
-            try {
-              const res = await reservarTurnos({ zonaId, turnos, medioPago, usuarioId, tipoPago: tipoPagoPending })
-              okReservas += res?.reservados ?? turnos.length
-            } catch (err) {
-              console.error('Error al reservar tras pago:', err)
-              firstError = err?.response?.data?.detail || err?.message || 'Error al registrar la reserva.'
-            }
+            refreshBookedIds()
+          } catch (err) {
+            console.error('Error al procesar pending_shifts:', err)
+            firstError = firstError || 'No se pudo procesar la reserva tras el pago.'
           }
-          refreshBookedIds()
-        } catch (err) {
-          console.error('Error al procesar pending_shifts:', err)
-          firstError = firstError || 'No se pudo procesar la reserva tras el pago.'
+        }
+        if (firstError) {
+          showToast(`Pago recibido pero la reserva falló: ${firstError}`)
+        } else if (okReservas > 0) {
+          showToast(
+            `✓ ${okReservas} turno${okReservas > 1 ? 's' : ''} confirmado${okReservas > 1 ? 's' : ''}`
+          )
+        } else {
+          showToast(
+            `✓ ${cantidad} turno${cantidad > 1 ? 's' : ''} confirmado${cantidad > 1 ? 's' : ''}`
+          )
         }
       }
-      if (firstError) {
-        showToast(`Pago recibido pero la reserva falló: ${firstError}`)
-      } else if (okReservas > 0) {
-        showToast(`✓ ${okReservas} turno${okReservas > 1 ? 's' : ''} confirmado${okReservas > 1 ? 's' : ''}`)
-      } else {
-        showToast(`✓ ${cantidad} turno${cantidad > 1 ? 's' : ''} confirmado${cantidad > 1 ? 's' : ''}`)
-      }
+      if (status === 'failure') showToast('✗ El pago fue rechazado. Intentá de nuevo.')
+      if (status === 'pending') showToast('⏳ Tu pago está pendiente de confirmación.')
     }
-    if (status === 'failure') showToast('✗ El pago fue rechazado. Intentá de nuevo.')
-    if (status === 'pending') showToast('⏳ Tu pago está pendiente de confirmación.')
-  }
-  run()
-}, [])
+    run()
+  }, [])
 
   // Returns all classes for a given day filtered by the selected zona
   function getClasesForDay(date) {
@@ -351,13 +383,35 @@ useEffect(() => {
 
   const bookedDays = useMemo(() => new Set(shifts.map((s) => fmtDate(s.diaDate))), [shifts])
 
-  function handleZonaSelect(zonaObj) {
-    // Do not clear previously selected shifts — allow multi-zona selections
-    setZona(zonaObj)
+function handleZonaSelect(zonaObj) {
+  if (activeAbonoZonaIds.has(zonaObj.id)) {
+    const nombreZona = ZONA_LABELS[zonaObj.nombre] ?? zonaObj.nombre
+
+    setBlockedZonaName(nombreZona)
+
+    // reset completo para ocultar calendario/resumen
+    setZona(null)
     setDiaDate(null)
     setSlot(null)
+    setShifts([])
     setMedioPago(null)
+    setTipoPago('completo')
+
+    showToast(
+      `Ya tenés un abono activo en ${nombreZona}. No podés reservar clases individuales de esta zona.`
+    )
+
+    return
   }
+
+  setBlockedZonaName(null)
+
+  // selección normal
+  setZona(zonaObj)
+  setDiaDate(null)
+  setSlot(null)
+  setMedioPago(null)
+}
 
   function handleDaySelect(d) {
     setDiaDate(d)
@@ -380,7 +434,25 @@ useEffect(() => {
   const discountPct = isCreditoFavor ? 0 : shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
   const allFilled = zona && shifts.length > 0 && medioPago
   const canAddMore = diaDate && slot && shifts.length < MAX_SHIFTS
-  
+
+  useEffect(() => {
+    if (!user?.id) return
+
+    getMisAbonos(user.id)
+      .then((data) => {
+        const activeZones = new Set(
+          Array.isArray(data)
+            ? data.filter((abono) => abono.activo).map((abono) => abono.zona_id)
+            : []
+        )
+
+        setActiveAbonoZonaIds(activeZones)
+      })
+      .catch(() => {
+        setActiveAbonoZonaIds(new Set())
+      })
+  }, [user?.id])
+
   async function confirmarTurno() {
     if (!medioPago) {
       showToast('Por favor seleccioná un medio de pago.')
@@ -407,13 +479,25 @@ useEffect(() => {
           (sum, g) => sum + (g.zona?.precio ?? 0) * g.turnos.length,
           0
         )
-        const discountPctBase = isCreditoFavor ? 0 : shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
-        const discountPctEfectivo = isCreditoFavor ? 0 : (aplicaDescuento ? discountPctBase : 0)
-        const totalConDescuento = Math.round(subtotal * (100 - discountPctEfectivo) / 100)
+        const discountPctBase = isCreditoFavor
+          ? 0
+          : shifts.length === 2
+            ? 10
+            : shifts.length === 3
+              ? 20
+              : 0
+        const discountPctEfectivo = isCreditoFavor ? 0 : aplicaDescuento ? discountPctBase : 0
+        const totalConDescuento = Math.round((subtotal * (100 - discountPctEfectivo)) / 100)
         const aPagarAhora =
           tipoPago === 'sena' ? Math.round(totalConDescuento / 2) : totalConDescuento
 
-        const titulo = zonaEntries.length === 1 ? `Clase ${zonaEntries[0].zona?.nombre ?? ''}` : `Turnos varias zonas (${zonaEntries.map((g) => g.zona?.nombre).filter(Boolean).join(', ')})`
+        const titulo =
+          zonaEntries.length === 1
+            ? `Clase ${zonaEntries[0].zona?.nombre ?? ''}`
+            : `Turnos varias zonas (${zonaEntries
+                .map((g) => g.zona?.nombre)
+                .filter(Boolean)
+                .join(', ')})`
         const servicio_id = zonaIds[0] ?? 1
 
         const { data } = await client.post('/api/crear-preferencia', null, {
@@ -428,12 +512,15 @@ useEffect(() => {
           const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
           const usuarioId = stored ? JSON.parse(stored)?.id : null
           // Save grouped shifts so post-payment handler can reserve per zona
-          localStorage.setItem('pending_shifts', JSON.stringify({
-            groups: shiftsByZona,
-            medioPago,
-            usuarioId,
-            tipoPago,
-          }))
+          localStorage.setItem(
+            'pending_shifts',
+            JSON.stringify({
+              groups: shiftsByZona,
+              medioPago,
+              usuarioId,
+              tipoPago,
+            })
+          )
           window.location.href = data.init_point
           return
         }
@@ -470,21 +557,20 @@ useEffect(() => {
       )
 
       refreshBookedIds()
-     if (['efectivo', 'transferencia'].includes(medioPago)) {
-  showToast('✓ Reserva confirmada. Tenés 48 hs para abonar.')
-} else {
+      if (['efectivo', 'transferencia'].includes(medioPago)) {
+        showToast('✓ Reserva confirmada. Tenés 48 hs para abonar.')
+      } else {
+        if (medioPago === 'Crédito a favor') {
+          const key = `creditos_${user.id}`
+          const actuales = Number(localStorage.getItem(key) || 0)
 
-      if (medioPago === 'Crédito a favor') {
-        const key = `creditos_${user.id}`
-        const actuales = Number(localStorage.getItem(key) || 0)
+          localStorage.setItem(key, actuales - shifts.length)
+        }
 
-        localStorage.setItem(key, actuales - shifts.length)
+        showToast(
+          `✓ ${shifts.length} turno${shifts.length > 1 ? 's' : ''} confirmado${shifts.length > 1 ? 's' : ''}`
+        )
       }
-
-  showToast(
-    `✓ ${shifts.length} turno${shifts.length > 1 ? 's' : ''} confirmado${shifts.length > 1 ? 's' : ''}`
-  )
-}
       setTimeout(() => {
         setZona(null)
         setDiaDate(null)
@@ -515,6 +601,17 @@ useEffect(() => {
         <div className='left-col'>
           <StepIndicator zona={zona} shifts={shifts} medioPago={medioPago} />
           <ZonaSelector selected={zona} onSelect={handleZonaSelect} />
+          {blockedZonaName && (
+            <div className='card sa-blocked-zone-card'>
+              <div className='sa-blocked-zone-title'>Zona con abono activo</div>
+
+              <p>
+                Ya tenés un abono activo en <strong>{blockedZonaName}</strong>. No podés reservar
+                turnos individuales para esta zona. Podés gestionar tus clases desde{' '}
+                <strong>Mis Reservas</strong>.
+              </p>
+            </div>
+          )}
 
           <div className={`fade-slide ${zona ? 'fade-slide--visible' : ''}`}>
             <div className='card'>
@@ -569,7 +666,8 @@ useEffect(() => {
                     <div className='shift-row-info'>
                       <span className='shift-num'>Turno {i + 1}</span>
                       <span className='shift-detail'>
-                        {ZONA_LABELS[s.zona?.nombre] ?? s.zona?.nombre ?? ''} · {fmtDiaLargo(s.diaDate)} · {s.slot} – {nextHour(s.slot)}
+                        {ZONA_LABELS[s.zona?.nombre] ?? s.zona?.nombre ?? ''} ·{' '}
+                        {fmtDiaLargo(s.diaDate)} · {s.slot} – {nextHour(s.slot)}
                       </span>
                     </div>
                     <button className='shift-remove' onClick={() => removeShift(i)}>
@@ -587,7 +685,11 @@ useEffect(() => {
           )}
 
           <div className={`fade-slide ${shifts.length > 0 ? 'fade-slide--visible' : ''}`}>
-            <PaymentSelector selected={medioPago} onSelect={setMedioPago} shiftsCount={shifts.length || 1} />
+            <PaymentSelector
+              selected={medioPago}
+              onSelect={setMedioPago}
+              shiftsCount={shifts.length || 1}
+            />
           </div>
         </div>
 

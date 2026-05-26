@@ -31,7 +31,7 @@ const METHODS = [
   },
   {
     id: 'efectivo',
-    label: 'Efectivo/Transferencia',
+    label: 'Efectivo',
     logo: (
       <svg viewBox='0 0 48 30' fill='none' xmlns='http://www.w3.org/2000/svg'>
         <rect
@@ -105,6 +105,7 @@ export function PaymentSelector({
   allowCreditos = true,
   showCreditsNotice = true,
   shiftsCount = 1,
+  excludeMethods = [],
 }) {
   const storedUser =
     localStorage.getItem('usuario') ||
@@ -124,6 +125,7 @@ export function PaymentSelector({
       <div className='payment-row'>
         {METHODS
           .filter((m) => allowCreditos || m.id !== 'Crédito a favor')
+          .filter((m) => !excludeMethods.includes(m.id))
           .map(({ id, label, logo }) => {
             const disabled =
               id === 'Crédito a favor' && creditosDisponibles < shiftsCount
