@@ -220,11 +220,13 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
     subtotal = precio_unit * cantidad
     monto_total_pack = (subtotal * (100 - descuento_pct) / 100).quantize(Decimal("0.01"))
     # Importe efectivamente cobrado en esta operación
+    cobrado_pack = monto_total_pack
     if data.tipo_pago == "sena":
         cobrado_pack = (monto_total_pack / 2).quantize(Decimal("0.01"))
         estado = models.EstadoReserva.pendiente
+    elif (medio_pago.nombre == "Efectivo"):
+        estado = models.EstadoReserva.pendiente
     else:
-        cobrado_pack = monto_total_pack
         estado = models.EstadoReserva.confirmada
 
     # Repartimos los montos por reserva proporcionalmente al precio_unit
