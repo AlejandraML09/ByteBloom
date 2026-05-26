@@ -23,9 +23,9 @@ function getUsuario() {
 }
 
 const ESTADO_CONFIG = {
-  pendiente: { label: 'Pendiente', css: 'pendiente' },
-  confirmada: { label: 'Confirmada', css: 'confirmada' },
-  cancelada: { label: 'Cancelada', css: 'cancelada' },
+  pendiente: { label: 'Clase Pendiente', css: 'pendiente' },
+  confirmada: { label: 'Clase Confirmada', css: 'confirmada' },
+  cancelada: { label: 'Clase Cancelada', css: 'cancelada' },
   asistio: { label: 'Asistió', css: 'asistio' },
   ausente: { label: 'Ausente', css: 'ausente' },
 }
