@@ -15,13 +15,14 @@ from app.routers import (
 )
 from app.jobs.marcar_ausencias import loop_marcar_ausencias
 from fastapi.middleware.cors import CORSMiddleware
-
+from app.jobs.liberar_reservas_vencidas import loop_liberar_vencidas
 app = FastAPI()
 
 
 @app.on_event("startup")
 async def _start_background_jobs() -> None:
     asyncio.create_task(loop_marcar_ausencias())
+    asyncio.create_task(loop_liberar_vencidas())
 
 app.add_middleware(
     CORSMiddleware,

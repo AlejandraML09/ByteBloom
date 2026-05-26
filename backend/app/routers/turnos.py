@@ -318,6 +318,7 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
             r.estado = models.EstadoReserva.cancelada
             payment_status = 'vencido'
             dirty = True
+            cp.cupo_disponible += 1
 
         result.append(
             {
@@ -391,6 +392,7 @@ def get_reservas_efectivo(db: Session = Depends(get_db)):
             reserva.estado = models.EstadoReserva.cancelada
             payment_status = 'vencido'
             dirty = True
+            cp.cupo_disponible += 1
 
         result.append(
             {
