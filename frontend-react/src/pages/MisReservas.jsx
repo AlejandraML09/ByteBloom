@@ -1086,13 +1086,15 @@ export default function MisReservas() {
                         {pagoPendiente ? (
                           <>
                             <span className='mr-item-badge mr-item-badge--pendiente'>Pago pendiente</span>
-                            <button
+                            {  r.medio_pago !== "Efectivo" && (<button
                               className='mr-action-btn'
                               style={{ fontSize: 12, padding: '6px 10px' }}
                               onClick={() => openPagoSaldo(r)}
                             >
                               {pagoSaldoReserva?.id === r.id ? 'Cerrar pago' : 'Pagar saldo restante'}
-                            </button>
+                            </button>) 
+                            }
+                        
                           </>
                         ) : isVencido ? (
                           <span className='mr-item-badge mr-item-badge--vencido'>Pago vencido</span>
@@ -1130,7 +1132,7 @@ export default function MisReservas() {
                                 ? 'Procesando…'
                                 : ['mercadopago', 'credito', 'debito'].includes(pagoSaldoMetodo)
                                 ? 'Pagar con MercadoPago'
-                                : 'Marcar pago recibido'}
+                                : 'Pagar saldo restante'}
                             </button>
                           </div>
                         </div>
