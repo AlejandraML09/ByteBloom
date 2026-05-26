@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AdminNav } from '../components/admin/AdminNav'
-import { AdminStatsRow } from '../components/admin/AdminStatsRow'
+// import { AdminStatsRow } from '../components/admin/AdminStatsRow'
 import { TurnosTab } from '../components/admin/TurnosTab'
 import { PacientesTab } from '../components/admin/PacientesTab'
 import { CuposTab } from '../components/admin/CuposTab'
@@ -35,8 +35,8 @@ function initOcupados() {
 }
 
 const TABS = [
-  { id: 'turnos', label: 'Turnos del día', roles: ['admin'] },
-  { id: 'pacientes', label: 'Pacientes', roles: ['admin'] },
+  // { id: 'turnos', label: 'Turnos del día', roles: ['admin'] },
+  // { id: 'pacientes', label: 'Pacientes', roles: ['admin'] },
   { id: 'cupos', label: 'Modificar cupos', roles: ['admin'] },
   { id: 'asistencia', label: 'Asistencia', roles: ['secretario'] },
   { id: 'salas', label: 'Salas', roles: ['admin'] },
@@ -422,12 +422,12 @@ export default function Admin() {
         <p>{currentHeader.desc}</p>
       </div>
 
-      {/* Stats — solo en turnos */}
+      {/* Stats — solo en turnos
       {activeTab === 'turnos' && (
         <div className='admin-main' style={{ paddingBottom: 0 }}>
           <AdminStatsRow statTurnos={statTurnos} presentes={presentes} totalLibres={totalLibres} />
         </div>
-      )}
+      )} */}
 
       {/* Tabs de navegación */}
       <div className='section-tabs'>
@@ -444,7 +444,7 @@ export default function Admin() {
 
       {/* Contenido */}
       <div className='admin-main'>
-        {activeTab === 'turnos' && (
+        {/* {activeTab === 'turnos' && (
           <TurnosTab
             turnos={turnosFiltrados}
             cancelados={cancelados}
@@ -452,7 +452,7 @@ export default function Admin() {
             filterDate={filterDate}
             onFilterChange={setFilterDate}
           />
-        )}
+        )} */}
         {activeTab === 'pacientes' && <PacientesTab pacientes={PACIENTES} />}
         {activeTab === 'cupos' && (
           <CuposTab
