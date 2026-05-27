@@ -42,7 +42,7 @@ const TABS = [
   { id: 'salas', label: 'Salas', roles: ['admin'] },
   { id: 'programar', label: 'Crear clases', roles: ['admin', 'secretario'] },
   { id: 'cancelar', label: 'Cancelar clase', roles: ['admin', 'secretario'] },
-  { id: 'pagos-efectivo', label: 'Pagos en efectivo', roles: ['admin', 'secretario'] },
+  { id: 'pagos-efectivo', label: 'Pagos en efectivo', roles: [ 'secretario'] },
   { id: 'eliminar', label: 'Eliminar por profesional', roles: ['admin'] },
   { id: 'precios', label: 'Modificar precio', roles: ['admin'] },
   { id: 'secretarios', label: 'Secretarios', roles: ['admin'] },
