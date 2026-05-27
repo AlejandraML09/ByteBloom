@@ -7,7 +7,7 @@ export function SalasTab({ onToast }) {
   const [loading, setLoading] = useState(true)
 
  const [cuposInput, setCuposInput] = useState({}) // { id, nombre, descripcion, cupo, activo }
-
+const [descripcionesGuardadas, setDescripcionesGuardadas] = useState({}) 
   async function cargar() {
     setLoading(true)
     try {
@@ -33,7 +33,7 @@ export function SalasTab({ onToast }) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       nombre: s.nombre,
-      descripcion: s.descripcion || null,
+      descripcion: `Sala equipada para ${cupoNum} personas máximo`,
       cupo: cupoNum,
       activo: s.activo,
     }),
@@ -43,6 +43,10 @@ export function SalasTab({ onToast }) {
     onToast?.(body.detail || 'Error al guardar la sala.')
     return
   }
+  setDescripcionesGuardadas(prev => ({
+    ...prev,
+    [s.id]: `Sala equipada para ${cupoNum} personas máximo`
+  }))
   onToast?.('Sala actualizada.')
   await cargar()
 }
@@ -79,11 +83,13 @@ export function SalasTab({ onToast }) {
   const val = cuposInput[s.id] ?? s.cupo
   const valNum = parseInt(val, 10)
  const valido = valNum >= 1 && valNum <= 30 && val !== ''
-  const cambiado = valNum !== s.cupo
+
   return (
     <tr key={s.id} style={{ borderBottom: '1px solid var(--border)', opacity: s.activo ? 1 : 0.55 }}>
       <td style={{ padding: '0.5rem', fontWeight: 600 }}>{s.nombre}</td>
-      <td style={{ padding: '0.5rem', color: 'var(--text-muted)' }}>{s.descripcion || '—'}</td>
+      <td style={{ padding: '0.5rem', color: 'var(--text-muted)' }}>
+{descripcionesGuardadas[s.id] ?? `Sala equipada para ${s.cupo} personas máximo`}
+</td>
       <td style={{ padding: '0.5rem' }}>
         <input
           type='number'
@@ -98,15 +104,15 @@ export function SalasTab({ onToast }) {
       <td style={{ padding: '0.5rem', textAlign: 'right' }}>
         <button
           onClick={() => guardarCupo(s)}
-          disabled={!valido || !cambiado}
+          disabled={!valido }
           style={{
             padding: '0.3rem 0.7rem',
             border: 'none',
             borderRadius: '6px',
             background: '#7d1a2a',
             color: 'white',
-            cursor: !valido || !cambiado ? 'not-allowed' : 'pointer',
-            opacity: !valido || !cambiado ? 0.4 : 1,
+           cursor: !valido ? 'not-allowed' : 'pointer',
+            opacity: !valido ? 0.4 : 1,
           }}
         >
           Editar
