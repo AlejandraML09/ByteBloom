@@ -3,6 +3,7 @@ import iconmedia from '../assets/abdominal.png'
 import iconinferior from '../assets/running.png'
 
 export const HORARIOS = [
+  '08:00',
   '09:00',
   '10:00',
   '11:00',
@@ -14,8 +15,6 @@ export const HORARIOS = [
   '17:00',
   '18:00',
   '19:00',
-  '20:00',
-  '21:00',
 ]
 
 export const ZONA_LABELS = {

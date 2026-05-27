@@ -366,12 +366,12 @@ export function ProgramarTab({ onProgramar }) {
                   <button
                     className='week-arrow'
                     disabled={monthOffset <= 0}
-                    onClick={() => setMonthOffset((o) => o - 1)}
+                    onClick={() => { setMonthOffset((o) => o - 1); setSelectedDay(null) }}
                   >
                     &#8249;
                   </button>
                   <span className='week-label'>{monthLabel}</span>
-                  <button className='week-arrow' onClick={() => setMonthOffset((o) => o + 1)}>
+                  <button className='week-arrow' onClick={() => { setMonthOffset((o) => o + 1); setSelectedDay(null) }}>
                     &#8250;
                   </button>
                 </div>
