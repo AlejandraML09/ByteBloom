@@ -418,6 +418,8 @@ function ModificarModal({ abono, onClose, onSuccess }) {
                 bookedDays={new Set()}
                 onMonthChange={fetchDisponibilidad}
                 blockedWeekKeys={blockedWeekKeys}
+                disableNavigation={true}
+                
               />
               <div className='ma-modal-section-title' style={{ marginTop: '1rem' }}>
                 Elegí el horario
@@ -524,7 +526,7 @@ function AbonoCard({ abono, onModificar, onRenovarDone }) {
         </div>
         <div className='ma-card-title'>
           <span className='ma-card-zona'>{ZONA_LABELS[abono.zona] ?? abono.zona}</span>
-          <span className='ma-card-desde'>Desde {fmtLargo(abono.fecha_inicio)}</span>
+          {/* <span className='ma-card-desde'>Desde {fmtLargo(abono.fecha_inicio)}</span> */}
         </div>
         <span className={`ma-estado-badge ma-estado-badge--${cfg.css}`}>{cfg.label}</span>
       </div>
@@ -605,12 +607,13 @@ function AbonoCard({ abono, onModificar, onRenovarDone }) {
             <p className='ma-action-loading'>Renovando…</p>
           ) : (
             <>
-              <button className='ma-action-btn' onClick={() => setRenovando('confirm')}>
+              <button className='ma-action-btn' onClick={() => setRenovando('confirm')} disabled={abono.activo}>
                 ↻ Renovar abono
               </button>
               <button
                 className='ma-action-btn ma-action-btn--outline'
                 onClick={() => onModificar(abono)}
+                disabled={!abono.activo}
               >
                 ✎ Modificar abono
               </button>
