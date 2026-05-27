@@ -539,6 +539,7 @@ export default function QuieroSerAbonado() {
                   defaultMonthOffset={enrollment.monthOffset}
                   minMonthOffset={enrollment.monthOffset}
                   maxMonthOffset={enrollment.monthOffset}
+                  disableNavigation={false}
                 />
                 <div className='card-title' style={{ marginTop: '1.25rem' }}>
                   Elegí el horario

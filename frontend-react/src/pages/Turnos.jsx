@@ -671,6 +671,7 @@ export default function Turnos() {
                 getClasesForDay={getClasesForDay}
                 bookedDays={bookedDays}
                 onMonthChange={fetchDisponibilidad}
+                disableNavigation={false}
               />
               <div className='card-title' style={{ marginTop: '1.25rem' }}>
                 Elegí el horario

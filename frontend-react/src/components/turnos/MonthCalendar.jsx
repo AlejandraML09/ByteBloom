@@ -14,6 +14,7 @@ export function MonthCalendar({
   defaultMonthOffset = 0,
   minMonthOffset = 0,
   maxMonthOffset = null,
+  disableNavigation = false,
 }) {
   const [monthOffset, setMonthOffset] = useState(defaultMonthOffset)
 
@@ -34,8 +35,11 @@ export function MonthCalendar({
     onMonthChange?.(displayDate)
   }, [displayDate])
 
-  const prevDisabled = monthOffset <= minMonthOffset
-  const nextDisabled = maxMonthOffset !== null && monthOffset >= maxMonthOffset
+  const prevDisabled = disableNavigation || monthOffset <= minMonthOffset
+
+  const nextDisabled =
+    disableNavigation || (maxMonthOffset !== null && monthOffset >= maxMonthOffset)
+
   const monthLabel = `${MESES_ES[displayDate.getMonth()]} ${displayDate.getFullYear()}`
 
   const calendarDays = useMemo(() => {
