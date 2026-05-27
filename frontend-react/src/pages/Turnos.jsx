@@ -371,47 +371,83 @@ export default function Turnos() {
     const mes = toMes(date)
     const all = clasesDelMes[mes] ?? []
     const fechaStr = fmtDate(date)
-    return all.filter((c) => c.fecha === fechaStr && c.zona_id === zona.id)
+    const now = new Date()
+
+    return all.filter((c) => {
+      // filtro existente
+      if (c.fecha !== fechaStr || c.zona_id !== zona.id) {
+        return false
+      }
+
+      // crear fecha/hora exacta del turno
+      const [hours, minutes] = c.hora.split(':').map(Number)
+
+      const turnoDate = new Date(date)
+      turnoDate.setHours(hours, minutes, 0, 0)
+
+      // ocultar turnos ya pasados
+      return turnoDate > now
+    })
   }
 
   // Classes for the currently selected day (used by SlotGrid)
   const clasesDelDia = useMemo(() => {
-    if (!diaDate) return []
-    return getClasesForDay(diaDate)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!diaDate || !zona) return []
+
+    const mes = toMes(diaDate)
+    const all = clasesDelMes[mes] ?? []
+    const fechaStr = fmtDate(diaDate)
+
+    const now = new Date()
+
+    return all.filter((c) => {
+      if (c.fecha !== fechaStr || c.zona_id !== zona.id) {
+        return false
+      }
+
+      const esHoy = fmtDate(diaDate) === fmtDate(now)
+      if (!esHoy) return true
+
+      const [h, m] = c.hora.split(':').map(Number)
+
+      const turnoDate = new Date(diaDate)
+      turnoDate.setHours(h, m, 0, 0)
+
+      return turnoDate > now
+    })
   }, [diaDate, zona, clasesDelMes])
 
   const bookedDays = useMemo(() => new Set(shifts.map((s) => fmtDate(s.diaDate))), [shifts])
 
-function handleZonaSelect(zonaObj) {
-  if (activeAbonoZonaIds.has(zonaObj.id)) {
-    const nombreZona = ZONA_LABELS[zonaObj.nombre] ?? zonaObj.nombre
+  function handleZonaSelect(zonaObj) {
+    if (activeAbonoZonaIds.has(zonaObj.id)) {
+      const nombreZona = ZONA_LABELS[zonaObj.nombre] ?? zonaObj.nombre
 
-    setBlockedZonaName(nombreZona)
+      setBlockedZonaName(nombreZona)
 
-    // reset completo para ocultar calendario/resumen
-    setZona(null)
+      // reset completo para ocultar calendario/resumen
+      setZona(null)
+      setDiaDate(null)
+      setSlot(null)
+      setShifts([])
+      setMedioPago(null)
+      setTipoPago('completo')
+
+      showToast(
+        `Ya tenés un abono activo en ${nombreZona}. No podés reservar clases individuales de esta zona.`
+      )
+
+      return
+    }
+
+    setBlockedZonaName(null)
+
+    // selección normal
+    setZona(zonaObj)
     setDiaDate(null)
     setSlot(null)
-    setShifts([])
     setMedioPago(null)
-    setTipoPago('completo')
-
-    showToast(
-      `Ya tenés un abono activo en ${nombreZona}. No podés reservar clases individuales de esta zona.`
-    )
-
-    return
   }
-
-  setBlockedZonaName(null)
-
-  // selección normal
-  setZona(zonaObj)
-  setDiaDate(null)
-  setSlot(null)
-  setMedioPago(null)
-}
 
   function handleDaySelect(d) {
     setDiaDate(d)
@@ -458,6 +494,14 @@ function handleZonaSelect(zonaObj) {
       showToast('Por favor seleccioná un medio de pago.')
       return
     }
+
+    const medioPagoDB = {
+      mercadopago: 'Mercado Pago',
+      efectivo: 'Efectivo',
+      transferencia: 'Transferencia',
+      credito: 'Mercado Pago', // porque crédito/débito se paga por MP
+      'Crédito a favor': 'Crédito a favor',
+    }[medioPago]
 
     setConfirmando(true)
     try {
@@ -516,7 +560,7 @@ function handleZonaSelect(zonaObj) {
             'pending_shifts',
             JSON.stringify({
               groups: shiftsByZona,
-              medioPago,
+              medioPago: medioPagoDB,
               usuarioId,
               tipoPago,
             })
@@ -539,7 +583,7 @@ function handleZonaSelect(zonaObj) {
         await reservarTurnos({
           zonaId: group.zona.id,
           turnos: group.turnos,
-          medioPago,
+          medioPago: medioPagoDB,
           usuarioId,
           tipoPago,
         })
