@@ -100,9 +100,10 @@ export function SalasTab({ onToast }) {
           disabled={!valido || !cambiado}
           style={{
             padding: '0.3rem 0.7rem',
-            border: '1px solid var(--border)',
+            border: 'none',
             borderRadius: '6px',
-            background: 'var(--white)',
+            background: '#7d1a2a',
+            color: 'white',
             cursor: !valido || !cambiado ? 'not-allowed' : 'pointer',
             opacity: !valido || !cambiado ? 0.4 : 1,
           }}
