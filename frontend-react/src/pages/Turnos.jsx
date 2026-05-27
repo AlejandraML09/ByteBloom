@@ -417,7 +417,7 @@ export default function Turnos() {
     })
   }, [diaDate, zona, clasesDelMes])
 
-  const bookedDays = useMemo(() => new Set(shifts.map((s) => fmtDate(s.diaDate))), [shifts])
+  const bookedDays = useMemo(() => new Set(), [])
 
   function handleZonaSelect(zonaObj) {
     if (activeAbonoZonaIds.has(zonaObj.id)) {
@@ -456,8 +456,9 @@ export default function Turnos() {
 
   function addShift() {
     if (!diaDate || !slot || shifts.length >= MAX_SHIFTS) return
-    // preserve the selected zona on the shift so users can pick turns across zonas
+
     setShifts((prev) => [...prev, { diaDate, slot, zona }])
+
     setDiaDate(null)
     setSlot(null)
   }
@@ -684,6 +685,7 @@ export default function Turnos() {
                 bookedClaseIds={bookedClaseIds}
                 waitlistClaseIds={waitlistClaseIds}
                 onWaitlistToggle={handleWaitlistToggle}
+                shifts={shifts}
               />
               {canAddMore && (
                 <button className='btn-add-shift' onClick={addShift}>
