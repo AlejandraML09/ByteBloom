@@ -48,10 +48,7 @@ export function CancelarTab({ onToast }) {
         if (!res.ok) return
         const data = await res.json()
         if (cancelado) return
-        const conInscriptos = (Array.isArray(data) ? data : []).filter(
-          (c) => Number(c.cupo_maximo) > Number(c.cupo_disponible)
-        )
-        setClasesConInscriptos(conInscriptos)
+        setClasesConInscriptos(Array.isArray(data) ? data : [])
       } catch {
         /* ignore */
       } finally {
@@ -156,10 +153,7 @@ export function CancelarTab({ onToast }) {
       const res = await fetch(`${API_URL}/api/clases-cancelar`)
       if (!res.ok) return
       const data = await res.json()
-      const conInscriptos = (Array.isArray(data) ? data : []).filter(
-        (c) => Number(c.cupo_maximo) > Number(c.cupo_disponible)
-      )
-      setClasesConInscriptos(conInscriptos)
+     setClasesConInscriptos(Array.isArray(data) ? data : [])
     } catch {
       /* ignore */
     }
@@ -201,7 +195,7 @@ export function CancelarTab({ onToast }) {
         Cancelar clase
       </h3>
       <p style={{ color: '#666', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-        Sólo se listan clases con al menos un inscripto.
+       Se listan todas las clases futuras activas.
       </p>
 
       {/* Formulario */}
@@ -247,7 +241,7 @@ export function CancelarTab({ onToast }) {
               {!zonaId
                 ? '— Elegí primero una zona —'
                 : sinClasesParaZona
-                  ? '— No hay clases con inscriptos —'
+                  ? '— No hay clases disponibles —'
                   : '— Elegí una fecha —'}
             </option>
             {fechasDisponibles.map((f) => (
