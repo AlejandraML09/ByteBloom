@@ -118,18 +118,18 @@ export function CuposTab({
                     </td>
                     <td style={{ padding: '0.75rem 1rem' }}>
                       <button
-                        onClick={() => !superaCupo && onModifyCupo(clase.id)}
-                        disabled={superaCupo}
+                        onClick={() => !superaCupo && cuposInput[clase.id] && valorInput > 0 && onModifyCupo(clase.id)}
+                        disabled={superaCupo || !cuposInput[clase.id] || valorInput <= 0}
                         style={{
-background: superaCupo ? '#d1d5db' : '#c0435a',
-color: superaCupo ? '#9ca3af' : '#fff',
+background: (superaCupo || !cuposInput[clase.id] || valorInput <= 0) ? '#d1d5db' : '#c0435a',
+color: (superaCupo || !cuposInput[clase.id] || valorInput <= 0) ? '#9ca3af' : '#fff',
 border: 'none',
                           borderRadius: '6px',
                           padding: '0.4rem 1rem',
                           fontSize: '0.85rem',
-                          cursor: superaCupo ? 'not-allowed' : 'pointer',
+                          cursor: (superaCupo || !cuposInput[clase.id] || valorInput <= 0) ? 'not-allowed' : 'pointer',
                           fontWeight: '500',
-                          pointerEvents: superaCupo ? 'none' : 'auto',
+                          pointerEvents: (superaCupo || !cuposInput[clase.id] || valorInput <= 0) ? 'none' : 'auto',
                         }}
                       >
                         Modificar
