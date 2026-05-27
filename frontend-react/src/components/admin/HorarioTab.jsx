@@ -18,20 +18,19 @@ export function HorarioTab({
   // Función para obtener horarios ocupados en una sala en una fecha específica
   const getHorariosOcupados = (salaId, fecha, claseIdActual) => {
     return filteredClasses
-      .filter((c) => c.sala_id === salaId && c.fecha === fecha && c.id !== claseIdActual)
+      .filter((c) => c.sala_id === salaId && c.fecha === fecha)
       .map((c) => c.hora)
   }
 
-  // Función para generar opciones de horario
+  // Función para generar opciones de horario (cada hora en punto, de 8 a 19)
   const generarOpcionesHorario = (salaId, fecha, claseId) => {
     const horariosOcupados = getHorariosOcupados(salaId, fecha, claseId)
     
-    return Array.from({ length: 23 }, (_, i) => {
-      const hora = Math.floor(i / 2) + 8
-      const minutos = i % 2 === 0 ? '00' : '30'
-      const horarioStr = `${String(hora).padStart(2, '0')}:${minutos}`
+    return Array.from({ length: 12 }, (_, i) => {
+      const hora = i + 8
+      const horarioStr = `${String(hora).padStart(2, '0')}:00`
       
-      if (hora > 19 || (hora === 19 && minutos === '30')) return null
+      if (hora >= 20) return null
       
       const estaOcupado = horariosOcupados.includes(horarioStr)
       
