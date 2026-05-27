@@ -39,7 +39,7 @@ const TABS = [
   // { id: 'pacientes', label: 'Pacientes', roles: ['admin'] },
  
   { id: 'asistencia', label: 'Asistencia', roles: ['secretario'] },
-  { id: 'salas', label: 'Salas', roles: ['admin'] },
+ { id: 'salas', label: 'Modificar cupos de salas', roles: ['admin'] },
   { id: 'programar', label: 'Crear clases', roles: ['admin', 'secretario'] },
   { id: 'cancelar', label: 'Cancelar clase', roles: ['admin', 'secretario'] },
   { id: 'pagos-efectivo', label: 'Pagos en efectivo', roles: [ 'secretario'] },
@@ -54,7 +54,7 @@ const TAB_HEADERS = {
   turnos:      { title: 'Turnos del día',          desc: 'Consultá y gestioná los turnos de hoy.' },
   pacientes:   { title: 'Pacientes',               desc: 'Historial completo de pacientes del sistema.' },
   asistencia:  { title: 'Asistencia',              desc: 'Marcá la presencia de cada paciente.' },
-  salas:       { title: 'Gestión de salas',        desc: 'Administrá las salas físicas y su cupo. El cambio de cupo aplica a clases nuevas.' },
+  salas: { title: 'Modificar cupos de salas', desc: 'Ajustá el cupo de cada sala. El cambio aplica a clases nuevas.' },
   programar:   { title: 'Crear clases',        desc: 'Elegí zona, sala, profesional y horarios para crear las clases.' },
   cancelar:    { title: 'Cancelar clase',          desc: 'Seleccioná una clase activa para cancelarla.' },
   eliminar:    { title: 'Eliminar por profesional',desc: 'Cancelá todas las clases futuras de un profesional.' },
