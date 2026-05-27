@@ -37,12 +37,12 @@ function initOcupados() {
 const TABS = [
   // { id: 'turnos', label: 'Turnos del día', roles: ['admin'] },
   // { id: 'pacientes', label: 'Pacientes', roles: ['admin'] },
-  { id: 'cupos', label: 'Modificar cupos', roles: ['admin'] },
+ 
   { id: 'asistencia', label: 'Asistencia', roles: ['secretario'] },
-  { id: 'salas', label: 'Salas', roles: ['admin'] },
+ { id: 'salas', label: 'Modificar cupos de salas', roles: ['admin'] },
   { id: 'programar', label: 'Crear clases', roles: ['admin', 'secretario'] },
   { id: 'cancelar', label: 'Cancelar clase', roles: ['admin', 'secretario'] },
-  { id: 'pagos-efectivo', label: 'Pagos en efectivo', roles: ['admin', 'secretario'] },
+  { id: 'pagos-efectivo', label: 'Pagos en efectivo', roles: [ 'secretario'] },
   { id: 'eliminar', label: 'Eliminar por profesional', roles: ['admin'] },
   { id: 'precios', label: 'Modificar precio', roles: ['admin'] },
   { id: 'secretarios', label: 'Secretarios', roles: ['admin'] },
@@ -53,9 +53,8 @@ const TABS = [
 const TAB_HEADERS = {
   turnos:      { title: 'Turnos del día',          desc: 'Consultá y gestioná los turnos de hoy.' },
   pacientes:   { title: 'Pacientes',               desc: 'Historial completo de pacientes del sistema.' },
-  cupos:       { title: 'Modificar cupos',         desc: 'Ajustá el cupo máximo de cada clase.' },
   asistencia:  { title: 'Asistencia',              desc: 'Marcá la presencia de cada paciente.' },
-  salas:       { title: 'Gestión de salas',        desc: 'Administrá las salas físicas y su cupo. El cambio de cupo aplica a clases nuevas.' },
+  salas: { title: 'Modificar cupos de salas', desc: 'Ajustá el cupo de cada sala. El cambio aplica a clases nuevas.' },
   programar:   { title: 'Crear clases',        desc: 'Elegí zona, sala, profesional y horarios para crear las clases.' },
   cancelar:    { title: 'Cancelar clase',          desc: 'Seleccioná una clase activa para cancelarla.' },
   eliminar:    { title: 'Eliminar por profesional',desc: 'Cancelá todas las clases futuras de un profesional.' },
@@ -454,17 +453,7 @@ export default function Admin() {
           />
         )} */}
         {activeTab === 'pacientes' && <PacientesTab pacientes={PACIENTES} />}
-        {activeTab === 'cupos' && (
-          <CuposTab
-            classes={cuposClasses}
-            cuposInput={cuposInput}
-            onInputChange={(id, val) => setCuposInput((prev) => ({ ...prev, [id]: val }))}
-            onModifyCupo={modificarCupo}
-            filterDate={filterCuposDate}
-            onFilterChange={setFilterCuposDate}
-            salas={salas}
-          />
-        )}
+       
         {activeTab === 'asistencia' && (
           <AsistenciaTab
             turnos={turnos}

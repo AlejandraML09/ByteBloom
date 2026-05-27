@@ -220,10 +220,14 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
     subtotal = precio_unit * cantidad
     monto_total_pack = (subtotal * (100 - descuento_pct) / 100).quantize(Decimal("0.01"))
     # Importe efectivamente cobrado en esta operación
+    cobrado_pack = monto_total_pack
     if data.tipo_pago == "sena":
         cobrado_pack = (monto_total_pack / 2).quantize(Decimal("0.01"))
+        estado = models.EstadoReserva.pendiente
+    elif (medio_pago.nombre == "Efectivo"):
+        estado = models.EstadoReserva.pendiente
     else:
-        cobrado_pack = monto_total_pack
+        estado = models.EstadoReserva.confirmada
 
     # Repartimos los montos por reserva proporcionalmente al precio_unit
     # (los totales por reserva suman exactamente monto_total_pack / cobrado_pack).
@@ -243,6 +247,7 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
                     precio_pagado=precio_pagado_por_reserva,
                     monto_total=monto_total_por_reserva,
                     pack_id=pack_id,
+                    estado=estado,
                 )
             )
             cp.cupo_disponible -= 1
@@ -266,10 +271,10 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
         "descuento_pct": descuento_pct,
         "monto_total": float(monto_total_pack),
         "precio_pagado": float(cobrado_pack),
+        "estado": estado.value,
         "tipo_pago": data.tipo_pago,
         "pack_id": pack_id,
     }
-
 
 @router.get("/mis-turnos")
 def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
@@ -470,5 +475,70 @@ def confirmar_pago_efectivo(reserva_id: int, db: Session = Depends(get_db)):
     return {
         "ok": True,
         "reserva_id": reserva.id,
+        "estado_reserva": reserva.estado.value,
+    }
+
+
+class RegistrarPagoSaldoRequest(BaseModel):
+    medio_pago: str
+
+
+@router.post("/reservas/{reserva_id}/registrar-pago-saldo")
+def registrar_pago_saldo(
+    reserva_id: int,
+    data: RegistrarPagoSaldoRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Registra cómo se pagará el saldo restante (efectivo/transferencia),
+    pero NO marca la reserva como pagada todavía.
+    Reinicia el contador de 48 hs desde el momento actual.
+    """
+
+    reserva = (
+        db.query(models.Reserva)
+        .filter(models.Reserva.id == reserva_id)
+        .first()
+    )
+
+    if not reserva:
+        raise HTTPException(status_code=404, detail="Reserva no encontrada.")
+
+    if reserva.precio_pagado >= reserva.monto_total:
+        raise HTTPException(
+            status_code=400,
+            detail="La reserva ya tiene el pago completo.",
+        )
+
+    medio_pago = (
+        db.query(models.MedioPago)
+        .filter(
+            models.MedioPago.nombre == data.medio_pago,
+            models.MedioPago.activo == True,
+        )
+        .first()
+    )
+
+    if not medio_pago:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Medio de pago '{data.medio_pago}' no disponible.",
+        )
+
+    # actualizar método de pago
+    reserva.medio_pago_id = medio_pago.id
+
+    # dejar pendiente (NO confirmada)
+    reserva.estado = models.EstadoReserva.pendiente
+
+    # reiniciar ventana de 48 hs
+    reserva.fecha_reserva = datetime.now()
+
+    db.commit()
+
+    return {
+        "ok": True,
+        "reserva_id": reserva.id,
+        "medio_pago": medio_pago.nombre,
         "estado_reserva": reserva.estado.value,
     }

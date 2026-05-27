@@ -40,6 +40,14 @@ export function RegistrarClienteTab({ onToast }) {
     if (!emailRegex.test(form.email.trim())) return 'El formato del email no es válido.'
     if (!/^\d{7,8}$/.test(form.dni)) return 'El DNI debe tener 7 u 8 dígitos.'
     if (!form.fechaNacimiento) return 'La fecha de nacimiento es obligatoria.'
+    if (form.fechaNacimiento) {
+      const hoy = new Date()
+      const nacimiento = new Date(form.fechaNacimiento + 'T00:00:00')
+      let edad = hoy.getFullYear() - nacimiento.getFullYear()
+      const m = hoy.getMonth() - nacimiento.getMonth()
+      if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) edad--
+      if (edad < 14) return 'El usuario debe tener al menos 14 años.'
+    }
     return ''
   }
 

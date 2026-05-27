@@ -149,7 +149,7 @@ export function ProgramarTab({ onProgramar }) {
   }
 
   function selectAllForDay(dayKey) {
-    const libres = HORARIOS.filter((h) => !isOcupado(dayKey, h))
+    const libres = HORARIOS.filter((h) => !isOcupado(dayKey, h) && h >= '08:00' && h <= '19:00')
     setSelection((prev) => ({ ...prev, [dayKey]: new Set(libres) }))
   }
 
@@ -366,12 +366,12 @@ export function ProgramarTab({ onProgramar }) {
                   <button
                     className='week-arrow'
                     disabled={monthOffset <= 0}
-                    onClick={() => setMonthOffset((o) => o - 1)}
+                    onClick={() => { setMonthOffset((o) => o - 1); setSelectedDay(null) }}
                   >
                     &#8249;
                   </button>
                   <span className='week-label'>{monthLabel}</span>
-                  <button className='week-arrow' onClick={() => setMonthOffset((o) => o + 1)}>
+                  <button className='week-arrow' onClick={() => { setMonthOffset((o) => o + 1); setSelectedDay(null) }}>
                     &#8250;
                   </button>
                 </div>
@@ -387,18 +387,20 @@ export function ProgramarTab({ onProgramar }) {
                     const dayKey = fmtDate(d)
                     const isSelected = selectedDay && fmtDate(d) === fmtDate(selectedDay)
                     const slotCount = selection[dayKey]?.size ?? 0
+                    const dow = d.getDay()
+                    const isWeekend = dow === 0 || dow === 6
                     return (
                       <button
                         key={dayKey}
                         className={[
                           'month-day',
-                          isPast ? 'disabled' : '',
+                          isPast || isWeekend ? 'disabled' : '',
                           isSelected ? 'selected' : '',
                           slotCount > 0 ? 'booked' : '',
                         ]
                           .filter(Boolean)
                           .join(' ')}
-                        disabled={isPast}
+                        disabled={isPast || isWeekend}
                         onClick={() => setSelectedDay(d)}
                         title={
                           slotCount > 0
@@ -466,7 +468,7 @@ export function ProgramarTab({ onProgramar }) {
                     {(() => {
                       const dayKey = fmtDate(selectedDay)
                       const horariosLibres = HORARIOS.filter(
-                        (h) => !horariosOcupados.has(h)
+                        (h) => !horariosOcupados.has(h) && h >= '08:00' && h <= '19:00'
                       )
                       if (horariosLibres.length === 0) {
                         return (
