@@ -70,7 +70,7 @@ export function SalasTab({ onToast }) {
                 <th style={{ padding: '0.5rem' }}>Nombre</th>
                 <th style={{ padding: '0.5rem' }}>Descripción</th>
                 <th style={{ padding: '0.5rem' }}>Cupo</th>
-                <th style={{ padding: '0.5rem' }}>Estado</th>
+          
                 <th style={{ padding: '0.5rem', textAlign: 'right' }}>Acciones</th>
               </tr>
             </thead>
@@ -93,7 +93,7 @@ export function SalasTab({ onToast }) {
           style={{ padding: '0.3rem', width: '80px' }}
         />
       </td>
-      <td style={{ padding: '0.5rem' }}>{s.activo ? 'Activa' : 'Inactiva'}</td>
+   
       <td style={{ padding: '0.5rem', textAlign: 'right' }}>
         <button
           onClick={() => guardarCupo(s)}
