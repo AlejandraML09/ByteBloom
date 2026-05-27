@@ -61,7 +61,17 @@ export default function MisDatos() {
       setError('El DNI debe tener al menos 7 dígitos.')
       return
     }
-
+    if (fechaNacimiento) {
+      const hoy = new Date()
+      const nacimiento = new Date(fechaNacimiento)
+      const edad = hoy.getFullYear() - nacimiento.getFullYear()
+      const cumplioEsteAnio = hoy >= new Date(nacimiento.setFullYear(hoy.getFullYear()))
+      const edadReal = cumplioEsteAnio ? edad : edad - 1
+      if (edadReal < 14) {
+        setError('El usuario debe tener al menos 14 años.')
+        return
+      }
+    }
     if (cambiarPassword) {
       if (!passwordActual || !passwordNueva || !passwordConfirmar) {
         setError('Completá todos los campos de contraseña.')
