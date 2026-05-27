@@ -6,7 +6,7 @@ export function SalasTab({ onToast }) {
   const [salas, setSalas] = useState([])
   const [loading, setLoading] = useState(true)
 
-  const [editing, setEditing] = useState(null) // { id, nombre, descripcion, cupo, activo }
+ const [cuposInput, setCuposInput] = useState({}) // { id, nombre, descripcion, cupo, activo }
 
   async function cargar() {
     setLoading(true)
@@ -26,32 +26,26 @@ export function SalasTab({ onToast }) {
   }, [])
 
   
-  async function guardarEdicion() {
-    if (!editing) return
-    const cupoNum = parseInt(editing.cupo, 10)
-    if (!cupoNum || cupoNum < 1) {
-      onToast?.('El cupo debe ser al menos 1.')
-      return
-    }
-    const res = await fetch(`${API_URL}/api/salas/${editing.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nombre: editing.nombre.trim(),
-        descripcion: editing.descripcion?.trim() || null,
-        cupo: cupoNum,
-        activo: editing.activo,
-      }),
-    })
-    const body = await res.json().catch(() => ({}))
-    if (!res.ok) {
-      onToast?.(body.detail || 'Error al guardar la sala.')
-      return
-    }
-    onToast?.('Sala actualizada.')
-    setEditing(null)
-    await cargar()
+  async function guardarCupo(s) {
+  const cupoNum = parseInt(cuposInput[s.id], 10)
+  const res = await fetch(`${API_URL}/api/salas/${s.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      nombre: s.nombre,
+      descripcion: s.descripcion || null,
+      cupo: cupoNum,
+      activo: s.activo,
+    }),
+  })
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    onToast?.(body.detail || 'Error al guardar la sala.')
+    return
   }
+  onToast?.('Sala actualizada.')
+  await cargar()
+}
 
 
   return (
@@ -81,95 +75,44 @@ export function SalasTab({ onToast }) {
               </tr>
             </thead>
             <tbody>
-              {salas.map((s) =>
-                editing?.id === s.id ? (
-                  <tr key={s.id} style={{ background: 'var(--bg-alt)' }}>
-                    <td style={{ padding: '0.5rem' }}>
-                      <input
-                        type='text'
-                        value={editing.nombre}
-                        onChange={(e) => setEditing({ ...editing, nombre: e.target.value })}
-                        style={{ padding: '0.3rem', width: '100%' }}
-                      />
-                    </td>
-                    <td style={{ padding: '0.5rem' }}>
-                      <input
-                        type='text'
-                        value={editing.descripcion ?? ''}
-                        onChange={(e) =>
-                          setEditing({ ...editing, descripcion: e.target.value })
-                        }
-                        style={{ padding: '0.3rem', width: '100%' }}
-                      />
-                    </td>
-                    <td style={{ padding: '0.5rem' }}>
-                      <input
-                        type='number'
-                        min='1'
-                        value={editing.cupo}
-                        onChange={(e) => setEditing({ ...editing, cupo: e.target.value })}
-                        style={{ padding: '0.3rem', width: '80px' }}
-                      />
-                    </td>
-                    <td style={{ padding: '0.5rem', color: 'var(--text-muted)' }}>
-  {s.activo ? 'Activa' : 'Inactiva'}
-</td>
-                    <td style={{ padding: '0.5rem', textAlign: 'right' }}>
-                     <button
-    onClick={guardarEdicion}
-    style={{
-      padding: '0.3rem 0.7rem',
-      border: '1px solid var(--border)',
-      borderRadius: '6px',
-      background: 'var(--white)',
-      cursor: 'pointer',
-    }}
-  >
-    Editar
-  </button>
-                    </td>
-                  </tr>
-                ) : (
-                  <tr
-                    key={s.id}
-                    style={{
-                      borderBottom: '1px solid var(--border)',
-                      opacity: s.activo ? 1 : 0.55,
-                    }}
-                  >
-                    <td style={{ padding: '0.5rem', fontWeight: 600 }}>{s.nombre}</td>
-                    <td style={{ padding: '0.5rem', color: 'var(--text-muted)' }}>
-                      {s.descripcion || '—'}
-                    </td>
-                    <td style={{ padding: '0.5rem' }}>{s.cupo}</td>
-                    <td style={{ padding: '0.5rem' }}>{s.activo ? 'Activa' : 'Inactiva'}</td>
-                    <td style={{ padding: '0.5rem', textAlign: 'right' }}>
-                      <button
-                        onClick={() =>
-                          setEditing({
-                            id: s.id,
-                            nombre: s.nombre,
-                            descripcion: s.descripcion ?? '',
-                            cupo: s.cupo,
-                            activo: s.activo,
-                          })
-                        }
-                        style={{
-                          padding: '0.3rem 0.7rem',
-                          marginRight: '0.4rem',
-                          border: '1px solid var(--border)',
-                          borderRadius: '6px',
-                          background: 'var(--white)',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Editar
-                      </button>
-                    
-                    </td>
-                  </tr>
-                )
-              )}
+              {salas.map((s) => {
+  const val = cuposInput[s.id] ?? s.cupo
+  const valNum = parseInt(val, 10)
+  const valido = valNum >= 1 && val !== ''
+  const cambiado = valNum !== s.cupo
+  return (
+    <tr key={s.id} style={{ borderBottom: '1px solid var(--border)', opacity: s.activo ? 1 : 0.55 }}>
+      <td style={{ padding: '0.5rem', fontWeight: 600 }}>{s.nombre}</td>
+      <td style={{ padding: '0.5rem', color: 'var(--text-muted)' }}>{s.descripcion || '—'}</td>
+      <td style={{ padding: '0.5rem' }}>
+        <input
+          type='number'
+          min='1'
+          value={val}
+          onChange={(e) => setCuposInput({ ...cuposInput, [s.id]: e.target.value })}
+          style={{ padding: '0.3rem', width: '80px' }}
+        />
+      </td>
+      <td style={{ padding: '0.5rem' }}>{s.activo ? 'Activa' : 'Inactiva'}</td>
+      <td style={{ padding: '0.5rem', textAlign: 'right' }}>
+        <button
+          onClick={() => guardarCupo(s)}
+          disabled={!valido || !cambiado}
+          style={{
+            padding: '0.3rem 0.7rem',
+            border: '1px solid var(--border)',
+            borderRadius: '6px',
+            background: 'var(--white)',
+            cursor: !valido || !cambiado ? 'not-allowed' : 'pointer',
+            opacity: !valido || !cambiado ? 0.4 : 1,
+          }}
+        >
+          Editar
+        </button>
+      </td>
+    </tr>
+  )
+})}
             </tbody>
           </table>
         )}
