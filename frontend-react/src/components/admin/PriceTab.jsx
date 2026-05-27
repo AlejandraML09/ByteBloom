@@ -158,7 +158,7 @@ const zonasUnicas = useMemo(() => {
               }
               style={{ minWidth: '180px' }}
               disabled={
-                  !priceValue || Number(priceValue) <= 0 || (modoModificacion === 'zona' && !zonaSeleccionada)
+                   !priceValue || Number(priceValue) <= 0 || clasesFiltradas.length === 0 || (modoModificacion === 'zona' && !zonaSeleccionada)
               }
             >
               Modificar precio
