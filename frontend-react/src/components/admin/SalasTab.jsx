@@ -115,25 +115,18 @@ export function SalasTab({ onToast }) {
   {s.activo ? 'Activa' : 'Inactiva'}
 </td>
                     <td style={{ padding: '0.5rem', textAlign: 'right' }}>
-                      <button
-                        className='btn-action'
-                        onClick={guardarEdicion}
-                        style={{ marginRight: '0.4rem', padding: '0.3rem 0.7rem' }}
-                      >
-                        Guardar
-                      </button>
-                      <button
-                        onClick={() => setEditing(null)}
-                        style={{
-                          padding: '0.3rem 0.7rem',
-                          border: '1px solid var(--border)',
-                          borderRadius: '6px',
-                          background: 'var(--white)',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Cancelar
-                      </button>
+                     <button
+    onClick={guardarEdicion}
+    style={{
+      padding: '0.3rem 0.7rem',
+      border: '1px solid var(--border)',
+      borderRadius: '6px',
+      background: 'var(--white)',
+      cursor: 'pointer',
+    }}
+  >
+    Editar
+  </button>
                     </td>
                   </tr>
                 ) : (
