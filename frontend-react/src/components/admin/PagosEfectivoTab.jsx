@@ -114,8 +114,8 @@ export default function PagosEfectivoTab() {
                       <td>{reserva.zona}</td>
                       <td>
                         {reserva.precio_pagado != null && reserva.monto_total != null
-                          ? `${reserva.precio_pagado.toFixed(2)} / ${reserva.monto_total.toFixed(2)}`
-                          : reserva.medio_pago}
+  ? `${reserva.estado_pago === 'pago_pendiente' ? '0.00' : reserva.precio_pagado.toFixed(2)} / ${reserva.monto_total.toFixed(2)}`
+  : reserva.medio_pago}
                       </td>
                       <td>
                         <span className={`badge ${status.css}`}>{status.label}</span>
