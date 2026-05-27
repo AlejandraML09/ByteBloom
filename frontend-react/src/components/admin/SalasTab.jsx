@@ -78,7 +78,7 @@ export function SalasTab({ onToast }) {
               {salas.map((s) => {
   const val = cuposInput[s.id] ?? s.cupo
   const valNum = parseInt(val, 10)
-  const valido = valNum >= 1 && val !== ''
+ const valido = valNum >= 1 && valNum <= 30 && val !== ''
   const cambiado = valNum !== s.cupo
   return (
     <tr key={s.id} style={{ borderBottom: '1px solid var(--border)', opacity: s.activo ? 1 : 0.55 }}>
@@ -88,6 +88,7 @@ export function SalasTab({ onToast }) {
         <input
           type='number'
           min='1'
+          max='30'
           value={val}
           onChange={(e) => setCuposInput({ ...cuposInput, [s.id]: e.target.value })}
           style={{ padding: '0.3rem', width: '80px' }}
