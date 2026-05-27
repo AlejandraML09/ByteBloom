@@ -5,8 +5,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 export function SalasTab({ onToast }) {
   const [salas, setSalas] = useState([])
   const [loading, setLoading] = useState(true)
-  const [creating, setCreating] = useState(false)
-  const [form, setForm] = useState({ nombre: '', descripcion: '', cupo: '' })
+
   const [editing, setEditing] = useState(null) // { id, nombre, descripcion, cupo, activo }
 
   async function cargar() {
@@ -26,40 +25,7 @@ export function SalasTab({ onToast }) {
     cargar()
   }, [])
 
-  async function crear() {
-    if (!form.nombre.trim() || !form.cupo) {
-      onToast?.('Completá nombre y cupo.')
-      return
-    }
-    const cupoNum = parseInt(form.cupo, 10)
-    if (!cupoNum || cupoNum < 1) {
-      onToast?.('El cupo debe ser al menos 1.')
-      return
-    }
-    setCreating(true)
-    try {
-      const res = await fetch(`${API_URL}/api/salas`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nombre: form.nombre.trim(),
-          descripcion: form.descripcion.trim() || null,
-          cupo: cupoNum,
-        }),
-      })
-      const body = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        onToast?.(body.detail || 'Error al crear la sala.')
-        return
-      }
-      onToast?.('Sala creada.')
-      setForm({ nombre: '', descripcion: '', cupo: '' })
-      await cargar()
-    } finally {
-      setCreating(false)
-    }
-  }
-
+  
   async function guardarEdicion() {
     if (!editing) return
     const cupoNum = parseInt(editing.cupo, 10)
@@ -115,88 +81,15 @@ export function SalasTab({ onToast }) {
 
   return (
     <div className='card'>
-      <div className='card-header'>
-        <div>
-          <h3>Gestión de salas</h3>
-          <p>El cupo de cada sala define el cupo de las clases nuevas que se programen allí.</p>
-        </div>
-      </div>
-
-      <section style={{ marginBottom: '1.5rem' }}>
-        <h4
-          style={{
-            fontSize: '0.85rem',
-            fontWeight: 600,
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            marginBottom: '0.75rem',
-          }}
-        >
-          Nueva sala
-        </h4>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 2fr 100px auto',
-            gap: '0.5rem',
-            alignItems: 'end',
-          }}
-        >
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Nombre</span>
-            <input
-              type='text'
-              value={form.nombre}
-              onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
-              placeholder='Sala A1'
-              style={{ padding: '0.5rem', border: '1px solid var(--border)', borderRadius: '6px' }}
-            />
-          </label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Descripción (opcional)</span>
-            <input
-              type='text'
-              value={form.descripcion}
-              onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))}
-              placeholder='Equipamiento, observaciones, etc.'
-              style={{ padding: '0.5rem', border: '1px solid var(--border)', borderRadius: '6px' }}
-            />
-          </label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Cupo</span>
-            <input
-              type='number'
-              min='1'
-              value={form.cupo}
-              onChange={(e) => setForm((f) => ({ ...f, cupo: e.target.value }))}
-              style={{ padding: '0.5rem', border: '1px solid var(--border)', borderRadius: '6px' }}
-            />
-          </label>
-          <button
-            className='btn-action'
-            onClick={crear}
-            disabled={creating}
-            style={{ padding: '0.5rem 1rem' }}
-          >
-            {creating ? 'Creando…' : 'Crear sala'}
-          </button>
-        </div>
-      </section>
+    <div className='card-header'>
+  <div>
+    <h3>Salas</h3>
+  </div>
+</div>
+    
 
       <section>
-        <h4
-          style={{
-            fontSize: '0.85rem',
-            fontWeight: 600,
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            marginBottom: '0.75rem',
-          }}
-        >
-          Salas
-        </h4>
+       
         {loading ? (
           <p>Cargando…</p>
         ) : salas.length === 0 ? (
