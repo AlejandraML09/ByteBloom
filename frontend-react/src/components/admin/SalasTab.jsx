@@ -53,31 +53,6 @@ export function SalasTab({ onToast }) {
     await cargar()
   }
 
-  async function desactivar(sala) {
-    if (!confirm(`¿Desactivar "${sala.nombre}"?`)) return
-    const res = await fetch(`${API_URL}/api/salas/${sala.id}`, { method: 'DELETE' })
-    const body = await res.json().catch(() => ({}))
-    if (!res.ok) {
-      onToast?.(body.detail || 'No se pudo desactivar la sala.')
-      return
-    }
-    onToast?.('Sala desactivada.')
-    await cargar()
-  }
-
-  async function reactivar(sala) {
-    const res = await fetch(`${API_URL}/api/salas/${sala.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ activo: true }),
-    })
-    if (res.ok) {
-      onToast?.('Sala reactivada.')
-      await cargar()
-    } else {
-      onToast?.('No se pudo reactivar la sala.')
-    }
-  }
 
   return (
     <div className='card'>
@@ -136,18 +111,9 @@ export function SalasTab({ onToast }) {
                         style={{ padding: '0.3rem', width: '80px' }}
                       />
                     </td>
-                    <td style={{ padding: '0.5rem' }}>
-                      <label style={{ fontSize: '0.85rem' }}>
-                        <input
-                          type='checkbox'
-                          checked={editing.activo}
-                          onChange={(e) =>
-                            setEditing({ ...editing, activo: e.target.checked })
-                          }
-                        />{' '}
-                        Activa
-                      </label>
-                    </td>
+                    <td style={{ padding: '0.5rem', color: 'var(--text-muted)' }}>
+  {s.activo ? 'Activa' : 'Inactiva'}
+</td>
                     <td style={{ padding: '0.5rem', textAlign: 'right' }}>
                       <button
                         className='btn-action'
@@ -206,34 +172,7 @@ export function SalasTab({ onToast }) {
                       >
                         Editar
                       </button>
-                      {s.activo ? (
-                        <button
-                          onClick={() => desactivar(s)}
-                          style={{
-                            padding: '0.3rem 0.7rem',
-                            border: '1px solid var(--border)',
-                            borderRadius: '6px',
-                            background: 'var(--white)',
-                            color: '#c0392b',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          Desactivar
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => reactivar(s)}
-                          style={{
-                            padding: '0.3rem 0.7rem',
-                            border: '1px solid var(--border)',
-                            borderRadius: '6px',
-                            background: 'var(--white)',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          Reactivar
-                        </button>
-                      )}
+                    
                     </td>
                   </tr>
                 )
@@ -245,3 +184,4 @@ export function SalasTab({ onToast }) {
     </div>
   )
 }
+
