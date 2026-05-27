@@ -26,7 +26,13 @@ const MEDIO_PAGO_DB = {
  * Books one or more shifts.
  * @param {{ zonaId: number, turnos: {fecha: string, hora: string}[], medioPago: string, usuarioId?: number, tipoPago?: 'completo' | 'sena' }} payload
  */
-export async function reservarTurnos({ zonaId, turnos, medioPago, usuarioId, tipoPago = 'completo' }) {
+export async function reservarTurnos({
+  zonaId,
+  turnos,
+  medioPago,
+  usuarioId,
+  tipoPago = 'completo',
+}) {
   const { data } = await client.post('/turnos/reservar', {
     zona_id: zonaId,
     turnos,
@@ -63,6 +69,16 @@ export async function getPagosEfectivo() {
 
 export async function confirmarPagoEfectivo(reservaId) {
   const { data } = await client.post(`/turnos/reservas/${reservaId}/confirmar-pago-efectivo`)
+  return data
+}
+
+export async function registrarPagoSaldo(reservaId, medioPago) {
+  const medioPagoDb = MEDIO_PAGO_DB[medioPago] ?? medioPago
+
+  const { data } = await client.post(`/turnos/reservas/${reservaId}/registrar-pago-saldo`, {
+    medio_pago: medioPagoDb,
+  })
+
   return data
 }
 

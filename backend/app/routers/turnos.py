@@ -472,3 +472,68 @@ def confirmar_pago_efectivo(reserva_id: int, db: Session = Depends(get_db)):
         "reserva_id": reserva.id,
         "estado_reserva": reserva.estado.value,
     }
+
+
+class RegistrarPagoSaldoRequest(BaseModel):
+    medio_pago: str
+
+
+@router.post("/reservas/{reserva_id}/registrar-pago-saldo")
+def registrar_pago_saldo(
+    reserva_id: int,
+    data: RegistrarPagoSaldoRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Registra cómo se pagará el saldo restante (efectivo/transferencia),
+    pero NO marca la reserva como pagada todavía.
+    Reinicia el contador de 48 hs desde el momento actual.
+    """
+
+    reserva = (
+        db.query(models.Reserva)
+        .filter(models.Reserva.id == reserva_id)
+        .first()
+    )
+
+    if not reserva:
+        raise HTTPException(status_code=404, detail="Reserva no encontrada.")
+
+    if reserva.precio_pagado >= reserva.monto_total:
+        raise HTTPException(
+            status_code=400,
+            detail="La reserva ya tiene el pago completo.",
+        )
+
+    medio_pago = (
+        db.query(models.MedioPago)
+        .filter(
+            models.MedioPago.nombre == data.medio_pago,
+            models.MedioPago.activo == True,
+        )
+        .first()
+    )
+
+    if not medio_pago:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Medio de pago '{data.medio_pago}' no disponible.",
+        )
+
+    # actualizar método de pago
+    reserva.medio_pago_id = medio_pago.id
+
+    # dejar pendiente (NO confirmada)
+    reserva.estado = models.EstadoReserva.pendiente
+
+    # reiniciar ventana de 48 hs
+    reserva.fecha_reserva = datetime.now()
+
+    db.commit()
+
+    return {
+        "ok": True,
+        "reserva_id": reserva.id,
+        "medio_pago": medio_pago.nombre,
+        "estado_reserva": reserva.estado.value,
+    }

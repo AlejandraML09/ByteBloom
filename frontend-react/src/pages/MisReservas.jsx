@@ -8,6 +8,7 @@ import {
   getMiListaEspera,
   salirListaEspera,
   completarPagoReserva,
+  registrarPagoSaldo,
 } from '../api/turnos'
 import { getMisAbonos, renovarAbono, getSesionesAbono, modificarSesionAbono } from '../api/abonos'
 import client from '../api/client'
@@ -766,22 +767,87 @@ export default function MisReservas() {
     window.history.replaceState(null, '', window.location.pathname)
   }, [location.search])
 
-  async function handleCompletarPago(reserva) {
-    setCompletandoId(reserva.id)
+  async function handleConfirmarPagoSaldo() {
+    if (!pagoSaldoReserva || !pagoSaldoMetodo) return
+
+    const reserva = pagoSaldoReserva
+    const saldo = getSaldoRestante(reserva)
+
+    if (saldo <= 0) {
+      setPagoSaldoError('No hay saldo pendiente para pagar.')
+      return
+    }
+
+    setPagoSaldoLoading(true)
+    setPagoSaldoError(null)
+
     try {
-      const r = await completarPagoReserva(reserva.id)
+      // MercadoPago / tarjetas
+      if (['mercadopago', 'credito', 'debito'].includes(pagoSaldoMetodo)) {
+        const { data } = await client.post('/api/crear-preferencia', null, {
+          params: {
+            servicio_id: reserva.id,
+            precio: saldo,
+            titulo: `Pago restante reserva ${reserva.fecha} ${reserva.hora}`,
+            cantidad: 1,
+            success_path: `/mis-reservas?status=approved&reserva_id=${reserva.id}`,
+            failure_path: '/mis-reservas?status=failure',
+            pending_path: '/mis-reservas?status=pending',
+          },
+        })
+
+        if (data?.init_point) {
+          window.location.href = data.init_point
+          return
+        }
+
+        setPagoSaldoError('No se pudo obtener el link de pago.')
+        return
+      }
+
+      // Efectivo / transferencia
+      if (['efectivo', 'transferencia'].includes(pagoSaldoMetodo)) {
+        await registrarPagoSaldo(reserva.id, pagoSaldoMetodo)
+
+        setReservas((prev) =>
+          prev.map((x) =>
+            x.id === reserva.id
+              ? {
+                  ...x,
+                  medio_pago: pagoSaldoMetodo,
+                  estado_pago: 'pago_pendiente',
+                  fecha_reserva: new Date().toISOString(),
+                }
+              : x
+          )
+        )
+
+        showAppToast('✓ Pago pendiente registrado. Tenés 48 hs para abonar.')
+        closePagoSaldo()
+        return
+      }
+
+      // Crédito a favor o cualquier otro flujo inmediato
+      await completarPagoReserva(reserva.id)
+
       setReservas((prev) =>
         prev.map((x) =>
           x.id === reserva.id
-            ? { ...x, precio_pagado: x.monto_total, estado_pago: r?.estado_pago ?? 'pago_completo' }
+            ? {
+                ...x,
+                precio_pagado: x.monto_total,
+                estado_pago: 'pago_completo',
+              }
             : x
         )
       )
-      showAppToast('Pago completado correctamente.')
+
+      showAppToast('Pago completo registrado correctamente.')
+      closePagoSaldo()
     } catch (err) {
-      showAppToast(err?.response?.data?.detail || 'No se pudo completar el pago.')
+      setPagoSaldoError(err?.response?.data?.detail || 'No se pudo completar el pago.')
     } finally {
-      setCompletandoId(null)
+      setPagoSaldoLoading(false)
     }
   }
 
@@ -795,55 +861,6 @@ export default function MisReservas() {
     setPagoSaldoReserva(null)
     setPagoSaldoMetodo(null)
     setPagoSaldoError(null)
-  }
-
-  async function handleConfirmarPagoSaldo() {
-    if (!pagoSaldoReserva || !pagoSaldoMetodo) return
-    const reserva = pagoSaldoReserva
-    const saldo = getSaldoRestante(reserva)
-    if (saldo <= 0) {
-      setPagoSaldoError('No hay saldo pendiente para pagar.')
-      return
-    }
-    setPagoSaldoLoading(true)
-    setPagoSaldoError(null)
-
-    try {
-      if (['mercadopago', 'credito', 'debito'].includes(pagoSaldoMetodo)) {
-        const { data } = await client.post('/api/crear-preferencia', null, {
-          params: {
-            servicio_id: reserva.id,
-            precio: saldo,
-            titulo: `Pago restante reserva ${reserva.fecha} ${reserva.hora}`,
-            cantidad: 1,
-            success_path: `/mis-reservas?status=approved&reserva_id=${reserva.id}`,
-            failure_path: '/mis-reservas?status=failure',
-            pending_path: '/mis-reservas?status=pending',
-          },
-        })
-        if (data?.init_point) {
-          window.location.href = data.init_point
-          return
-        }
-        setPagoSaldoError('No se pudo obtener el link de pago.')
-        return
-      }
-
-      await completarPagoReserva(reserva.id)
-      setReservas((prev) =>
-        prev.map((x) =>
-          x.id === reserva.id
-            ? { ...x, precio_pagado: x.monto_total, estado_pago: 'pago_completo' }
-            : x
-        )
-      )
-      showAppToast('Pago completo registrado correctamente.')
-      closePagoSaldo()
-    } catch (err) {
-      setPagoSaldoError(err?.response?.data?.detail || 'No se pudo completar el pago.')
-    } finally {
-      setPagoSaldoLoading(false)
-    }
   }
 
   useEffect(() => {
@@ -1119,15 +1136,17 @@ export default function MisReservas() {
                           gap: 6,
                         }}
                       >
-                        <span className={`mr-item-badge mr-item-badge--${estadoCfg.css}`}>
+                        {/* <span className={`mr-item-badge mr-item-badge--${estadoCfg.css}`}>
                           {estadoCfg.label}
-                        </span>
+                        </span> */}
                         {pagoPendiente ? (
                           <>
                             <span className='mr-item-badge mr-item-badge--pendiente'>
                               Pago pendiente
                             </span>
-                            {r.medio_pago !== 'Efectivo' && (
+                            {!['efectivo', 'transferencia'].includes(
+                              r.medio_pago?.toLowerCase()
+                            ) && (
                               <button
                                 className='mr-action-btn'
                                 style={{ fontSize: 12, padding: '6px 10px' }}
@@ -1158,7 +1177,6 @@ export default function MisReservas() {
                             allowCreditos={false}
                             showCreditsNotice={false}
                             shiftsCount={1}
-                            excludeMethods={['efectivo']}
                           />
                           {pagoSaldoError && (
                             <div className='mr-payment-panel-error'>{pagoSaldoError}</div>
@@ -1240,25 +1258,25 @@ export default function MisReservas() {
               </div>
             ) : abonos.length === 0 ? (
               <div>
-              <div className='mr-empty'>
-                <div className='mr-empty-icon'>
-                  <StarIcon size={48} />
-                </div>
-                <h3>No tenés abonos activos</h3>
-                <p>Consultá con el centro para suscribirte a una zona.</p>
-              </div>
-              <div style={{marginTop: 20 }}>
-                <Link to='/quiero-ser-abonado' className='mr-cta'>
-                  <div className='mr-cta-left'>
-                    <CalendarIcon size={20} />
-                    Nuevo abono
+                <div className='mr-empty'>
+                  <div className='mr-empty-icon'>
+                    <StarIcon size={48} />
                   </div>
-                  <span className='mr-cta-arrow'>
-                    <ArrowRightIcon />
-                  </span>
-                </Link>
+                  <h3>No tenés abonos activos</h3>
+                  <p>Consultá con el centro para suscribirte a una zona.</p>
                 </div>
+                <div style={{ marginTop: 20 }}>
+                  <Link to='/quiero-ser-abonado' className='mr-cta'>
+                    <div className='mr-cta-left'>
+                      <CalendarIcon size={20} />
+                      Nuevo abono
+                    </div>
+                    <span className='mr-cta-arrow'>
+                      <ArrowRightIcon />
+                    </span>
+                  </Link>
                 </div>
+              </div>
             ) : (
               <div className='ma-list'>
                 {abonos.map((a) => (
