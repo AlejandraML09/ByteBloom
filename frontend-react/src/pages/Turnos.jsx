@@ -542,6 +542,7 @@ function handleZonaSelect(zonaObj) {
           medioPago,
           usuarioId,
           tipoPago,
+          ...(medioPago === 'Crédito a favor' && { estado: 'confirmada' }),
         })
         totalReserved += group.turnos.length
       }
