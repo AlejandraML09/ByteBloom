@@ -150,14 +150,15 @@ def buscar_clase_para_cancelar(
         )
 
     cp = (
-        db.query(models.ClaseProgramada)
-        .filter(
-            models.ClaseProgramada.zona_id == zona_id,
-            models.ClaseProgramada.fecha == fecha_obj,
-            models.ClaseProgramada.hora == hora,
-        )
-        .first()
+    db.query(models.ClaseProgramada)
+    .filter(
+        models.ClaseProgramada.zona_id == zona_id,
+        models.ClaseProgramada.fecha == fecha_obj,
+        models.ClaseProgramada.hora == hora,
+        models.ClaseProgramada.activo == True,
     )
+    .first()
+)
     if not cp:
         raise HTTPException(
             status_code=404,
