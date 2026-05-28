@@ -600,7 +600,8 @@ def modificar_sesion_abono(
     # Verificar que la reserva a quitar pertenece a este abono
     old_r = db.execute(
         text("""
-            SELECT r.id, r.clase_programada_id
+            SELECT r.id, r.clase_programada_id, r.estado::text AS estado,
+                   r.medio_pago_id, r.precio_pagado, r.monto_total, r.pack_id
             FROM abono_reservas ar
             JOIN reservas r            ON r.id  = ar.reserva_id
             JOIN clases_programadas cp ON cp.id = r.clase_programada_id
@@ -677,11 +678,6 @@ def modificar_sesion_abono(
             status_code=400, detail="Ya tenés una reserva para ese horario."
         )
 
-    mp_id = _get_efectivo_id(db)
-    zona = db.execute(
-        text("SELECT precio FROM zonas WHERE id = :id"), {"id": abono.zona_id}
-    ).fetchone()
-
     try:
         # Cancelar sesión antigua y liberar cupo
         db.execute(
@@ -696,21 +692,22 @@ def modificar_sesion_abono(
             ),
             {"id": old_r.clase_programada_id},
         )
-        # Crear nueva reserva
-        
+        # Crear nueva reserva heredando estado, medio de pago y montos de la original
         result = db.execute(
         text("""
             INSERT INTO reservas
-                (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total)
-            VALUES (:uid, :cpid, :mpid, :precio, :monto_total)
+                (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, pack_id, estado)
+            VALUES (:uid, :cpid, :mpid, :precio, :monto_total, :pack_id, CAST(:estado AS estado_reserva))
             RETURNING id
         """),
         {
             "uid": abono.usuario_id,
             "cpid": new_cp.id,
-            "mpid": mp_id,
-            "precio": float(zona.precio),
-            "monto_total": float(zona.precio),
+            "mpid": old_r.medio_pago_id,
+            "precio": float(old_r.precio_pagado),
+            "monto_total": float(old_r.monto_total),
+            "pack_id": old_r.pack_id,
+            "estado": old_r.estado,
         },
         )
         nueva_reserva = result.fetchone()
