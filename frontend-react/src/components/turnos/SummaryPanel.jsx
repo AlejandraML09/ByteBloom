@@ -113,20 +113,20 @@ export function SummaryPanel({
   tipoPago = 'completo',
   onTipoPagoChange,
   aplicaDescuento = true,
+  hasAusentePack = true,
 }) {
   const precioTurno = zona?.precio ?? 0
   const subtotal = shifts.length * precioTurno
   const discountPctBase = shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
-  const discountPct = aplicaDescuento ? discountPctBase : 0
+  const discountPct = aplicaDescuento && !hasAusentePack ? discountPctBase : 0
   const discount = Math.round((subtotal * discountPct) / 100)
   const total = subtotal - discount
   const aPagarAhora = tipoPago === 'sena' ? Math.round(total / 2) : total
   const usandoCreditos = medioPago === 'Crédito a favor'
   const senaDisabled = medioPago === 'efectivo'
   const handleMedioPagoChange = (id) => {
-
-  setMedioPago(id)
-  if (id === 'efectivo') setTipoPago('completo') // 👈 reset
+    setMedioPago(id)
+    if (id === 'efectivo') setTipoPago('completo') // 👈 reset
   }
 
   return (
@@ -190,12 +190,12 @@ export function SummaryPanel({
                 </span>
               </div>
             )}
-            {!usandoCreditos && !aplicaDescuento && discountPctBase > 0 && (
+            {!usandoCreditos && hasAusentePack && discountPctBase > 0 && (
               <div className='summary-v2-row'>
                 <IconDiscount />
                 <span className='summary-v2-row-label'>Descuento por pack</span>
                 <span className='summary-v2-row-value summary-v2-discount'>
-                  No aplica por ausencia previa
+                  No aplica por ausente en tu última clase
                 </span>
               </div>
             )}
@@ -281,34 +281,36 @@ export function SummaryPanel({
       </div>
 
       {!usandoCreditos && (
-      <>
-        <div className='summary-v2-sena-info'>
-          Para que tus selecciones queden reservadas, es necesario pagar una seña del 50% del valor total
-          de las clases.
-        </div>
+        <>
+          <div className='summary-v2-sena-info'>
+            Para que tus selecciones queden reservadas, es necesario pagar una seña del 50% del
+            valor total de las clases.
+          </div>
 
-        <div className='summary-v2-tipo-pago'>
-          <button
-            type='button'
-            className={`summary-v2-tipo-btn${tipoPago === 'completo' ? ' selected' : ''}`}
-            onClick={() => onTipoPagoChange?.('completo')}
-          >
-            <span className='summary-v2-tipo-title'>Pagar el total</span>
-            <span className='summary-v2-tipo-sub'>{fmt(total)}</span>
-          </button>
-          <button
-            type='button'
-            className={`summary-v2-tipo-btn${tipoPago === 'sena' ? ' selected' : ''}`}
-            onClick={() => onTipoPagoChange?.('sena')}
-            disabled={senaDisabled}
-            title={senaDisabled ? 'La seña no está disponible para pago en efectivo' : undefined}
-            style={senaDisabled ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
-          >
-            <span className='summary-v2-tipo-title'>Pagar seña (50%)</span>
-            <span className='summary-v2-tipo-sub'>{fmt(Math.round(total / 2))} ahora · saldo después</span>
-          </button>
-        </div>
-      </>
+          <div className='summary-v2-tipo-pago'>
+            <button
+              type='button'
+              className={`summary-v2-tipo-btn${tipoPago === 'completo' ? ' selected' : ''}`}
+              onClick={() => onTipoPagoChange?.('completo')}
+            >
+              <span className='summary-v2-tipo-title'>Pagar el total</span>
+              <span className='summary-v2-tipo-sub'>{fmt(total)}</span>
+            </button>
+            <button
+              type='button'
+              className={`summary-v2-tipo-btn${tipoPago === 'sena' ? ' selected' : ''}`}
+              onClick={() => onTipoPagoChange?.('sena')}
+              disabled={senaDisabled}
+              title={senaDisabled ? 'La seña no está disponible para pago en efectivo' : undefined}
+              style={senaDisabled ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+            >
+              <span className='summary-v2-tipo-title'>Pagar seña (50%)</span>
+              <span className='summary-v2-tipo-sub'>
+                {fmt(Math.round(total / 2))} ahora · saldo después
+              </span>
+            </button>
+          </div>
+        </>
       )}
 
       <button className='btn-confirm-v2' disabled={confirmando} onClick={onConfirm}>

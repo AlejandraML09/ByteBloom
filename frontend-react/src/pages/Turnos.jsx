@@ -179,6 +179,8 @@ export default function Turnos() {
 
   const storedUser = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
   const user = storedUser ? JSON.parse(storedUser) : null
+  // Hardcodeado con Romina. Luego hay que mejorarlo
+  const hasAusentePack = user?.email?.toLowerCase() === 'romina.ortega@test.com'
 
   // ✅ SI NO HAY SESIÓN, MOSTRAR PANTALLA DE BIENVENIDA CON NAVBAR Y FOOTER
   if (!user) {
@@ -468,7 +470,8 @@ export default function Turnos() {
   }
 
   const isCreditoFavor = medioPago === 'Crédito a favor'
-  const discountPct = isCreditoFavor ? 0 : shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
+  const discountPct =
+    isCreditoFavor || hasAusentePack ? 0 : shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
   const allFilled = zona && shifts.length > 0 && medioPago
   const canAddMore = diaDate && slot && shifts.length < MAX_SHIFTS
 
@@ -524,13 +527,14 @@ export default function Turnos() {
           (sum, g) => sum + (g.zona?.precio ?? 0) * g.turnos.length,
           0
         )
-        const discountPctBase = isCreditoFavor
-          ? 0
-          : shifts.length === 2
-            ? 10
-            : shifts.length === 3
-              ? 20
-              : 0
+        const discountPctBase =
+          isCreditoFavor || hasAusentePack
+            ? 0
+            : shifts.length === 2
+              ? 10
+              : shifts.length === 3
+                ? 20
+                : 0
         const discountPctEfectivo = isCreditoFavor ? 0 : aplicaDescuento ? discountPctBase : 0
         const totalConDescuento = Math.round((subtotal * (100 - discountPctEfectivo)) / 100)
         const aPagarAhora =
@@ -724,9 +728,13 @@ export default function Turnos() {
                   </div>
                 ))}
               </div>
-              {!isCreditoFavor && discountPct > 0 && (
+              {!isCreditoFavor && shifts.length > 1 && (
                 <div className='discount-banner'>
-                  🏷️ ¡Tenés un pack de descuento del {discountPct}%!
+                  {hasAusentePack ? (
+                    <>⚠️ Tenés un ausente en tu última clase, no se aplicarán los descuentos.</>
+                  ) : discountPct > 0 ? (
+                    <>🏷️ ¡Tenés un pack de descuento del {discountPct}%!</>
+                  ) : null}
                 </div>
               )}
             </div>
@@ -756,6 +764,7 @@ export default function Turnos() {
           tipoPago={tipoPago}
           onTipoPagoChange={setTipoPago}
           aplicaDescuento={aplicaDescuento}
+          hasAusentePack={hasAusentePack}
         />
       </div>
 

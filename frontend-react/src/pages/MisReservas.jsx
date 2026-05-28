@@ -883,8 +883,8 @@ export default function MisReservas() {
             zona_nombre: 'Inferior',
             estado: 'ausente',
             sala: 'Central',
-            precio_pagado: 30000,
-            monto_total: 30000,
+            precio_pagado: 5000,
+            monto_total: 5000,
             estado_pago: 'pago_completo',
             medio_pago: 'Efectivo',
           })
