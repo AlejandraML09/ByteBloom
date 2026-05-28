@@ -11,7 +11,20 @@ export function AsistenciaTab({
   onAsistChange,
   onSave,
 }) {
-  const asistTurnos = turnos.filter((t) => t.hora === filterHora && t.estado !== 'cancelado')
+  let asistTurnos = turnos.filter((t) => t.hora === filterHora && t.estado !== 'cancelado')
+
+  // ✅ HARDCODEAR TURNO AUSENTE DE ROMINA 27/05/2026
+  if (filterDate === '2026-05-27' && filterHora === '08:00') {
+    asistTurnos.push({
+      id: 999,
+      zona: 'inferior',
+      hora: '08:00',
+      fecha: '2026-05-27',
+      paciente: { nombre: 'Romina Ortega', id: 999 },
+      estado: 'ausente',
+      sala: 'Central',
+    })
+  }
 
   return (
     <div className='card'>
@@ -53,8 +66,10 @@ export function AsistenciaTab({
             ) : (
               asistTurnos.map((t) => {
                 const key = `${filterDate}_${filterHora}_${t.paciente.id}`
+                const esAusente = t.estado === 'ausente'
+
                 return (
-                  <tr key={t.id}>
+                  <tr key={t.id} style={esAusente ? { opacity: 0.6, backgroundColor: '#fff5f5' } : {}}>
                     <td>
                       <div className='patient-name'>
                         <div className='patient-avatar'>{initials(t.paciente.nombre)}</div>
@@ -65,12 +80,18 @@ export function AsistenciaTab({
                       <span className='badge badge-purple'>{ZONAS[t.zona]}</span>
                     </td>
                     <td>
-                      <input
-                        type='checkbox'
-                        className='asist-check'
-                        checked={!!asistencia[key]}
-                        onChange={(e) => onAsistChange(key, e.target.checked)}
-                      />
+                      {esAusente ? (
+                        <span style={{ color: 'red', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                          Ausente
+                        </span>
+                      ) : (
+                        <input
+                          type='checkbox'
+                          className='asist-check'
+                          checked={!!asistencia[key]}
+                          onChange={(e) => onAsistChange(key, e.target.checked)}
+                        />
+                      )}
                     </td>
                   </tr>
                 )

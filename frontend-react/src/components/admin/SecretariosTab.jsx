@@ -5,6 +5,7 @@ export default function SecretariosTab() {
   const [secretarios, setSecretarios] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [exito, setExito] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [form, setForm] = useState({
     nombre: '',
@@ -39,6 +40,37 @@ export default function SecretariosTab() {
 
   async function handleCrearSecretario(e) {
     e.preventDefault()
+
+    // ✅ VALIDAR EMAIL CON REGEX
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(form.email.trim())) {
+      setError('El formato del email no es válido.')
+      return
+    }
+
+    // ✅ VALIDAR DNI (7 u 8 dígitos)
+    const dniSinPuntos = form.dni.replace(/\./g, '')
+    if (!/^\d{7,8}$/.test(dniSinPuntos)) {
+      setError('El DNI debe tener 7 u 8 dígitos.')
+      return
+    }
+
+    // ✅ VALIDAR EDAD (mayor de 18)
+    const hoy = new Date()
+    const nacimiento = new Date(form.fecha_nacimiento)
+    let edad = hoy.getFullYear() - nacimiento.getFullYear()
+    const mesActual = hoy.getMonth()
+    const mesNacimiento = nacimiento.getMonth()
+    
+    if (mesActual < mesNacimiento || (mesActual === mesNacimiento && hoy.getDate() < nacimiento.getDate())) {
+      edad--
+    }
+    
+    if (edad < 18) {
+      setError('El secretario debe ser mayor de 18 años.')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -55,6 +87,8 @@ export default function SecretariosTab() {
       setForm({ nombre: '', apellido: '', email: '', fecha_nacimiento: '', password: '', dni: '' })
       setShowForm(false)
       setError('')
+      setExito('✓ Secretario creado con éxito. Se le envió un email para reestablecer la contraseña')
+      setTimeout(() => setExito(''), 5000)
     } catch (err) {
       setError(err.response?.data?.detail || 'Error al crear secretario')
     } finally {
@@ -120,6 +154,7 @@ export default function SecretariosTab() {
       </div>
 
       {error && <div className='error-msg show'>{error}</div>}
+      {exito && <div className='error-msg show' style={{ color: 'green' }}>{exito}</div>}
 
       {showForm && (
         <form onSubmit={handleCrearSecretario} className='form-nuevo'>
@@ -194,7 +229,7 @@ export default function SecretariosTab() {
       <div className='secretarios-list'>
         <h3>Secretarios Actuales</h3>
 
-        <div className='search-bar'>
+        {/* <div className='search-bar'>
           <input
             type='text'
             placeholder='Buscar por nombre, apellido o email...'
@@ -202,7 +237,7 @@ export default function SecretariosTab() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className='search-input'
           />
-        </div>
+        </div> */}
 
         {secretariosOrdenados.length === 0 ? (
           <p>

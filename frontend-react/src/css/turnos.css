@@ -618,6 +618,21 @@
   background: var(--border);
 }
 
+.slot-btn.already-selected {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: var(--border);
+  border-color: var(--border);
+}
+
+.slot-btn.already-selected .slot-time {
+  color: var(--text-muted);
+}
+
+.slot-btn.already-selected .slot-dot.taken {
+  background: var(--text-muted);
+}
+
 .slot-time {
   font-size: 13px;
   font-weight: 500;

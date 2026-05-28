@@ -126,7 +126,6 @@ def upgrade():
         ('florencia.herrera@test.com', 'medio',    '2026-06-01', 'activo',   true),
         ('natalia.mendez@test.com',    'inferior', '2026-06-01', 'activo',   true),
         ('romina.ortega@test.com',     'superior', '2026-06-01', 'activo',   true),
-        ('romina.ortega@test.com',     'medio',    '2026-06-01', 'activo',   true),
         ('maria.garcia@test.com',      'superior', '2026-05-01', 'activo',   true),
         ('ana.rodriguez@test.com',     'medio',    '2026-05-01', 'activo',   true),
         ('sofia.lopez@test.com',       'medio',    '2026-04-01', 'pausado',  false)

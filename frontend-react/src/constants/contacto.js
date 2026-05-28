@@ -37,7 +37,7 @@ export const infoCards = [
   {
     id: 'horario',
     title: 'Horario de atención',
-    value: 'Lun – Vie: 9:00 a 18:00 hs\nSáb: 9:00 a 13:00 hs',
+    value: 'Lun – Vie: 08:00 a 20:00 hs',
     iconPath: null,
     href: null,
   },

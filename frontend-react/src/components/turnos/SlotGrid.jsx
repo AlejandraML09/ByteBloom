@@ -10,6 +10,7 @@ export function SlotGrid({
   bookedClaseIds = new Set(),
   waitlistClaseIds = new Set(),
   onWaitlistToggle = null,
+  shifts = [],
 }) {
   if (!selectedDay) {
     return (
@@ -56,7 +57,12 @@ export function SlotGrid({
         const isBooked = bookedClaseIds.has(clase.id)
         const isSelected = selectedSlot === clase.hora
         const inWaitlist = waitlistClaseIds.has(clase.id)
-        const disabled = isFull || isBooked
+        const alreadySelected = shifts.some(
+          (s) =>
+            s.slot === clase.hora &&
+            new Date(s.diaDate).toDateString() === new Date(selectedDay).toDateString()
+        )
+        const disabled = isFull || isBooked || alreadySelected
         const taken = clase.cupo_maximo - clase.cupo_disponible
         const dots = Math.min(clase.cupo_maximo, MAX_DOTS)
         const takenDots = Math.round((taken / clase.cupo_maximo) * dots)
@@ -64,7 +70,7 @@ export function SlotGrid({
         return (
           <div key={clase.id} className='slot-item'>
             <button
-              className={`slot-btn${isFull ? ' full' : ''}${isBooked ? ' booked' : ''}${isSelected ? ' selected' : ''}${inWaitlist ? ' in-waitlist' : ''}`}
+              className={`slot-btn${isFull ? ' full' : ''}${isBooked ? ' booked' : ''}${isSelected ? ' selected' : ''}${inWaitlist ? ' in-waitlist' : ''}${alreadySelected ? ' already-selected' : ''}`}
               disabled={disabled}
               onClick={() => onSlotSelect(clase.hora)}
             >
@@ -77,33 +83,33 @@ export function SlotGrid({
               <div
                 className='slot-cupos'
                 style={{
-                  color: isBooked
-                    ? 'var(--primary)'
-                    : isFull
-                      ? inWaitlist
-                        ? 'var(--warning, #b45309)'
-                        : 'var(--text-muted)'
-                      : clase.cupo_disponible <= 2
-                        ? 'var(--danger)'
-                        : 'var(--primary-dark)',
+                  color: alreadySelected
+                    ? 'var(--text-muted)'
+                    : isBooked
+                      ? 'var(--primary)'
+                      : isFull
+                        ? inWaitlist
+                          ? 'var(--warning, #b45309)'
+                          : 'var(--text-muted)'
+                        : clase.cupo_disponible <= 2
+                          ? 'var(--danger)'
+                          : 'var(--primary-dark)',
                 }}
               >
-                {isBooked
-                  ? 'Ya reservado'
-                  : isFull
-                    ? inWaitlist
-                      ? 'En lista de espera'
-                      : 'Sin cupos'
-                    : `${clase.cupo_disponible} lugar${clase.cupo_disponible === 1 ? '' : 'es'}`}
+                {alreadySelected
+                  ? 'Ya seleccionado'
+                  : isBooked
+                    ? 'Ya reservado'
+                    : isFull
+                      ? inWaitlist
+                        ? 'En lista de espera'
+                        : 'Sin cupos'
+                      : `${clase.cupo_disponible} lugar${clase.cupo_disponible === 1 ? '' : 'es'}`}
               </div>
             </button>
 
             {isFull && onWaitlistToggle && (
-              <WaitlistToggle
-                clase={clase}
-                inWaitlist={inWaitlist}
-                onToggle={onWaitlistToggle}
-              />
+              <WaitlistToggle clase={clase} inWaitlist={inWaitlist} onToggle={onWaitlistToggle} />
             )}
           </div>
         )

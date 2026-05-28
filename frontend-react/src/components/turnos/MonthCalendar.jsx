@@ -14,6 +14,7 @@ export function MonthCalendar({
   defaultMonthOffset = 0,
   minMonthOffset = 0,
   maxMonthOffset = null,
+  disableNavigation = false,
 }) {
   const [monthOffset, setMonthOffset] = useState(defaultMonthOffset)
 
@@ -34,8 +35,11 @@ export function MonthCalendar({
     onMonthChange?.(displayDate)
   }, [displayDate])
 
-  const prevDisabled = monthOffset <= minMonthOffset
-  const nextDisabled = maxMonthOffset !== null && monthOffset >= maxMonthOffset
+  const prevDisabled = disableNavigation || monthOffset <= minMonthOffset
+
+  const nextDisabled =
+    disableNavigation || (maxMonthOffset !== null && monthOffset >= maxMonthOffset)
+
   const monthLabel = `${MESES_ES[displayDate.getMonth()]} ${displayDate.getFullYear()}`
 
   const calendarDays = useMemo(() => {
@@ -84,12 +88,12 @@ export function MonthCalendar({
         {calendarDays.map((d, i) => {
           if (!d) return <div key={`e-${i}`} className='month-empty' />
 
-          const isPast = d < today
+          const isPast = new Date(fmtDate(d)) < new Date(fmtDate(today))
           const isToday = fmtDate(d) === fmtDate(today)
           const isSelected = selectedDay && fmtDate(d) === fmtDate(selectedDay)
           const isBooked = bookedDays?.has(fmtDate(d))
 
-          const clases = isPast || isBooked ? [] : (getClasesForDay?.(d) ?? [])
+          const clases = isPast ? [] : (getClasesForDay?.(d) ?? [])
           const hasAvailable = clases.some((c) => c.cupo_disponible > 0)
 
           const isWeekend = d.getDay() === 0 || d.getDay() === 6
@@ -100,8 +104,7 @@ export function MonthCalendar({
           const totalTaken = clases.reduce((s, c) => s + (c.cupo_maximo - c.cupo_disponible), 0)
           const pct = totalMax > 0 ? Math.min(100, Math.round((totalTaken / totalMax) * 100)) : 0
 
-          const disabled = isPast || isWeekend || isBooked || !hasAvailable || isWeekBlocked
-
+          const disabled = isPast || isWeekend || !hasAvailable || isWeekBlocked
           return (
             <button
               key={fmtDate(d)}

@@ -152,14 +152,9 @@ export function PaymentSelector({
                   {label}
                 </span>
 
-                {id === 'Crédito a favor' && (
-                  <span
-                    className='payment-badge-credits'
-                    style={creditosDisponibles < shiftsCount ? { background: '#ef4444' } : undefined}
-                  >
-                    {creditosDisponibles < shiftsCount
-                      ? `${creditosDisponibles}/${shiftsCount}`
-                      : creditosDisponibles}
+                {id === 'Crédito a favor' && creditosDisponibles > 0 && creditosDisponibles >= shiftsCount && (
+                  <span className='payment-badge-credits'>
+                    {creditosDisponibles}
                   </span>
                 )}
               </button>

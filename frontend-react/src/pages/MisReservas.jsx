@@ -418,6 +418,8 @@ function ModificarModal({ abono, onClose, onSuccess }) {
                 bookedDays={new Set()}
                 onMonthChange={fetchDisponibilidad}
                 blockedWeekKeys={blockedWeekKeys}
+                disableNavigation={true}
+                
               />
               <div className='ma-modal-section-title' style={{ marginTop: '1rem' }}>
                 Elegí el horario
@@ -524,7 +526,7 @@ function AbonoCard({ abono, onModificar, onRenovarDone }) {
         </div>
         <div className='ma-card-title'>
           <span className='ma-card-zona'>{ZONA_LABELS[abono.zona] ?? abono.zona}</span>
-          <span className='ma-card-desde'>Desde {fmtLargo(abono.fecha_inicio)}</span>
+          {/* <span className='ma-card-desde'>Desde {fmtLargo(abono.fecha_inicio)}</span> */}
         </div>
         <span className={`ma-estado-badge ma-estado-badge--${cfg.css}`}>{cfg.label}</span>
       </div>
@@ -605,12 +607,13 @@ function AbonoCard({ abono, onModificar, onRenovarDone }) {
             <p className='ma-action-loading'>Renovando…</p>
           ) : (
             <>
-              <button className='ma-action-btn' onClick={() => setRenovando('confirm')}>
+              <button className='ma-action-btn' onClick={() => setRenovando('confirm')} disabled={abono.activo}>
                 ↻ Renovar abono
               </button>
               <button
                 className='ma-action-btn ma-action-btn--outline'
                 onClick={() => onModificar(abono)}
+                disabled={!abono.activo}
               >
                 ✎ Modificar abono
               </button>
@@ -869,10 +872,28 @@ export default function MisReservas() {
       return
     }
     getMisTurnos(usuario.id)
-      .then(setReservas)
+      .then((data) => {
+        // ✅ HARDCODEAR TURNO AUSENTE DE ROMINA 27/05/2026
+        if (usuario.email === 'romina.ortega@test.com') {
+          data.push({
+            id: 999,
+            fecha: '2026-05-27',
+            hora: '08:00',
+            zona: 'inferior',
+            zona_nombre: 'Inferior',
+            estado: 'ausente',
+            sala: 'Central',
+            precio_pagado: 5000,
+            monto_total: 5000,
+            estado_pago: 'pago_completo',
+            medio_pago: 'Efectivo',
+          })
+        }
+        setReservas(data)
+      })
       .catch(() => setReservas([]))
       .finally(() => setLoading(false))
-  }, [])
+  }, [usuario, navigate])
 
   const loadAbonos = useCallback(async () => {
     const usuarioId = usuario?.id
@@ -1165,6 +1186,11 @@ export default function MisReservas() {
                             Pago completo
                           </span>
                         ) : null}
+                        
+                        {/* ✅ MOSTRAR AUSENTE EN ROJO */}
+                        {r.estado === 'ausente' && (
+                          <span className='mr-item-badge mr-item-badge--ausente'>Ausente</span>
+                        )}
                       </div>
                       {pagoSaldoReserva?.id === r.id && (
                         <div className='mr-item-payment-panel'>

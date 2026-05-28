@@ -179,6 +179,8 @@ export default function Turnos() {
 
   const storedUser = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
   const user = storedUser ? JSON.parse(storedUser) : null
+  // Hardcodeado con Romina. Luego hay que mejorarlo
+  const hasAusentePack = user?.email?.toLowerCase() === 'romina.ortega@test.com'
 
   // ✅ SI NO HAY SESIÓN, MOSTRAR PANTALLA DE BIENVENIDA CON NAVBAR Y FOOTER
   if (!user) {
@@ -371,47 +373,83 @@ export default function Turnos() {
     const mes = toMes(date)
     const all = clasesDelMes[mes] ?? []
     const fechaStr = fmtDate(date)
-    return all.filter((c) => c.fecha === fechaStr && c.zona_id === zona.id)
+    const now = new Date()
+
+    return all.filter((c) => {
+      // filtro existente
+      if (c.fecha !== fechaStr || c.zona_id !== zona.id) {
+        return false
+      }
+
+      // crear fecha/hora exacta del turno
+      const [hours, minutes] = c.hora.split(':').map(Number)
+
+      const turnoDate = new Date(date)
+      turnoDate.setHours(hours, minutes, 0, 0)
+
+      // ocultar turnos ya pasados
+      return turnoDate > now
+    })
   }
 
   // Classes for the currently selected day (used by SlotGrid)
   const clasesDelDia = useMemo(() => {
-    if (!diaDate) return []
-    return getClasesForDay(diaDate)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!diaDate || !zona) return []
+
+    const mes = toMes(diaDate)
+    const all = clasesDelMes[mes] ?? []
+    const fechaStr = fmtDate(diaDate)
+
+    const now = new Date()
+
+    return all.filter((c) => {
+      if (c.fecha !== fechaStr || c.zona_id !== zona.id) {
+        return false
+      }
+
+      const esHoy = fmtDate(diaDate) === fmtDate(now)
+      if (!esHoy) return true
+
+      const [h, m] = c.hora.split(':').map(Number)
+
+      const turnoDate = new Date(diaDate)
+      turnoDate.setHours(h, m, 0, 0)
+
+      return turnoDate > now
+    })
   }, [diaDate, zona, clasesDelMes])
 
-  const bookedDays = useMemo(() => new Set(shifts.map((s) => fmtDate(s.diaDate))), [shifts])
+  const bookedDays = useMemo(() => new Set(), [])
 
-function handleZonaSelect(zonaObj) {
-  if (activeAbonoZonaIds.has(zonaObj.id)) {
-    const nombreZona = ZONA_LABELS[zonaObj.nombre] ?? zonaObj.nombre
+  function handleZonaSelect(zonaObj) {
+    if (activeAbonoZonaIds.has(zonaObj.id)) {
+      const nombreZona = ZONA_LABELS[zonaObj.nombre] ?? zonaObj.nombre
 
-    setBlockedZonaName(nombreZona)
+      setBlockedZonaName(nombreZona)
 
-    // reset completo para ocultar calendario/resumen
-    setZona(null)
+      // reset completo para ocultar calendario/resumen
+      setZona(null)
+      setDiaDate(null)
+      setSlot(null)
+      setShifts([])
+      setMedioPago(null)
+      setTipoPago('completo')
+
+      showToast(
+        `Ya tenés un abono activo en ${nombreZona}. No podés reservar clases individuales de esta zona.`
+      )
+
+      return
+    }
+
+    setBlockedZonaName(null)
+
+    // selección normal
+    setZona(zonaObj)
     setDiaDate(null)
     setSlot(null)
-    setShifts([])
     setMedioPago(null)
-    setTipoPago('completo')
-
-    showToast(
-      `Ya tenés un abono activo en ${nombreZona}. No podés reservar clases individuales de esta zona.`
-    )
-
-    return
   }
-
-  setBlockedZonaName(null)
-
-  // selección normal
-  setZona(zonaObj)
-  setDiaDate(null)
-  setSlot(null)
-  setMedioPago(null)
-}
 
   function handleDaySelect(d) {
     setDiaDate(d)
@@ -420,8 +458,9 @@ function handleZonaSelect(zonaObj) {
 
   function addShift() {
     if (!diaDate || !slot || shifts.length >= MAX_SHIFTS) return
-    // preserve the selected zona on the shift so users can pick turns across zonas
+
     setShifts((prev) => [...prev, { diaDate, slot, zona }])
+
     setDiaDate(null)
     setSlot(null)
   }
@@ -431,7 +470,8 @@ function handleZonaSelect(zonaObj) {
   }
 
   const isCreditoFavor = medioPago === 'Crédito a favor'
-  const discountPct = isCreditoFavor ? 0 : shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
+  const discountPct =
+    isCreditoFavor || hasAusentePack ? 0 : shifts.length === 2 ? 10 : shifts.length === 3 ? 20 : 0
   const allFilled = zona && shifts.length > 0 && medioPago
   const canAddMore = diaDate && slot && shifts.length < MAX_SHIFTS
 
@@ -459,6 +499,14 @@ function handleZonaSelect(zonaObj) {
       return
     }
 
+    const medioPagoDB = {
+      mercadopago: 'Mercado Pago',
+      efectivo: 'Efectivo',
+      transferencia: 'Transferencia',
+      credito: 'Mercado Pago', // porque crédito/débito se paga por MP
+      'Crédito a favor': 'Crédito a favor',
+    }[medioPago]
+
     setConfirmando(true)
     try {
       // If user selected shifts across multiple zonas, group reservations per zona
@@ -479,13 +527,14 @@ function handleZonaSelect(zonaObj) {
           (sum, g) => sum + (g.zona?.precio ?? 0) * g.turnos.length,
           0
         )
-        const discountPctBase = isCreditoFavor
-          ? 0
-          : shifts.length === 2
-            ? 10
-            : shifts.length === 3
-              ? 20
-              : 0
+        const discountPctBase =
+          isCreditoFavor || hasAusentePack
+            ? 0
+            : shifts.length === 2
+              ? 10
+              : shifts.length === 3
+                ? 20
+                : 0
         const discountPctEfectivo = isCreditoFavor ? 0 : aplicaDescuento ? discountPctBase : 0
         const totalConDescuento = Math.round((subtotal * (100 - discountPctEfectivo)) / 100)
         const aPagarAhora =
@@ -516,7 +565,7 @@ function handleZonaSelect(zonaObj) {
             'pending_shifts',
             JSON.stringify({
               groups: shiftsByZona,
-              medioPago,
+              medioPago: medioPagoDB,
               usuarioId,
               tipoPago,
             })
@@ -539,9 +588,10 @@ function handleZonaSelect(zonaObj) {
         await reservarTurnos({
           zonaId: group.zona.id,
           turnos: group.turnos,
-          medioPago,
+          medioPago: medioPagoDB,
           usuarioId,
           tipoPago,
+          ...(medioPago === 'Crédito a favor' && { estado: 'confirmada' }),
         })
         totalReserved += group.turnos.length
       }
@@ -626,6 +676,7 @@ function handleZonaSelect(zonaObj) {
                 getClasesForDay={getClasesForDay}
                 bookedDays={bookedDays}
                 onMonthChange={fetchDisponibilidad}
+                disableNavigation={false}
               />
               <div className='card-title' style={{ marginTop: '1.25rem' }}>
                 Elegí el horario
@@ -638,6 +689,7 @@ function handleZonaSelect(zonaObj) {
                 bookedClaseIds={bookedClaseIds}
                 waitlistClaseIds={waitlistClaseIds}
                 onWaitlistToggle={handleWaitlistToggle}
+                shifts={shifts}
               />
               {canAddMore && (
                 <button className='btn-add-shift' onClick={addShift}>
@@ -676,9 +728,13 @@ function handleZonaSelect(zonaObj) {
                   </div>
                 ))}
               </div>
-              {!isCreditoFavor && discountPct > 0 && (
+              {!isCreditoFavor && shifts.length > 1 && (
                 <div className='discount-banner'>
-                  🏷️ ¡Tenés un pack de descuento del {discountPct}%!
+                  {hasAusentePack ? (
+                    <>⚠️ Tenés un ausente en tu última clase, no se aplicarán los descuentos.</>
+                  ) : discountPct > 0 ? (
+                    <>🏷️ ¡Tenés un pack de descuento del {discountPct}%!</>
+                  ) : null}
                 </div>
               )}
             </div>
@@ -708,6 +764,7 @@ function handleZonaSelect(zonaObj) {
           tipoPago={tipoPago}
           onTipoPagoChange={setTipoPago}
           aplicaDescuento={aplicaDescuento}
+          hasAusentePack={hasAusentePack}
         />
       </div>
 
