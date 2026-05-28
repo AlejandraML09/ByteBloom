@@ -822,7 +822,7 @@ export default function MisReservas() {
           )
         )
 
-        showAppToast('✓ Pago pendiente registrado. Tenés 48 hs para abonar.')
+        showAppToast('✓ Pago pendiente registrado. Tenés tiempo hasta la clase para abonar.')
         closePagoSaldo()
         return
       }

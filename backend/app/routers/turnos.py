@@ -301,8 +301,10 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
         elapsed_hours = int((now - r.fecha_reserva).total_seconds() // 3600) if r.fecha_reserva else 0
         if elapsed_hours < 0:
             elapsed_hours = 0
-        horas_restantes = max(0, 48 - elapsed_hours)
-        fecha_vencimiento = (r.fecha_reserva + timedelta(hours=48)) if r.fecha_reserva else None
+        
+        fecha_clase = datetime.combine(cp.fecha, cp.hora)
+        fecha_vencimiento = min(r.fecha_reserva + timedelta(hours=48), fecha_clase)
+        horas_restantes = max(0, int((fecha_vencimiento - now).total_seconds() // 3600))
 
         # determinar estado de pago
         payment_status = 'pago_completo'
@@ -378,8 +380,9 @@ def get_reservas_efectivo(db: Session = Depends(get_db)):
         elapsed_hours = int((now - reserva.fecha_reserva).total_seconds() // 3600)
         if elapsed_hours < 0:
             elapsed_hours = 0
-        horas_restantes = max(0, 48 - elapsed_hours)
-        fecha_vencimiento = reserva.fecha_reserva + timedelta(hours=48)
+        fecha_clase = datetime.combine(cp.fecha, cp.hora)
+        fecha_vencimiento = min(reserva.fecha_reserva + timedelta(hours=48), fecha_clase)
+        horas_restantes = max(0, int((fecha_vencimiento - now).total_seconds() // 3600))
         payment_status = 'pago_completo'
 
         if reserva.estado == models.EstadoReserva.confirmada:

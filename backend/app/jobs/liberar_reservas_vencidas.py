@@ -13,8 +13,9 @@ def liberar_reservas_vencidas() -> None:
     try:
         now = datetime.now()
         reservas_vencidas = (
-            db.query(models.Reserva)
-            .join(models.MedioPago, models.Reserva.medio_pago_id == models.MedioPago.id)
+            db.query(models.Reserva, models.ClaseProgramada)
+.join(models.MedioPago, models.Reserva.medio_pago_id == models.MedioPago.id)
+.join(models.ClaseProgramada, models.Reserva.clase_programada_id == models.ClaseProgramada.id)
             .filter(
                 models.Reserva.estado == models.EstadoReserva.pendiente,
                 models.MedioPago.nombre == "Efectivo",
@@ -22,16 +23,14 @@ def liberar_reservas_vencidas() -> None:
             .all()
         )
         liberadas = 0
-        for reserva in reservas_vencidas:
+        for reserva, clase in reservas_vencidas:
             if reserva.fecha_reserva is None:
                 continue
-            if now > reserva.fecha_reserva + timedelta(hours=48):
+            fecha_clase = datetime.combine(clase.fecha, clase.hora)
+            fecha_vencimiento = min(reserva.fecha_reserva + timedelta(hours=48), fecha_clase)
+            if now > fecha_vencimiento:
                 reserva.estado = models.EstadoReserva.cancelada
-                clase = db.query(models.ClaseProgramada).filter(
-                    models.ClaseProgramada.id == reserva.clase_programada_id
-                ).first()
-                if clase:
-                    clase.cupo_disponible += 1
+                clase.cupo_disponible += 1
                 liberadas += 1
                 logger.info(f"Reserva {reserva.id} cancelada. Cupo devuelto a clase {reserva.clase_programada_id}.")
         if liberadas > 0:

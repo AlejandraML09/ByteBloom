@@ -558,7 +558,7 @@ function handleZonaSelect(zonaObj) {
 
       refreshBookedIds()
       if (['efectivo', 'transferencia'].includes(medioPago)) {
-        showToast('✓ Reserva confirmada. Tenés 48 hs para abonar.')
+       showToast('✓ Reserva confirmada. Tenés tiempo hasta la clase para abonar.')
       } else {
         if (medioPago === 'Crédito a favor') {
           const key = `creditos_${user.id}`
