@@ -866,34 +866,41 @@ export default function MisReservas() {
     setPagoSaldoError(null)
   }
 
+  const loadTurnos = useCallback(async () => {
+    if (!usuario) return
+    try {
+      const data = await getMisTurnos(usuario.id)
+      // ✅ HARDCODEAR TURNO AUSENTE DE ROMINA 27/05/2026
+      if (usuario.email === 'romina.ortega@test.com') {
+        data.push({
+          id: 999,
+          fecha: '2026-05-27',
+          hora: '08:00',
+          zona: 'inferior',
+          zona_nombre: 'Inferior',
+          estado: 'ausente',
+          sala: 'Central',
+          precio_pagado: 5000,
+          monto_total: 5000,
+          estado_pago: 'pago_completo',
+          medio_pago: 'Efectivo',
+        })
+      }
+      setReservas(data)
+    } catch {
+      setReservas([])
+    } finally {
+      setLoading(false)
+    }
+  }, [usuario])
+
   useEffect(() => {
     if (!usuario) {
       navigate('/login')
       return
     }
-    getMisTurnos(usuario.id)
-      .then((data) => {
-        // ✅ HARDCODEAR TURNO AUSENTE DE ROMINA 27/05/2026
-        if (usuario.email === 'romina.ortega@test.com') {
-          data.push({
-            id: 999,
-            fecha: '2026-05-27',
-            hora: '08:00',
-            zona: 'inferior',
-            zona_nombre: 'Inferior',
-            estado: 'ausente',
-            sala: 'Central',
-            precio_pagado: 5000,
-            monto_total: 5000,
-            estado_pago: 'pago_completo',
-            medio_pago: 'Efectivo',
-          })
-        }
-        setReservas(data)
-      })
-      .catch(() => setReservas([]))
-      .finally(() => setLoading(false))
-  }, [usuario, navigate])
+    loadTurnos()
+  }, [usuario, navigate, loadTurnos])
 
   const loadAbonos = useCallback(async () => {
     const usuarioId = usuario?.id
@@ -931,10 +938,11 @@ export default function MisReservas() {
   const sorted = useMemo(() => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    const upcoming = reservas
+    const visibles = reservas.filter((r) => r.estado !== 'cancelada')
+    const upcoming = visibles
       .filter((r) => new Date(r.fecha + 'T00:00:00') >= today)
       .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora.localeCompare(b.hora))
-    const past = reservas
+    const past = visibles
       .filter((r) => new Date(r.fecha + 'T00:00:00') < today)
       .sort((a, b) => b.fecha.localeCompare(a.fecha) || b.hora.localeCompare(a.hora))
     return [...upcoming, ...past]
@@ -1334,6 +1342,7 @@ export default function MisReservas() {
             setModificarAbono(null)
             showAppToast('Sesión modificada correctamente.')
             loadAbonos()
+            loadTurnos()
           }}
         />
       )}
