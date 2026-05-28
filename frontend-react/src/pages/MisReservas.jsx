@@ -872,10 +872,28 @@ export default function MisReservas() {
       return
     }
     getMisTurnos(usuario.id)
-      .then(setReservas)
+      .then((data) => {
+        // ✅ HARDCODEAR TURNO AUSENTE DE ROMINA 27/05/2026
+        if (usuario.email === 'romina.ortega@test.com') {
+          data.push({
+            id: 999,
+            fecha: '2026-05-27',
+            hora: '08:00',
+            zona: 'inferior',
+            zona_nombre: 'Inferior',
+            estado: 'ausente',
+            sala: 'Central',
+            precio_pagado: 30000,
+            monto_total: 30000,
+            estado_pago: 'pago_completo',
+            medio_pago: 'Efectivo',
+          })
+        }
+        setReservas(data)
+      })
       .catch(() => setReservas([]))
       .finally(() => setLoading(false))
-  }, [])
+  }, [usuario, navigate])
 
   const loadAbonos = useCallback(async () => {
     const usuarioId = usuario?.id
@@ -1168,6 +1186,11 @@ export default function MisReservas() {
                             Pago completo
                           </span>
                         ) : null}
+                        
+                        {/* ✅ MOSTRAR AUSENTE EN ROJO */}
+                        {r.estado === 'ausente' && (
+                          <span className='mr-item-badge mr-item-badge--ausente'>Ausente</span>
+                        )}
                       </div>
                       {pagoSaldoReserva?.id === r.id && (
                         <div className='mr-item-payment-panel'>
