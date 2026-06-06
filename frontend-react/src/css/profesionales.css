@@ -193,6 +193,168 @@
   font-weight: 500;
 }
 
+/* ── Estrellas (lectura) ── */
+.rs-stars {
+  display: inline-flex;
+  line-height: 1;
+}
+
+.rs-star {
+  position: relative;
+  display: inline-block;
+  color: #e0e0e0;
+}
+
+.rs-star-bg {
+  color: #e0e0e0;
+}
+
+.rs-star-fg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  color: #f5b301;
+}
+
+/* ── Calificación dinámica en la card ── */
+.prof-rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.prof-rating-num {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.prof-rating-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.prof-rating-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ── Carrusel de reseñas (footer) ── */
+.rc-section {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem 2rem 3rem;
+  text-align: center;
+}
+
+.rc-viewport {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 1.5rem;
+}
+
+.rc-track {
+  display: flex;
+  overflow: hidden;
+  flex: 1;
+  transition: transform 0.45s ease;
+}
+
+.rc-slide {
+  min-width: 100%;
+  box-sizing: border-box;
+  padding: 0 4px;
+}
+
+.rc-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1.75rem;
+  text-align: center;
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--primary) 6%, transparent);
+}
+
+.rc-comment {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-main);
+  font-style: italic;
+  margin: 14px 0;
+}
+
+.rc-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rc-user {
+  font-weight: 700;
+  color: var(--text-main);
+  font-size: 14px;
+}
+
+.rc-prof {
+  font-size: 12px;
+  color: var(--primary-dark);
+}
+
+.rc-date {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.rc-arrow {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--text-main);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.rc-arrow:hover {
+  background: var(--primary);
+  color: var(--white);
+}
+
+.rc-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 1.25rem;
+}
+
+.rc-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: none;
+  background: var(--border);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.rc-dot.active {
+  background: var(--primary);
+  transform: scale(1.25);
+}
+
 @media (max-width: 900px) {
   .prof-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -213,5 +375,16 @@
   }
   .section-wrap {
     padding: 2rem 1.25rem;
+  }
+  .rc-section {
+    padding: 1rem 1.25rem 2.5rem;
+  }
+  .rc-arrow {
+    width: 34px;
+    height: 34px;
+    font-size: 20px;
+  }
+  .rc-card {
+    padding: 1.25rem;
   }
 }

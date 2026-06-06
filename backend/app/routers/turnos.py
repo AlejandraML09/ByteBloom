@@ -299,6 +299,15 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
         )
         .all()
     )
+
+    # Set de reservas ya reseñadas por el usuario (1 sola query, evita N+1)
+    reservas_resenadas = {
+        rid
+        for (rid,) in db.query(models.Resena.reserva_id).filter(
+            models.Resena.usuario_id == usuario_id
+        )
+    }
+
     result = []
     dirty = False
     for r, cp, z, mp in rows:
@@ -327,6 +336,25 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
             dirty = True
             cp.cupo_disponible += 1
 
+        # ── Reseñas ───────────────────────────────────────────────────────
+        # Reseñable (pragmático): clase ya ocurrió + no cancelada + pago
+        # completo + la clase tiene profesional asignado + sin reseña previa.
+        ya_resenada = r.id in reservas_resenadas
+        fecha_hora_clase = datetime.combine(cp.fecha, cp.hora)
+        clase_ocurrida = fecha_hora_clase <= now
+        pago_completo = (
+            r.precio_pagado is not None
+            and r.monto_total is not None
+            and r.precio_pagado >= r.monto_total
+        )
+        puede_resenar = (
+            clase_ocurrida
+            and r.estado != models.EstadoReserva.cancelada
+            and pago_completo
+            and bool(cp.profesional_email)
+            and not ya_resenada
+        )
+
         result.append(
             {
                 "id": r.id,
@@ -345,7 +373,9 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
                 "fecha_vencimiento": fecha_vencimiento.isoformat() if fecha_vencimiento else None,
                 "horas_restantes": horas_restantes,
                 "vencido": horas_restantes == 0,
-                "clase_activa": bool(cp.activo),
+                "profesional_email": cp.profesional_email,
+                "ya_resenada": ya_resenada,
+                "puede_resenar": puede_resenar,
             }
         )
 

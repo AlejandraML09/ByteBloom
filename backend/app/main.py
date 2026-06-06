@@ -12,6 +12,7 @@ from app.routers import (
     abonos,
     lista_espera,
     salas,
+    reviews,
 )
 from app.jobs.marcar_ausencias import loop_marcar_ausencias
 from fastapi.middleware.cors import CORSMiddleware
@@ -48,3 +49,4 @@ app.include_router(auth.router)
 app.include_router(abonos.router)
 app.include_router(lista_espera.router, prefix="/turnos")
 app.include_router(salas.router)
+app.include_router(reviews.router)

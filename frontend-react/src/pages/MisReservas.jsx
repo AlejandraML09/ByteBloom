@@ -17,6 +17,7 @@ import { fmtLargo, fmtDate, fmtDiaLargo, nextHour, getISOWeekKey, MESES_ES } fro
 import { MonthCalendar } from '../components/turnos/MonthCalendar'
 import { SlotGrid } from '../components/turnos/SlotGrid'
 import { PaymentSelector } from '../components/turnos/PaymentSelector'
+import { ReviewModal } from '../components/reviews/ReviewModal'
 import '../css/mis-reservas.css'
 
 function getUsuario() {
@@ -717,6 +718,9 @@ export default function MisReservas() {
   const [pagoSaldoLoading, setPagoSaldoLoading] = useState(false)
   const [pagoSaldoError, setPagoSaldoError] = useState(null)
 
+  // Reseña state
+  const [resenaReserva, setResenaReserva] = useState(null)
+
   // Lista de espera state
   const [listaEspera, setListaEspera] = useState([])
   const [loadingEspera, setLoadingEspera] = useState(false)
@@ -1199,6 +1203,19 @@ export default function MisReservas() {
                         {r.estado === 'ausente' && (
                           <span className='mr-item-badge mr-item-badge--ausente'>Ausente</span>
                         )}
+
+                        {/* Reseña: solo si la clase ya ocurrió, está pagada y sin reseña previa */}
+                        {r.puede_resenar && (
+                          <button
+                            className='mr-review-btn'
+                            onClick={() => setResenaReserva(r)}
+                          >
+                            ★ Dejar reseña
+                          </button>
+                        )}
+                        {r.ya_resenada && (
+                          <span className='mr-review-done'>★ Reseña enviada</span>
+                        )}
                       </div>
                       {pagoSaldoReserva?.id === r.id && (
                         <div className='mr-item-payment-panel'>
@@ -1343,6 +1360,23 @@ export default function MisReservas() {
             showAppToast('Sesión modificada correctamente.')
             loadAbonos()
             loadTurnos()
+          }}
+        />
+      )}
+
+      {resenaReserva && (
+        <ReviewModal
+          reserva={resenaReserva}
+          usuarioId={usuario.id}
+          onClose={() => setResenaReserva(null)}
+          onSuccess={(reservaId) => {
+            setReservas((prev) =>
+              prev.map((x) =>
+                x.id === reservaId ? { ...x, ya_resenada: true, puede_resenar: false } : x
+              )
+            )
+            setResenaReserva(null)
+            showAppToast('¡Gracias! Tu reseña fue publicada.')
           }}
         />
       )}

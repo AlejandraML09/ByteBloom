@@ -1,11 +1,33 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { StatsStrip } from '../components/profesionales/StatsStrip'
+import { RatingStars } from '../components/reviews/RatingStars'
+import { ReviewsCarousel } from '../components/reviews/ReviewsCarousel'
 import { profesionales } from '../constants/profesionales'
+import { getResumenResenas } from '../api/reviews'
 import '../css/profesionales.css'
 
 export default function Profesionales() {
+  // Resumen dinámico de puntuación por email: { [email]: { promedio, cantidad } }
+  const [resumen, setResumen] = useState({})
+
+  useEffect(() => {
+    getResumenResenas()
+      .then((data) => {
+        const map = {}
+        for (const item of data) {
+          map[item.profesional_email] = {
+            promedio: item.promedio,
+            cantidad: item.cantidad,
+          }
+        }
+        setResumen(map)
+      })
+      .catch(() => setResumen({}))
+  }, [])
+
   return (
     <>
       <Navbar />
@@ -30,8 +52,11 @@ export default function Profesionales() {
         <h2 className='section-title'>Quiénes nos cuidan</h2>
 
         <div className="prof-grid">
-          {profesionales.map(
-            ({ initials, name, title, tags, bio, stars, reviews, image, email }) => (
+          {profesionales.map(({ initials, name, title, tags, bio, image, email }) => {
+            const r = resumen[email]
+            const cantidad = r?.cantidad ?? 0
+            const promedio = r?.promedio ?? 0
+            return (
               <div className="prof-card" key={initials}>
                 <div className="prof-photo-placeholder">
                   {image ? (
@@ -52,21 +77,30 @@ export default function Profesionales() {
                     ))}
                   </div>
                   <p className="prof-bio">{bio}</p>
-                  <div className="reviews-title">
-                    <span className="stars">{stars}</span> Reseñas de pacientes
+
+                  {/* Calificación dinámica */}
+                  <div className="prof-rating">
+                    {cantidad > 0 ? (
+                      <>
+                        <RatingStars value={promedio} size={18} />
+                        <span className="prof-rating-num">{promedio.toFixed(1)}</span>
+                        <span className="prof-rating-count">
+                          ({cantidad} {cantidad === 1 ? 'reseña' : 'reseñas'})
+                        </span>
+                      </>
+                    ) : (
+                      <span className="prof-rating-empty">Sin reseñas todavía</span>
+                    )}
                   </div>
-                  {reviews.map((r, i) => (
-                    <div className="review-item" key={i}>
-                      <div className="review-text">{r.text}</div>
-                      <div className="review-author">{r.author}</div>
-                    </div>
-                  ))}
                 </div>
               </div>
-            ),
-          )}
+            )
+          })}
         </div>
       </div>
+
+      {/* Carrusel de reseñas dinámico */}
+      <ReviewsCarousel />
 
       <div className='cta-section'>
         <h2>¿Querés conocer a nuestro equipo en persona?</h2>
