@@ -83,11 +83,10 @@ export default function Admin() {
   const [cuposInput, setCuposInput] = useState({})
   const [ocupados] = useState(() => initOcupados())
   const [cuposClasses, setCuposClasses] = useState([])
-  const [asistencia, setAsistencia] = useState({})
   const [cancelados, setCancelados] = useState({})
   const [toastMsg, setToastMsg] = useState('')
   const [toastVisible, setToastVisible] = useState(false)
-  const [presentes, setPresentes] = useState(0)
+  const [presentes] = useState(0)
   const [precio, setPrecio] = useState(0)
   const [priceInput, setPriceInput] = useState('')
   const [upcomingClasses, setUpcomingClasses] = useState([])
@@ -247,12 +246,6 @@ export default function Admin() {
     if (!res.ok) throw new Error(body.detail || 'Error al eliminar las clases.')
     showToast(`Clases de ${email} canceladas correctamente`)
     return body
-  }
-
-  function guardarAsistencia() {
-    const total = Object.values(asistencia).filter(Boolean).length
-    setPresentes(total)
-    showToast('Asistencia guardada correctamente')
   }
 
   async function modificarCupo(claseId) {
@@ -456,14 +449,12 @@ export default function Admin() {
        
         {activeTab === 'asistencia' && (
           <AsistenciaTab
-            turnos={turnos}
             filterDate={filterAsistDate}
             filterHora={filterAsistHora}
             onDateChange={setFilterAsistDate}
             onHoraChange={setFilterAsistHora}
-            asistencia={asistencia}
-            onAsistChange={(key, val) => setAsistencia((prev) => ({ ...prev, [key]: val }))}
-            onSave={guardarAsistencia}
+            actorId={user?.id}
+            showToast={showToast}
           />
         )}
 

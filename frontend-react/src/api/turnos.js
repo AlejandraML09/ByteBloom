@@ -112,3 +112,27 @@ export async function getMiListaEspera(usuarioId) {
   })
   return data
 }
+
+/**
+ * Reservas reales de un slot (fecha + hora) para tomar asistencia.
+ * @param {string} fecha "YYYY-MM-DD"
+ * @param {string} hora  "HH:MM"
+ */
+export async function getAsistencia(fecha, hora) {
+  const { data } = await client.get('/turnos/asistencia', { params: { fecha, hora } })
+  return data
+}
+
+/**
+ * Actualiza el estado de asistencia de una reserva (admin/secretario).
+ * @param {number} reservaId
+ * @param {'pendiente'|'asistio'|'ausente'} estado
+ * @param {number} actorId id del usuario admin/secretario que realiza la acción
+ */
+export async function setAsistencia(reservaId, estado, actorId) {
+  const { data } = await client.put(`/turnos/reservas/${reservaId}/asistencia`, {
+    estado,
+    actor_id: actorId,
+  })
+  return data
+}

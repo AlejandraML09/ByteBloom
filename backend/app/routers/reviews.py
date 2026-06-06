@@ -21,9 +21,6 @@ from app import models
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
-# Estados de reserva que NO habilitan reseñar (la clase no se concretó).
-ESTADOS_NO_RESENABLES = {models.EstadoReserva.cancelada}
-
 MAX_PALABRAS_COMENTARIO = 160
 
 
@@ -73,24 +70,30 @@ class CrearResenaRequest(BaseModel):
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
 
-def _reserva_ocurrida_y_pagada(reserva: models.Reserva, cp: models.ClaseProgramada) -> Optional[str]:
+def reserva_esta_pagada(reserva: models.Reserva) -> bool:
+    """Pago completo: lo abonado cubre el monto total."""
+    return (
+        reserva.precio_pagado is not None
+        and reserva.monto_total is not None
+        and reserva.precio_pagado >= reserva.monto_total
+    )
+
+
+def motivo_no_resenable(reserva: models.Reserva) -> Optional[str]:
     """Devuelve un mensaje de error si la reserva NO es reseñable, o None si lo es.
 
-    Regla (pragmática): la clase ya ocurrió, la reserva no está cancelada y fue
-    pagada (precio_pagado >= monto_total).
+    Regla de negocio (estricta): solo se puede reseñar una reserva que representa
+    una asistencia efectiva con pago confirmado, es decir:
+      - estado == 'asistio'  (asistió a la clase; implica que la clase ya ocurrió)
+      - pago completo         (precio_pagado >= monto_total)
+
+    Esto excluye explícitamente: pendiente, confirmada-sin-asistir, ausente,
+    cancelada, vencida, rechazada y cualquier otro estado.
     """
-    if reserva.estado in ESTADOS_NO_RESENABLES:
-        return "No se puede reseñar una reserva cancelada."
+    if reserva.estado != models.EstadoReserva.asistio:
+        return "Solo podés reseñar clases a las que asististe."
 
-    fecha_hora_clase = datetime.combine(cp.fecha, cp.hora)
-    if fecha_hora_clase > datetime.now():
-        return "Solo podés reseñar clases que ya ocurrieron."
-
-    if (
-        reserva.precio_pagado is None
-        or reserva.monto_total is None
-        or reserva.precio_pagado < reserva.monto_total
-    ):
+    if not reserva_esta_pagada(reserva):
         return "Solo podés reseñar reservas con el pago completo."
 
     return None
@@ -123,7 +126,7 @@ def crear_resena(data: CrearResenaRequest, db: Session = Depends(get_db)):
     if not cp:
         raise HTTPException(status_code=404, detail="Clase asociada no encontrada.")
 
-    error = _reserva_ocurrida_y_pagada(reserva, cp)
+    error = motivo_no_resenable(reserva)
     if error:
         raise HTTPException(status_code=400, detail=error)
 

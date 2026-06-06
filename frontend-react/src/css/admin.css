@@ -436,6 +436,27 @@
   cursor: pointer;
 }
 
+.asist-select {
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text-main);
+  background: var(--white);
+  outline: none;
+  cursor: pointer;
+}
+
+.asist-select:focus {
+  border-color: var(--primary);
+}
+
+.asist-select:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 /* ── Botones de acción ── */
 .btn-action {
   background: var(--primary-tint);

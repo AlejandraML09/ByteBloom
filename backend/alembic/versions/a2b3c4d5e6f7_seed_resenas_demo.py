@@ -6,7 +6,7 @@ Create Date: 2026-06-06 11:00:00.000000
 
 Inserta reseñas de ejemplo para poblar la página de profesionales y el carrusel.
 Como no hay usuarios/reservas regulares sembrados, el seed es autocontenido:
-crea pacientes demo (@resenas.test), clases pasadas pagadas y, sobre cada una,
+crea pacientes demo (*.demo@test.com), clases pasadas pagadas y, sobre cada una,
 una reseña. Es idempotente (se puede correr más de una vez sin duplicar).
 """
 
@@ -52,18 +52,18 @@ def upgrade():
 
         FOR v_demo IN
             SELECT * FROM (VALUES
-              ('marcela.rios@endereza2.com',    'Rodrigo',   'rodrigo.demo@resenas.test',   5, 'Marcela es increíble. Después de mi operación de hombro pensé que no iba a recuperar el movimiento completo. En 3 meses me devolvió la vida.', 40),
-              ('marcela.rios@endereza2.com',    'Claudia',   'claudia.demo@resenas.test',   5, 'Muy profesional, explica todo con paciencia y claridad. Se nota que ama lo que hace.', 33),
-              ('julian.pedraza@endereza2.com',  'Tomás',     'tomas.demo@resenas.test',     5, 'Me rompí los ligamentos y en 5 meses volví a correr. Julián es un crack, sabe exactamente qué hacer en cada etapa.', 30),
-              ('julian.pedraza@endereza2.com',  'Sofía',     'sofia.demo@resenas.test',     5, 'Muy detallista, siempre está al tanto de las últimas técnicas. Mejoré muchísimo.', 25),
-              ('andrea.salinas@endereza2.com',  'Néstor',    'nestor.demo@resenas.test',    5, 'Tenía una hernia de disco que me limitaba completamente. Andrea me enseñó a moverme diferente y el dolor desapareció.', 22),
-              ('andrea.salinas@endereza2.com',  'Daniela',   'daniela.demo@resenas.test',   5, 'Manos de oro, literalmente. Salgo de cada sesión como nueva persona.', 18),
-              ('lucas.bertoldi@endereza2.com',  'Valeria',   'valeria.demo@resenas.test',   4, 'Lucas me ayudó a entender mi cuerpo. Nunca había prestado atención a mi postura y ahora tengo cero dolores.', 15),
-              ('lucas.bertoldi@endereza2.com',  'Marcos',    'marcos.demo@resenas.test',    4, 'Las sesiones de Pilates son muy completas y bien explicadas. Muy recomendable.', 12),
-              ('carolina.fuentes@endereza2.com','Alberto',   'alberto.demo@resenas.test',   5, 'Tenía epicondilitis desde hace años. Carolina es la primera profesional que realmente me alivió el dolor con el láser.', 9),
-              ('carolina.fuentes@endereza2.com','Patricia',  'patricia.demo@resenas.test',  5, 'Puntual, amable y muy eficiente. El tratamiento con ultrasonido fue clave en mi recuperación.', 7),
-              ('emilio.manrique@endereza2.com', 'Florencia', 'florencia.demo@resenas.test', 5, 'Mi papá tuvo un ACV y gracias a Emilio recuperó la movilidad del lado derecho. Es un profesional extraordinario.', 5),
-              ('emilio.manrique@endereza2.com', 'Ernesto',   'ernesto.demo@resenas.test',   5, 'Paciencia infinita y un método muy sólido. Lo recomiendo con los ojos cerrados.', 3)
+              ('marcela.rios@endereza2.com',    'Rodrigo',   'rodrigo.demo@test.com',   5, 'Marcela es increíble. Después de mi operación de hombro pensé que no iba a recuperar el movimiento completo. En 3 meses me devolvió la vida.', 40),
+              ('marcela.rios@endereza2.com',    'Claudia',   'claudia.demo@test.com',   5, 'Muy profesional, explica todo con paciencia y claridad. Se nota que ama lo que hace.', 33),
+              ('julian.pedraza@endereza2.com',  'Tomás',     'tomas.demo@test.com',     5, 'Me rompí los ligamentos y en 5 meses volví a correr. Julián es un crack, sabe exactamente qué hacer en cada etapa.', 30),
+              ('julian.pedraza@endereza2.com',  'Sofía',     'sofia.demo@test.com',     5, 'Muy detallista, siempre está al tanto de las últimas técnicas. Mejoré muchísimo.', 25),
+              ('andrea.salinas@endereza2.com',  'Néstor',    'nestor.demo@test.com',    5, 'Tenía una hernia de disco que me limitaba completamente. Andrea me enseñó a moverme diferente y el dolor desapareció.', 22),
+              ('andrea.salinas@endereza2.com',  'Daniela',   'daniela.demo@test.com',   5, 'Manos de oro, literalmente. Salgo de cada sesión como nueva persona.', 18),
+              ('lucas.bertoldi@endereza2.com',  'Valeria',   'valeria.demo@test.com',   4, 'Lucas me ayudó a entender mi cuerpo. Nunca había prestado atención a mi postura y ahora tengo cero dolores.', 15),
+              ('lucas.bertoldi@endereza2.com',  'Marcos',    'marcos.demo@test.com',    4, 'Las sesiones de Pilates son muy completas y bien explicadas. Muy recomendable.', 12),
+              ('carolina.fuentes@endereza2.com','Alberto',   'alberto.demo@test.com',   5, 'Tenía epicondilitis desde hace años. Carolina es la primera profesional que realmente me alivió el dolor con el láser.', 9),
+              ('carolina.fuentes@endereza2.com','Patricia',  'patricia.demo@test.com',  5, 'Puntual, amable y muy eficiente. El tratamiento con ultrasonido fue clave en mi recuperación.', 7),
+              ('emilio.manrique@endereza2.com', 'Florencia', 'florencia.demo@test.com', 5, 'Mi papá tuvo un ACV y gracias a Emilio recuperó la movilidad del lado derecho. Es un profesional extraordinario.', 5),
+              ('emilio.manrique@endereza2.com', 'Ernesto',   'ernesto.demo@test.com',   5, 'Paciencia infinita y un método muy sólido. Lo recomiendo con los ojos cerrados.', 3)
             ) AS t(prof_email, autor_nombre, autor_email, rating, comentario, dias_atras)
         LOOP
             -- Profesional (saltar si no existe)
@@ -123,8 +123,8 @@ def downgrade():
     # son inocuas y evita borrar clases ajenas por error.
     op.execute("""
     DELETE FROM resenas
-      WHERE usuario_id IN (SELECT id FROM usuarios WHERE email LIKE '%@resenas.test');
+      WHERE usuario_id IN (SELECT id FROM usuarios WHERE email LIKE '%.demo@test.com');
     DELETE FROM reservas
-      WHERE usuario_id IN (SELECT id FROM usuarios WHERE email LIKE '%@resenas.test');
-    DELETE FROM usuarios WHERE email LIKE '%@resenas.test';
+      WHERE usuario_id IN (SELECT id FROM usuarios WHERE email LIKE '%.demo@test.com');
+    DELETE FROM usuarios WHERE email LIKE '%.demo@test.com';
     """)

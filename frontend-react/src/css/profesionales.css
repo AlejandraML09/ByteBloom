@@ -244,56 +244,91 @@
   font-style: italic;
 }
 
-/* ── Carrusel de reseñas (footer) ── */
+/* ── Carrusel de reseñas (marquee infinito, footer) ── */
 .rc-section {
-  max-width: 900px;
   margin: 0 auto;
-  padding: 1rem 2rem 3rem;
+  padding: 1rem 0 3rem;
   text-align: center;
 }
 
-.rc-viewport {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.rc-section .section-label,
+.rc-section .section-title {
+  padding: 0 2rem;
+}
+
+/* Viewport a todo el ancho con difuminado en los bordes */
+.rc-marquee {
   margin-top: 1.5rem;
+  overflow: hidden;
+  width: 100%;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 6%,
+    #000 94%,
+    transparent
+  );
+  mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
 }
 
 .rc-track {
   display: flex;
-  overflow: hidden;
-  flex: 1;
-  transition: transform 0.45s ease;
+  gap: 1.25rem;
+  width: max-content;
+  padding: 0.5rem 0.625rem;
+  animation-name: rc-scroll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
 
-.rc-slide {
-  min-width: 100%;
-  box-sizing: border-box;
-  padding: 0 4px;
+.rc-marquee:hover .rc-track {
+  animation-play-state: paused;
+}
+
+@keyframes rc-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    /* -50% = exactamente una copia completa de la lista (loop sin cortes) */
+    transform: translateX(-50%);
+  }
 }
 
 .rc-card {
+  flex: 0 0 300px;
+  box-sizing: border-box;
+  min-height: 230px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 18px;
-  padding: 1.75rem;
-  text-align: center;
+  padding: 1.5rem;
   box-shadow: 0 6px 20px color-mix(in srgb, var(--primary) 6%, transparent);
 }
 
 .rc-comment {
-  font-size: 15px;
+  flex: 1;
+  font-size: 14px;
   line-height: 1.6;
   color: var(--text-main);
   font-style: italic;
   margin: 14px 0;
+  /* altura uniforme: recorta a 5 líneas sin saltos */
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .rc-meta {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  margin-top: auto;
 }
 
 .rc-user {
@@ -307,52 +342,28 @@
   color: var(--primary-dark);
 }
 
-.rc-date {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-top: 2px;
+/* Tablet: ~2 tarjetas */
+@media (max-width: 900px) {
+  .rc-card {
+    flex-basis: 44vw;
+  }
 }
 
-.rc-arrow {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--white);
-  color: var(--text-main);
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+/* Mobile: 1 tarjeta (con un pequeño asomo de la siguiente) */
+@media (max-width: 560px) {
+  .rc-card {
+    flex-basis: 82vw;
+  }
 }
 
-.rc-arrow:hover {
-  background: var(--primary);
-  color: var(--white);
-}
-
-.rc-dots {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 1.25rem;
-}
-
-.rc-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  border: none;
-  background: var(--border);
-  cursor: pointer;
-  padding: 0;
-  transition: background 0.15s, transform 0.15s;
-}
-
-.rc-dot.active {
-  background: var(--primary);
-  transform: scale(1.25);
+/* Accesibilidad: respeta usuarios que prefieren menos movimiento */
+@media (prefers-reduced-motion: reduce) {
+  .rc-track {
+    animation: none;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: auto;
+  }
 }
 
 @media (max-width: 900px) {
@@ -377,12 +388,7 @@
     padding: 2rem 1.25rem;
   }
   .rc-section {
-    padding: 1rem 1.25rem 2.5rem;
-  }
-  .rc-arrow {
-    width: 34px;
-    height: 34px;
-    font-size: 20px;
+    padding: 1rem 0 2.5rem;
   }
   .rc-card {
     padding: 1.25rem;
