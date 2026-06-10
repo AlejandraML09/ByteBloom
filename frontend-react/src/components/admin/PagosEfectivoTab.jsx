@@ -110,7 +110,15 @@ export default function PagosEfectivoTab() {
             <input
               type='date'
               value={fechaHasta}
-              onChange={(e) => setFechaHasta(e.target.value)}
+              onChange={(e) => {
+                const nuevaHasta = e.target.value
+                // ✅ VALIDAR QUE HASTA SEA >= DESDE
+                if (fechaDesde && nuevaHasta < fechaDesde) {
+                  return
+                }
+                setFechaHasta(nuevaHasta)
+              }}
+              min={fechaDesde || undefined}
               style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--gray)' }}
             />
           </div>
