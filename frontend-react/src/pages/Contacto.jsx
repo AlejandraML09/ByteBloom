@@ -14,7 +14,7 @@ export default function Contacto() {
   }
   function handleWhatsApp() {               // acá empieza la fx para contactar por wpp
     try {
-      const url = 'https://wa.me/5492211234567'
+      const url = 'https://wa.me/5492994551906'
       const ventana = window.open(url, '_blank')
       if (!ventana) throw new Error('No se pudo abrir')
     } catch {
