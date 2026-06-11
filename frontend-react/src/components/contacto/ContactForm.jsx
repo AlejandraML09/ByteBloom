@@ -56,16 +56,16 @@ export function ContactForm({ onSubmit, onError }) {
         <div className='form-row'>
           <div className='form-group'>
             <label>Nombre <span style={{ color: '#E84040' }}>*</span></label>
-            <input type='text' placeholder='Tu nombre' value={nombre} onChange={(e) => setNombre(e.target.value)} />
+            <input type='text' placeholder='Tu nombre' value={nombre} onChange={(e) => setNombre(e.target.value)}disabled={!!usuario.nombre} style={usuario.nombre ? { opacity: 0.6, cursor: 'not-allowed' } : {}} />
           </div>
           <div className='form-group'>
             <label>Apellido <span style={{ color: '#E84040' }}>*</span></label>
-            <input type='text' placeholder='Tu apellido' value={apellido} onChange={(e) => setApellido(e.target.value)} />
+            <input type='text' placeholder='Tu apellido' value={apellido} onChange={(e) => setApellido(e.target.value)} disabled={!!usuario.apellido} style={usuario.apellido ? { opacity: 0.6, cursor: 'not-allowed' } : {}}/>
           </div>
         </div>
         <div className='form-group'>
           <label>Email <span style={{ color: '#E84040' }}>*</span></label>
-          <input type='email' placeholder='tu@email.com' value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input type='email' placeholder='tu@email.com' value={email} onChange={(e) => setEmail(e.target.value)} disabled={!!usuario.email} style={usuario.email ? { opacity: 0.6, cursor: 'not-allowed' } : {}}/>
         </div>
         <div className='form-group'>
           <label>Asunto <span style={{ color: '#E84040' }}>*</span></label>
