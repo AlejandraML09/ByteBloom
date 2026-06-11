@@ -4,9 +4,11 @@ import emailjs from '@emailjs/browser'
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function ContactForm({ onSubmit, onError }) {
-  const [nombre, setNombre] = useState('')
-  const [apellido, setApellido] = useState('')
-  const [email, setEmail] = useState('')
+  const usuario = JSON.parse(localStorage.getItem('usuario') || '{}')
+
+  const [nombre, setNombre] = useState(usuario.nombre || '')
+  const [apellido, setApellido] = useState(usuario.apellido || '')
+  const [email, setEmail] = useState(usuario.email || '')
   const [asunto, setAsunto] = useState('')
   const [mensaje, setMensaje] = useState('')
   const [formError, setFormError] = useState('')
