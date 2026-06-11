@@ -9,8 +9,11 @@ export default function Contacto() {
   const { msg, visible, showToast } = useToast()
 
   function handleSubmit() {
-    showToast('✓ Mensaje enviado. Te respondemos a la brevedad.')
-    
+    showToast('✓ El mensaje fue enviado con éxito.')
+  }
+
+  function handleError() {
+    showToast('Error. El mensaje no pudo enviarse. Por favor, intentelo más tarde.')
   }
   function handleWhatsApp() {               // acá empieza la fx para contactar por wpp
     try {
@@ -133,7 +136,7 @@ export default function Contacto() {
           </div>
         </div>
 
-        <ContactForm onSubmit={handleSubmit} />
+        <ContactForm onSubmit={handleSubmit} onError={handleError} />
       </div>
 
       <Footer />

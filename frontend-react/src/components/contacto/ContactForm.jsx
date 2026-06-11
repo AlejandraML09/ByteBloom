@@ -1,17 +1,19 @@
 import { useState } from 'react'
+import emailjs from '@emailjs/browser'
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-export function ContactForm({ onSubmit }) {
+export function ContactForm({ onSubmit, onError }) {
   const [nombre, setNombre] = useState('')
   const [apellido, setApellido] = useState('')
   const [email, setEmail] = useState('')
   const [asunto, setAsunto] = useState('')
   const [mensaje, setMensaje] = useState('')
   const [formError, setFormError] = useState('')
+  const [cargando, setCargando] = useState(false)
 
-  function handleSubmit() {
-    if (!nombre || !email || !mensaje) {
+  async function handleSubmit() {
+    if (!nombre || !apellido || !email || !asunto || !mensaje) {
       setFormError('Por favor completá los campos obligatorios.')
       return
     }
@@ -20,12 +22,21 @@ export function ContactForm({ onSubmit }) {
       return
     }
     setFormError('')
-    onSubmit({ nombre, apellido, email, asunto, mensaje })
-    setNombre('')
-    setApellido('')
-    setEmail('')
-    setAsunto('')
-    setMensaje('')
+    setCargando(true)
+    try {
+      await emailjs.send(
+        'service_6ykscxl',
+        'template_ex4mwhm',
+        { nombre, apellido, email, asunto, mensaje },
+        'xE1dZGV6BTFUQMpsb'
+      )
+      onSubmit()
+      setNombre(''); setApellido(''); setEmail(''); setAsunto(''); setMensaje('')
+    } catch {
+      onError()
+    } finally {
+      setCargando(false)
+    }
   }
 
   return (
@@ -36,75 +47,34 @@ export function ContactForm({ onSubmit }) {
       </div>
       <div className='form-body'>
         {formError && (
-          <div
-            style={{
-              background: '#FEE8E8',
-              border: '1px solid #F5BBBB',
-              borderRadius: '8px',
-              padding: '8px 12px',
-              fontSize: '13px',
-              color: '#B03030',
-              marginBottom: '14px',
-            }}
-          >
+          <div style={{ background: '#FEE8E8', border: '1px solid #F5BBBB', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', color: '#B03030', marginBottom: '14px' }}>
             {formError}
           </div>
         )}
         <div className='form-row'>
           <div className='form-group'>
-            <label>
-              Nombre <span style={{ color: '#E84040' }}>*</span>
-            </label>
-            <input
-              type='text'
-              placeholder='Tu nombre'
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-            />
+            <label>Nombre <span style={{ color: '#E84040' }}>*</span></label>
+            <input type='text' placeholder='Tu nombre' value={nombre} onChange={(e) => setNombre(e.target.value)} />
           </div>
           <div className='form-group'>
-            <label>Apellido</label>
-            <input
-              type='text'
-              placeholder='Tu apellido'
-              value={apellido}
-              onChange={(e) => setApellido(e.target.value)}
-            />
+            <label>Apellido <span style={{ color: '#E84040' }}>*</span></label>
+            <input type='text' placeholder='Tu apellido' value={apellido} onChange={(e) => setApellido(e.target.value)} />
           </div>
         </div>
         <div className='form-group'>
-          <label>
-            Email <span style={{ color: '#E84040' }}>*</span>
-          </label>
-          <input
-            type='email'
-            placeholder='tu@email.com'
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+          <label>Email <span style={{ color: '#E84040' }}>*</span></label>
+          <input type='email' placeholder='tu@email.com' value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
         <div className='form-group'>
-          <label>Asunto</label>
-          <input
-            type='text'
-            placeholder='Ej: Consulta sobre obra social'
-            value={asunto}
-            onChange={(e) => setAsunto(e.target.value)}
-          />
+          <label>Asunto <span style={{ color: '#E84040' }}>*</span></label>
+          <input type='text' placeholder='Ej: Consulta sobre obra social' value={asunto} onChange={(e) => setAsunto(e.target.value)} />
         </div>
         <div className='form-group'>
-          <label>
-            Mensaje <span style={{ color: '#E84040' }}>*</span>
-          </label>
-          <textarea
-            rows={4}
-            placeholder='Escribí tu consulta acá...'
-            value={mensaje}
-            onChange={(e) => setMensaje(e.target.value)}
-          />
+          <label>Mensaje <span style={{ color: '#E84040' }}>*</span></label>
+          <textarea rows={4} placeholder='Escribí tu consulta acá...' value={mensaje} onChange={(e) => setMensaje(e.target.value)} />
         </div>
-        <button className='btn-send' onClick={handleSubmit}>
-          Enviar mensaje →
+        <button className='btn-send' onClick={handleSubmit} disabled={cargando}>
+          {cargando ? 'Enviando...' : 'Enviar mensaje →'}
         </button>
       </div>
     </div>
