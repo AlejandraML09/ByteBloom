@@ -248,6 +248,7 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
                     monto_total=monto_total_por_reserva,
                     pack_id=pack_id,
                     estado=estado,
+                    qr_token=str(uuid.uuid4()),
                 )
             )
             cp.cupo_disponible -= 1

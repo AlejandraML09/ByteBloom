@@ -169,6 +169,7 @@ class Reserva(Base):
         nullable=False,
         default=EstadoReserva.pendiente,
     )
+    qr_token = Column(String(64), nullable=True, unique=True)
 
     @property
     def estado_pago(self) -> str:
@@ -193,6 +194,7 @@ class Abono(Base):
         default=EstadoAbono.activo,
     )
     activo = Column(Boolean, nullable=False, default=True)
+    qr_token = Column(String(64), nullable=True, unique=True)
 
 
 class PagoAbono(Base):

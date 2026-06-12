@@ -228,8 +228,8 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
         abono_row = db.execute(
             text("""
                 INSERT INTO abonos
-                    (usuario_id, zona_id, fecha_inicio, monto_mensual, dia_limite_pago, estado, activo)
-                VALUES (:uid, :zid, :fi, :mm, 10, 'activo', true)
+                    (usuario_id, zona_id, fecha_inicio, monto_mensual, dia_limite_pago, estado, activo, qr_token)
+                VALUES (:uid, :zid, :fi, :mm, 10, 'activo', true, gen_random_uuid()::text)
                 RETURNING id
             """),
             {
