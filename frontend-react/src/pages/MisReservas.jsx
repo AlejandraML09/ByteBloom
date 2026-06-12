@@ -17,6 +17,7 @@ import { fmtLargo, fmtDate, fmtDiaLargo, nextHour, getISOWeekKey, MESES_ES } fro
 import { MonthCalendar } from '../components/turnos/MonthCalendar'
 import { SlotGrid } from '../components/turnos/SlotGrid'
 import { PaymentSelector } from '../components/turnos/PaymentSelector'
+import { ReviewModal } from '../components/reviews/ReviewModal'
 import '../css/mis-reservas.css'
 
 function getUsuario() {
@@ -700,6 +701,8 @@ export default function MisReservas() {
   const usuario = useMemo(() => getUsuario(), [])
 
   const [section, setSection] = useState('turnos')
+  const [filterDesde, setFilterDesde] = useState('')
+  const [filterHasta, setFilterHasta] = useState('')
 
   // Turnos state
   const [reservas, setReservas] = useState([])
@@ -716,6 +719,9 @@ export default function MisReservas() {
   const [pagoSaldoMetodo, setPagoSaldoMetodo] = useState(null)
   const [pagoSaldoLoading, setPagoSaldoLoading] = useState(false)
   const [pagoSaldoError, setPagoSaldoError] = useState(null)
+
+  // Reseña state
+  const [resenaReserva, setResenaReserva] = useState(null)
 
   // Lista de espera state
   const [listaEspera, setListaEspera] = useState([])
@@ -953,7 +959,25 @@ export default function MisReservas() {
     () => reservas.filter((r) => !isProxima(r) && r.estado !== 'cancelada'),
     [reservas]
   )
-  const filtered = activeTab === 'todas' ? sorted : sorted.filter((r) => r.zona === activeTab)
+  const filtered = useMemo(() => {
+    let result = activeTab === 'todas' ? sorted : sorted.filter((r) => r.zona === activeTab)
+    
+    // ✅ FILTRAR POR FECHAS
+    if (filterDesde || filterHasta) {
+      result = result.filter(r => {
+        const fecha = new Date(r.fecha)
+        const desde = filterDesde ? new Date(filterDesde) : new Date('1900-01-01')
+        const hasta = filterHasta ? new Date(filterHasta) : new Date('2099-12-31')
+        
+        desde.setHours(0, 0, 0, 0)
+        hasta.setHours(23, 59, 59, 999)
+        
+        return fecha >= desde && fecha <= hasta
+      })
+    }
+    
+    return result
+  }, [sorted, activeTab, filterDesde, filterHasta])
 
   const nombreCompleto = usuario
     ? [usuario.nombre, usuario.apellido].filter(Boolean).join(' ') || usuario.email
@@ -995,26 +1019,76 @@ export default function MisReservas() {
         </div>
 
         {section === 'espera' ? (
-          <ListaEsperaSection
-            listaEspera={listaEspera}
-            loading={loadingEspera}
-            onSalir={async (entrada) => {
-              try {
-                await salirListaEspera({
-                  claseProgramadaId: entrada.clase_programada_id,
-                  usuarioId: usuario.id,
-                })
-                setListaEspera((prev) => prev.filter((e) => e.id !== entrada.id))
-                showAppToast(
-                  `Fuiste dado de baja de la lista de espera para la clase de ${ZONA_LABELS[entrada.zona_nombre] ?? entrada.zona_nombre} el ${fmtLargo(entrada.fecha)} a las ${entrada.hora}.`
-                )
-              } catch (err) {
-                showAppToast(
-                  err?.response?.data?.detail || 'No se pudo salir de la lista de espera.'
-                )
-              }
-            }}
-          />
+          <>
+            {/* ✅ FILTRO DE FECHAS PARA LISTA DE ESPERA */}
+            <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--gray)', display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>Desde</label>
+                <input
+                  type='date'
+                  value={filterDesde}
+                  onChange={(e) => setFilterDesde(e.target.value)}
+                  style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--gray)' }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>Hasta</label>
+                <input
+                  type='date'
+                  value={filterHasta}
+                  onChange={(e) => {
+                    const nuevaHasta = e.target.value
+                    // ✅ VALIDAR QUE HASTA SEA >= DESDE
+                    if (filterDesde && nuevaHasta < filterDesde) {
+                      return
+                    }
+                    setFilterHasta(nuevaHasta)
+                  }}
+                  min={filterDesde || undefined}
+                  style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--gray)' }}
+                />
+              </div>
+              {(filterDesde || filterHasta) && (
+                <button
+                  onClick={() => { setFilterDesde(''); setFilterHasta('') }}
+                  style={{ padding: '0.6rem 1rem', background: 'var(--gray)', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  Limpiar filtros
+                </button>
+              )}
+            </div>
+
+            <ListaEsperaSection
+              listaEspera={listaEspera.filter(e => {
+                if (!filterDesde && !filterHasta) return true
+                const fecha = new Date(e.fecha)
+                const desde = filterDesde ? new Date(filterDesde) : new Date('1900-01-01')
+                const hasta = filterHasta ? new Date(filterHasta) : new Date('2099-12-31')
+                
+                desde.setHours(0, 0, 0, 0)
+                hasta.setHours(23, 59, 59, 999)
+                
+                return fecha >= desde && fecha <= hasta
+              })}
+              loading={loadingEspera}
+              onSalir={async (entrada) => {
+                try {
+                  await salirListaEspera({
+                    claseProgramadaId: entrada.clase_programada_id,
+                    usuarioId: usuario.id,
+                  })
+                  setListaEspera((prev) => prev.filter((e) => e.id !== entrada.id))
+                  showAppToast(
+                    `Fuiste dado de baja de la lista de espera para la clase de ${ZONA_LABELS[entrada.zona_nombre] ?? entrada.zona_nombre} el ${fmtLargo(entrada.fecha)} a las ${entrada.hora}.`
+                  )
+                } catch (err) {
+                  showAppToast(
+                    err?.response?.data?.detail || 'No se pudo salir de la lista de espera.'
+                  )
+                }
+              }}
+            />
+          </>
         ) : section === 'turnos' ? (
           <>
             {/* Stats */}
@@ -1046,6 +1120,44 @@ export default function MisReservas() {
                   <div className='mr-stat-label'>Completadas</div>
                 </div>
               </div>
+            </div>
+
+            {/* ✅ FILTRO DE FECHAS PARA MIS TURNOS */}
+            <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--gray)', display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>Desde</label>
+                <input
+                  type='date'
+                  value={filterDesde}
+                  onChange={(e) => setFilterDesde(e.target.value)}
+                  style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--gray)' }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>Hasta</label>
+                <input
+                  type='date'
+                  value={filterHasta}
+                  onChange={(e) => {
+                    const nuevaHasta = e.target.value
+                    // ✅ VALIDAR QUE HASTA SEA >= DESDE
+                    if (filterDesde && nuevaHasta < filterDesde) {
+                      return
+                    }
+                    setFilterHasta(nuevaHasta)
+                  }}
+                  min={filterDesde || undefined}
+                  style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--gray)' }}
+                />
+              </div>
+              {(filterDesde || filterHasta) && (
+                <button
+                  onClick={() => { setFilterDesde(''); setFilterHasta('') }}
+                  style={{ padding: '0.6rem 1rem', background: 'var(--gray)', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  Limpiar filtros
+                </button>
+              )}
             </div>
 
             {/* Filter tabs */}
@@ -1165,9 +1277,6 @@ export default function MisReservas() {
                           gap: 6,
                         }}
                       >
-                        {/* <span className={`mr-item-badge mr-item-badge--${estadoCfg.css}`}>
-                          {estadoCfg.label}
-                        </span> */}
                         {pagoPendiente ? (
                           <>
                             <span className='mr-item-badge mr-item-badge--pendiente'>
@@ -1198,6 +1307,19 @@ export default function MisReservas() {
                         {/* ✅ MOSTRAR AUSENTE EN ROJO */}
                         {r.estado === 'ausente' && (
                           <span className='mr-item-badge mr-item-badge--ausente'>Ausente</span>
+                        )}
+
+                        {/* Reseña: solo si la clase ya ocurrió, está pagada y sin reseña previa */}
+                        {r.puede_resenar && (
+                          <button
+                            className='mr-review-btn'
+                            onClick={() => setResenaReserva(r)}
+                          >
+                            ★ Dejar reseña
+                          </button>
+                        )}
+                        {r.ya_resenada && (
+                          <span className='mr-review-done'>★ Reseña enviada</span>
                         )}
                       </div>
                       {pagoSaldoReserva?.id === r.id && (
@@ -1343,6 +1465,23 @@ export default function MisReservas() {
             showAppToast('Sesión modificada correctamente.')
             loadAbonos()
             loadTurnos()
+          }}
+        />
+      )}
+
+      {resenaReserva && (
+        <ReviewModal
+          reserva={resenaReserva}
+          usuarioId={usuario.id}
+          onClose={() => setResenaReserva(null)}
+          onSuccess={(reservaId) => {
+            setReservas((prev) =>
+              prev.map((x) =>
+                x.id === reservaId ? { ...x, ya_resenada: true, puede_resenar: false } : x
+              )
+            )
+            setResenaReserva(null)
+            showAppToast('¡Gracias! Tu reseña fue publicada.')
           }}
         />
       )}

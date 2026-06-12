@@ -13,6 +13,8 @@ export default function PagosEfectivoTab() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [savingId, setSavingId] = useState(null)
+  const [fechaDesde, setFechaDesde] = useState('')
+  const [fechaHasta, setFechaHasta] = useState('')
 
   useEffect(() => {
     loadReservas()
@@ -53,7 +55,26 @@ export default function PagosEfectivoTab() {
     }
   }
 
-  const ordered = reservas.filter(r => r.clase_activa).slice().sort((a, b) => {
+  // ✅ FILTRAR POR FECHAS DE VENCIMIENTO
+  let filtered = reservas.filter(r => r.clase_activa)
+
+  if (fechaDesde || fechaHasta) {
+    filtered = filtered.filter(r => {
+      // Parsear fecha de vencimiento (ej: "2026-06-02T03:00:00Z")
+      const [fechaVencStr] = r.fecha_vencimiento.split('T')
+      const fechaVenc = new Date(fechaVencStr)
+      
+      const desde = fechaDesde ? new Date(fechaDesde) : new Date('1900-01-01')
+      const hasta = fechaHasta ? new Date(fechaHasta) : new Date('2099-12-31')
+      
+      desde.setHours(0, 0, 0, 0)
+      hasta.setHours(23, 59, 59, 999)
+      
+      return fechaVenc >= desde && fechaVenc <= hasta
+    })
+  }
+
+  const ordered = filtered.slice().sort((a, b) => {
     if (a.estado_pago !== b.estado_pago) {
       return a.estado_pago === 'pago_pendiente' ? -1 : 1
     }
@@ -73,6 +94,44 @@ export default function PagosEfectivoTab() {
           </div>
         </div>
 
+        {/* ✅ FILTRO DE FECHAS */}
+        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--gray)', display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>Vence desde</label>
+            <input
+              type='date'
+              value={fechaDesde}
+              onChange={(e) => setFechaDesde(e.target.value)}
+              style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--gray)' }}
+            />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)' }}>Vence hasta</label>
+            <input
+              type='date'
+              value={fechaHasta}
+              onChange={(e) => {
+                const nuevaHasta = e.target.value
+                // ✅ VALIDAR QUE HASTA SEA >= DESDE
+                if (fechaDesde && nuevaHasta < fechaDesde) {
+                  return
+                }
+                setFechaHasta(nuevaHasta)
+              }}
+              min={fechaDesde || undefined}
+              style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--gray)' }}
+            />
+          </div>
+          {(fechaDesde || fechaHasta) && (
+            <button
+              onClick={() => { setFechaDesde(''); setFechaHasta('') }}
+              style={{ padding: '0.6rem 1rem', background: 'var(--gray)', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+            >
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+
         <div className='card-body'>
           {error && <div className='error-msg show'>{error}</div>}
 
@@ -80,8 +139,8 @@ export default function PagosEfectivoTab() {
             <div>Cargando pagos...</div>
           ) : ordered.length === 0 ? (
             <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-  No hay reservas en efectivo para mostrar.
-</div>
+              No hay reservas en efectivo para mostrar.
+            </div>
           ) : (
             <table className='data-table'>
               <thead>
@@ -114,8 +173,8 @@ export default function PagosEfectivoTab() {
                       <td>{reserva.zona}</td>
                       <td>
                         {reserva.precio_pagado != null && reserva.monto_total != null
-  ? `${reserva.estado_pago === 'pago_pendiente' ? '0.00' : reserva.precio_pagado.toFixed(2)} / ${reserva.monto_total.toFixed(2)}`
-  : reserva.medio_pago}
+                          ? `${reserva.estado_pago === 'pago_pendiente' ? '0.00' : reserva.precio_pagado.toFixed(2)} / ${reserva.monto_total.toFixed(2)}`
+                          : reserva.medio_pago}
                       </td>
                       <td>
                         <span className={`badge ${status.css}`}>{status.label}</span>

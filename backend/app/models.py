@@ -9,6 +9,8 @@ from sqlalchemy import (
     Date,
     Time,
     Numeric,
+    CheckConstraint,
+    UniqueConstraint,
     Enum as SQLEnum,
 )
 from sqlalchemy.sql import func
@@ -241,3 +243,31 @@ class ListaEspera(Base):
     notificado_en = Column(DateTime(timezone=False), nullable=True)
     expira_en = Column(DateTime(timezone=False), nullable=True)
     activo = Column(Boolean, nullable=False, default=True)
+
+
+class Resena(Base):
+    __tablename__ = "resenas"
+
+    id = Column(BigInteger, primary_key=True, index=True)
+    usuario_id = Column(BigInteger, nullable=False, index=True)
+    # profesional reseñado: usuarios.id de un usuario con rol='profesional'
+    profesional_id = Column(BigInteger, nullable=False, index=True)
+    reserva_id = Column(BigInteger, nullable=False, index=True)
+    rating = Column(Integer, nullable=False)
+    comentario = Column(String(1200), nullable=True)
+    created_at = Column(
+        DateTime(timezone=False), nullable=False, server_default=func.now()
+    )
+    updated_at = Column(
+        DateTime(timezone=False),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    __table_args__ = (
+        CheckConstraint("rating >= 1 AND rating <= 5", name="ck_resena_rating_1_5"),
+        # Una reserva pertenece a un único usuario, por lo que esto garantiza
+        # que un usuario no pueda reseñar más de una vez la misma reserva.
+        UniqueConstraint("reserva_id", name="uq_resena_reserva"),
+    )

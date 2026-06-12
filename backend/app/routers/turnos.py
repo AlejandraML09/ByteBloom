@@ -300,6 +300,27 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
         )
         .all()
     )
+
+    # Set de reservas ya reseñadas por el usuario (1 sola query, evita N+1)
+    reservas_resenadas = {
+        rid
+        for (rid,) in db.query(models.Resena.reserva_id).filter(
+            models.Resena.usuario_id == usuario_id
+        )
+    }
+
+    # Nombre del profesional por email (1 sola query batcheada, evita N+1)
+    prof_emails = {cp.profesional_email for _, cp, _, _ in rows if cp.profesional_email}
+    prof_nombres = {}
+    if prof_emails:
+        for email, nombre, apellido in db.query(
+            models.Usuario.email, models.Usuario.nombre, models.Usuario.apellido
+        ).filter(
+            models.Usuario.email.in_(prof_emails),
+            models.Usuario.rol == models.RolUsuario.profesional,
+        ):
+            prof_nombres[email] = f"{nombre} {apellido}".strip()
+
     result = []
     dirty = False
     for r, cp, z, mp in rows:
@@ -312,9 +333,15 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
         fecha_vencimiento = min(r.fecha_reserva + timedelta(hours=48), fecha_clase)
         horas_restantes = max(0, int((fecha_vencimiento - now).total_seconds() // 3600))
 
-        # determinar estado de pago
-        payment_status = 'pago_completo'
-        if r.estado == models.EstadoReserva.confirmada:
+        # determinar estado de pago a partir del monto efectivamente pagado
+        # (NO del estado de la reserva, para que 'asistio'/'ausente' marcados
+        # por el admin sobre una reserva paga sigan mostrando "pago completo").
+        pago_cubierto = (
+            r.precio_pagado is not None
+            and r.monto_total is not None
+            and r.precio_pagado >= r.monto_total
+        )
+        if pago_cubierto:
             payment_status = 'pago_completo'
         elif r.estado == models.EstadoReserva.cancelada and horas_restantes == 0 and r.precio_pagado < r.monto_total:
             payment_status = 'vencido'
@@ -327,6 +354,23 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
             payment_status = 'vencido'
             dirty = True
             cp.cupo_disponible += 1
+
+        # ── Reseñas ───────────────────────────────────────────────────────
+        # Reseñable (regla estricta, igual que POST /reviews): asistencia
+        # efectiva ('asistio') + pago completo + la clase tiene profesional
+        # asignado + sin reseña previa.
+        ya_resenada = r.id in reservas_resenadas
+        pago_completo = (
+            r.precio_pagado is not None
+            and r.monto_total is not None
+            and r.precio_pagado >= r.monto_total
+        )
+        puede_resenar = (
+            r.estado == models.EstadoReserva.asistio
+            and pago_completo
+            and bool(cp.profesional_email)
+            and not ya_resenada
+        )
 
         result.append(
             {
@@ -346,7 +390,10 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
                 "fecha_vencimiento": fecha_vencimiento.isoformat() if fecha_vencimiento else None,
                 "horas_restantes": horas_restantes,
                 "vencido": horas_restantes == 0,
-                "clase_activa": bool(cp.activo),
+                "profesional_email": cp.profesional_email,
+                "profesional_nombre": prof_nombres.get(cp.profesional_email),
+                "ya_resenada": ya_resenada,
+                "puede_resenar": puede_resenar,
             }
         )
 
@@ -545,4 +592,112 @@ def registrar_pago_saldo(
         "reserva_id": reserva.id,
         "medio_pago": medio_pago.nombre,
         "estado_reserva": reserva.estado.value,
+    }
+
+
+# ── Asistencia (admin / secretario) ───────────────────────────────────────────
+
+# Estados de asistencia editables desde el panel. "pendiente" = aún no se tomó.
+ESTADOS_ASISTENCIA = {
+    "pendiente": models.EstadoReserva.pendiente,
+    "asistio": models.EstadoReserva.asistio,
+    "ausente": models.EstadoReserva.ausente,
+}
+
+
+def _mapear_estado_asistencia(estado: models.EstadoReserva) -> str:
+    """Estado de la reserva → valor que muestra el dropdown de asistencia.
+    'confirmada'/'pendiente' (aún no se tomó asistencia) se muestran como 'pendiente'."""
+    if estado == models.EstadoReserva.asistio:
+        return "asistio"
+    if estado == models.EstadoReserva.ausente:
+        return "ausente"
+    return "pendiente"
+
+
+@router.get("/asistencia")
+def get_asistencia(fecha: str, hora: str, db: Session = Depends(get_db)):
+    """Reservas reales de un slot (fecha + hora) para tomar asistencia.
+    Excluye canceladas. Una sola query con los JOINs necesarios."""
+    try:
+        fecha_obj = date_type.fromisoformat(fecha)
+    except ValueError:
+        raise HTTPException(
+            status_code=400, detail="Fecha inválida. Usá formato YYYY-MM-DD."
+        )
+
+    rows = (
+        db.query(models.Reserva, models.ClaseProgramada, models.Zona, models.Usuario)
+        .join(
+            models.ClaseProgramada,
+            models.Reserva.clase_programada_id == models.ClaseProgramada.id,
+        )
+        .join(models.Zona, models.ClaseProgramada.zona_id == models.Zona.id)
+        .join(models.Usuario, models.Reserva.usuario_id == models.Usuario.id)
+        .filter(
+            models.ClaseProgramada.fecha == fecha_obj,
+            models.ClaseProgramada.hora == hora[:5],
+            models.Reserva.estado != models.EstadoReserva.cancelada,
+        )
+        .order_by(models.Zona.nombre, models.Usuario.apellido)
+        .all()
+    )
+
+    return [
+        {
+            "reserva_id": r.id,
+            "usuario_id": u.id,
+            "paciente": f"{u.nombre} {u.apellido}",
+            "zona": z.nombre,
+            "estado": r.estado.value,
+            "asistencia": _mapear_estado_asistencia(r.estado),
+        }
+        for r, cp, z, u in rows
+    ]
+
+
+class ActualizarAsistenciaRequest(BaseModel):
+    estado: Literal["pendiente", "asistio", "ausente"]
+    actor_id: int
+
+
+@router.put("/reservas/{reserva_id}/asistencia")
+def actualizar_asistencia(
+    reserva_id: int,
+    data: ActualizarAsistenciaRequest,
+    db: Session = Depends(get_db),
+):
+    """Actualiza el estado de asistencia de una reserva. Solo admin/secretario."""
+    actor = (
+        db.query(models.Usuario).filter(models.Usuario.id == data.actor_id).first()
+    )
+    if not actor or actor.rol not in (
+        models.RolUsuario.admin,
+        models.RolUsuario.secretario,
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="No tenés permisos para registrar asistencia.",
+        )
+
+    reserva = (
+        db.query(models.Reserva).filter(models.Reserva.id == reserva_id).first()
+    )
+    if not reserva:
+        raise HTTPException(status_code=404, detail="Reserva no encontrada.")
+
+    if reserva.estado == models.EstadoReserva.cancelada:
+        raise HTTPException(
+            status_code=400,
+            detail="No se puede tomar asistencia de una reserva cancelada.",
+        )
+
+    reserva.estado = ESTADOS_ASISTENCIA[data.estado]
+    db.commit()
+
+    return {
+        "ok": True,
+        "reserva_id": reserva.id,
+        "estado": reserva.estado.value,
+        "asistencia": _mapear_estado_asistencia(reserva.estado),
     }

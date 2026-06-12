@@ -1,29 +1,58 @@
+import { useCallback, useEffect, useState } from 'react'
 import { initials } from '../../utils/strings'
 import { HORARIOS, ZONAS } from '../../constants/admin'
+import { getAsistencia, setAsistencia } from '../../api/turnos'
 
-export function AsistenciaTab({
-  turnos,
-  filterDate,
-  filterHora,
-  onDateChange,
-  onHoraChange,
-  asistencia,
-  onAsistChange,
-  onSave,
-}) {
-  let asistTurnos = turnos.filter((t) => t.hora === filterHora && t.estado !== 'cancelado')
+const ASIST_OPCIONES = [
+  { value: 'pendiente', label: 'Pendiente' },
+  { value: 'asistio', label: 'Asistió' },
+  { value: 'ausente', label: 'Ausente' },
+]
 
-  // ✅ HARDCODEAR TURNO AUSENTE DE ROMINA 27/05/2026
-  if (filterDate === '2026-05-27' && filterHora === '08:00') {
-    asistTurnos.push({
-      id: 999,
-      zona: 'inferior',
-      hora: '08:00',
-      fecha: '2026-05-27',
-      paciente: { nombre: 'Romina Ortega', id: 999 },
-      estado: 'ausente',
-      sala: 'Central',
-    })
+const ZONA_LABEL = { superior: 'Tren superior', medio: 'Zona media', inferior: 'Tren inferior' }
+
+export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChange, actorId, showToast }) {
+  const [reservas, setReservas] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [savingId, setSavingId] = useState(null)
+
+  const cargar = useCallback(async () => {
+    setLoading(true)
+    try {
+      const data = await getAsistencia(filterDate, filterHora)
+      setReservas(Array.isArray(data) ? data : [])
+    } catch {
+      setReservas([])
+    } finally {
+      setLoading(false)
+    }
+  }, [filterDate, filterHora])
+
+  useEffect(() => {
+    cargar()
+  }, [cargar])
+
+  async function handleChange(reservaId, nuevoEstado) {
+    const previo = reservas.find((r) => r.reserva_id === reservaId)?.asistencia
+    if (nuevoEstado === previo) return
+
+    // Optimista
+    setReservas((prev) =>
+      prev.map((r) => (r.reserva_id === reservaId ? { ...r, asistencia: nuevoEstado } : r))
+    )
+    setSavingId(reservaId)
+    try {
+      await setAsistencia(reservaId, nuevoEstado, actorId)
+      showToast?.('Asistencia actualizada')
+    } catch (err) {
+      // Revertir ante error
+      setReservas((prev) =>
+        prev.map((r) => (r.reserva_id === reservaId ? { ...r, asistencia: previo } : r))
+      )
+      showToast?.(err?.response?.data?.detail || 'No se pudo actualizar la asistencia')
+    } finally {
+      setSavingId(null)
+    }
   }
 
   return (
@@ -31,7 +60,7 @@ export function AsistenciaTab({
       <div className='card-header'>
         <div>
           <h3>Tomar asistencia</h3>
-          <p>Marcá la presencia de cada paciente</p>
+          <p>Definí la asistencia de cada paciente</p>
         </div>
         <div className='date-filter'>
           <input type='date' value={filterDate} onChange={(e) => onDateChange(e.target.value)} />
@@ -50,77 +79,53 @@ export function AsistenciaTab({
             <tr>
               <th>Paciente</th>
               <th>Zona</th>
-              <th>Presente</th>
+              <th>Asistencia</th>
             </tr>
           </thead>
           <tbody>
-            {asistTurnos.length === 0 ? (
+            {loading ? (
               <tr>
-                <td
-                  colSpan={3}
-                  style={{ textAlign: 'center', color: 'var(--gray-t)', padding: '2rem' }}
-                >
+                <td colSpan={3} style={{ textAlign: 'center', color: 'var(--gray-t)', padding: '2rem' }}>
+                  Cargando…
+                </td>
+              </tr>
+            ) : reservas.length === 0 ? (
+              <tr>
+                <td colSpan={3} style={{ textAlign: 'center', color: 'var(--gray-t)', padding: '2rem' }}>
                   Sin pacientes en este horario
                 </td>
               </tr>
             ) : (
-              asistTurnos.map((t) => {
-                const key = `${filterDate}_${filterHora}_${t.paciente.id}`
-                const esAusente = t.estado === 'ausente'
-
-                return (
-                  <tr key={t.id} style={esAusente ? { opacity: 0.6, backgroundColor: '#fff5f5' } : {}}>
-                    <td>
-                      <div className='patient-name'>
-                        <div className='patient-avatar'>{initials(t.paciente.nombre)}</div>
-                        <span>{t.paciente.nombre}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <span className='badge badge-purple'>{ZONAS[t.zona]}</span>
-                    </td>
-                    <td>
-                      {esAusente ? (
-                        <span style={{ color: 'red', fontWeight: 'bold', fontSize: '0.9rem' }}>
-                          Ausente
-                        </span>
-                      ) : (
-                        <input
-                          type='checkbox'
-                          className='asist-check'
-                          checked={!!asistencia[key]}
-                          onChange={(e) => onAsistChange(key, e.target.checked)}
-                        />
-                      )}
-                    </td>
-                  </tr>
-                )
-              })
+              reservas.map((r) => (
+                <tr key={r.reserva_id}>
+                  <td>
+                    <div className='patient-name'>
+                      <div className='patient-avatar'>{initials(r.paciente)}</div>
+                      <span>{r.paciente}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className='badge badge-purple'>{ZONA_LABEL[r.zona] ?? ZONAS[r.zona] ?? r.zona}</span>
+                  </td>
+                  <td>
+                    <select
+                      className='asist-select'
+                      value={r.asistencia}
+                      disabled={savingId === r.reserva_id}
+                      onChange={(e) => handleChange(r.reserva_id, e.target.value)}
+                    >
+                      {ASIST_OPCIONES.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
-      </div>
-      <div
-        style={{
-          padding: '1rem 1.5rem',
-          borderTop: '1px solid var(--gray)',
-          display: 'flex',
-          justifyContent: 'flex-end',
-        }}
-      >
-        <button
-          className='btn-action'
-          style={{
-            background: 'var(--p)',
-            color: '#fff',
-            borderColor: 'var(--p)',
-            padding: '9px 22px',
-            fontSize: '13px',
-          }}
-          onClick={onSave}
-        >
-          Guardar asistencia
-        </button>
       </div>
     </div>
   )
