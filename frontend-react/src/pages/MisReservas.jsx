@@ -944,7 +944,7 @@ export default function MisReservas() {
   const sorted = useMemo(() => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    const visibles = reservas.filter((r) => r.estado !== 'cancelada')
+    const visibles = reservas.filter((r) => r.estado !== 'cancelada' || r.estado_pago === 'vencido' || r.clase_activa === false)
     const upcoming = visibles
       .filter((r) => new Date(r.fecha + 'T00:00:00') >= today)
       .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora.localeCompare(b.hora))

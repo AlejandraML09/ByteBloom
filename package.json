@@ -12,5 +12,8 @@
   "lint-staged": {
     "frontend-react/**/*.{js,jsx,css,html,json}": "prettier --write",
     "backend/**/*.py": "python3 -m black"
+  },
+  "dependencies": {
+    "@emailjs/browser": "^4.4.1"
   }
 }

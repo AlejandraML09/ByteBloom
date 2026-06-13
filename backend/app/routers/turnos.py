@@ -225,6 +225,7 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
         cobrado_pack = (monto_total_pack / 2).quantize(Decimal("0.01"))
         estado = models.EstadoReserva.pendiente
     elif (medio_pago.nombre == "Efectivo"):
+        cobrado_pack = Decimal("0")
         estado = models.EstadoReserva.pendiente
     else:
         estado = models.EstadoReserva.confirmada
@@ -329,7 +330,7 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
             elapsed_hours = 0
         
         fecha_clase = datetime.combine(cp.fecha, cp.hora)
-        fecha_vencimiento = min(r.fecha_reserva + timedelta(hours=48), fecha_clase)
+        fecha_vencimiento = max(r.fecha_reserva + timedelta(hours=48), fecha_clase)
         horas_restantes = max(0, int((fecha_vencimiento - now).total_seconds() // 3600))
 
         # determinar estado de pago a partir del monto efectivamente pagado
@@ -342,13 +343,13 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
         )
         if pago_cubierto:
             payment_status = 'pago_completo'
-        elif r.estado == models.EstadoReserva.cancelada and horas_restantes == 0 and r.precio_pagado < r.monto_total:
+        elif r.estado == models.EstadoReserva.cancelada  and r.precio_pagado < r.monto_total:
             payment_status = 'vencido'
         else:
             payment_status = 'pago_pendiente'
 
         # si la reserva está pendiente y venció, marcar como cancelada y vencida
-        if r.estado == models.EstadoReserva.pendiente and r.precio_pagado < r.monto_total and fecha_vencimiento and now > fecha_vencimiento:
+        if r.estado == models.EstadoReserva.pendiente and r.precio_pagado < r.monto_total and now > fecha_clase:
             r.estado = models.EstadoReserva.cancelada
             payment_status = 'vencido'
             dirty = True
@@ -433,18 +434,18 @@ def get_reservas_efectivo(db: Session = Depends(get_db)):
         if elapsed_hours < 0:
             elapsed_hours = 0
         fecha_clase = datetime.combine(cp.fecha, cp.hora)
-        fecha_vencimiento = min(reserva.fecha_reserva + timedelta(hours=48), fecha_clase)
+        fecha_vencimiento = max(reserva.fecha_reserva + timedelta(hours=48), fecha_clase)
         horas_restantes = max(0, int((fecha_vencimiento - now).total_seconds() // 3600))
         payment_status = 'pago_completo'
 
         if reserva.estado == models.EstadoReserva.confirmada:
             payment_status = 'pago_completo'
-        elif reserva.estado == models.EstadoReserva.cancelada and horas_restantes == 0 and reserva.precio_pagado < reserva.monto_total:
+        elif reserva.estado == models.EstadoReserva.cancelada  and reserva.precio_pagado < reserva.monto_total:
             payment_status = 'vencido'
         else:
             payment_status = 'pago_pendiente'
 
-        if reserva.estado == models.EstadoReserva.pendiente and reserva.precio_pagado < reserva.monto_total and now > fecha_vencimiento:
+        if reserva.estado == models.EstadoReserva.pendiente and reserva.precio_pagado < reserva.monto_total and now > fecha_clase:
             reserva.estado = models.EstadoReserva.cancelada
             payment_status = 'vencido'
             dirty = True
@@ -519,6 +520,7 @@ def confirmar_pago_efectivo(reserva_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Reserva no encontrada.")
     
     # Cambiar estado a confirmada
+    reserva.precio_pagado = reserva.monto_total  # ← agregar
     reserva.estado = models.EstadoReserva.confirmada
     db.commit()
     
