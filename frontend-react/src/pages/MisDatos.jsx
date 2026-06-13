@@ -236,53 +236,57 @@ export default function MisDatos() {
                   </label>
                 </div>
 
-                <div className='form-group'>
-                  <label>Contraseña actual</label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type={showPasswordActual ? 'text' : 'password'}
-                      value={passwordActual}
-                      onChange={(e) => setPasswordActual(e.target.value)}
-                      style={{ width: '100%', boxSizing: 'border-box', paddingRight: '36px' }}
-                    />
-                    <button type='button' onClick={() => setShowPasswordActual(!showPasswordActual)}
-                      style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '0' }}>
-                      {showPasswordActual ? '👁️' : '👁️‍🗨️'}
-                    </button>
-                  </div>
-                </div>
+                {cambiarPassword && (
+                  <>
+                    <div className='form-group'>
+                      <label>Contraseña actual</label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type={showPasswordActual ? 'text' : 'password'}
+                          value={passwordActual}
+                          onChange={(e) => setPasswordActual(e.target.value)}
+                          style={{ width: '100%', boxSizing: 'border-box', paddingRight: '36px' }}
+                        />
+                        <button type='button' onClick={() => setShowPasswordActual(!showPasswordActual)}
+                          style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '0' }}>
+                          {showPasswordActual ? '👁️' : '👁️‍🗨️'}
+                        </button>
+                      </div>
+                    </div>
 
-                <div className='form-group'>
-                  <label>Nueva contraseña</label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type={showPasswordNueva ? 'text' : 'password'}
-                      value={passwordNueva}
-                      onChange={(e) => setPasswordNueva(e.target.value)}
-                      style={{ width: '100%', boxSizing: 'border-box', paddingRight: '36px' }}
-                    />
-                    <button type='button' onClick={() => setShowPasswordNueva(!showPasswordNueva)}
-                      style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '0' }}>
-                      {showPasswordNueva ? '👁️' : '👁️‍🗨️'}
-                    </button>
-                  </div>
-                </div>
+                    <div className='form-group'>
+                      <label>Nueva contraseña</label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type={showPasswordNueva ? 'text' : 'password'}
+                          value={passwordNueva}
+                          onChange={(e) => setPasswordNueva(e.target.value)}
+                          style={{ width: '100%', boxSizing: 'border-box', paddingRight: '36px' }}
+                        />
+                        <button type='button' onClick={() => setShowPasswordNueva(!showPasswordNueva)}
+                          style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '0' }}>
+                          {showPasswordNueva ? '👁️' : '👁️‍🗨️'}
+                        </button>
+                      </div>
+                    </div>
 
-                <div className='form-group'>
-                  <label>Confirmar nueva contraseña</label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type={showPasswordConfirmar ? 'text' : 'password'}
-                      value={passwordConfirmar}
-                      onChange={(e) => setPasswordConfirmar(e.target.value)}
-                      style={{ width: '100%', boxSizing: 'border-box', paddingRight: '36px' }}
-                    />
-                    <button type='button' onClick={() => setShowPasswordConfirmar(!showPasswordConfirmar)}
-                      style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '0' }}>
-                      {showPasswordConfirmar ? '👁️' : '👁️‍🗨️'}
-                    </button>
-                  </div>
-                </div>
+                    <div className='form-group'>
+                      <label>Confirmar nueva contraseña</label>
+                      <div style={{ position: 'relative' }}>
+                        <input
+                          type={showPasswordConfirmar ? 'text' : 'password'}
+                          value={passwordConfirmar}
+                          onChange={(e) => setPasswordConfirmar(e.target.value)}
+                          style={{ width: '100%', boxSizing: 'border-box', paddingRight: '36px' }}
+                        />
+                        <button type='button' onClick={() => setShowPasswordConfirmar(!showPasswordConfirmar)}
+                          style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', padding: '0' }}>
+                          {showPasswordConfirmar ? '👁️' : '👁️‍🗨️'}
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 <button
                   className='btn-login'
