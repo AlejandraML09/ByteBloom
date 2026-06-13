@@ -894,14 +894,7 @@ export default function MisReservas() {
         )
       )
 
-      let mensaje = 'Tu reserva fue cancelada.'
-      if (resp.tipo_devolucion === 'dinero') {
-        mensaje += ` Se procesará una devolución de ${fmt(resp.devolucion)}.`
-      } else if (resp.tipo_devolucion === 'ninguna') {
-        mensaje += ' No corresponde devolución por cancelar dentro de las 48hs.'
-      }
-
-      showAppToast(mensaje)
+    showAppToast('Tu reserva fue cancelada. Se acreditó 1 crédito a tu cuenta.')
     } catch (err) {
       showAppToast(err?.response?.data?.detail || 'No se pudo cancelar la reserva.')
     } finally {
@@ -1365,7 +1358,7 @@ export default function MisReservas() {
                             onClick={() => setConfirmCancelar(r)}
                             disabled={cancelandoId === r.id}
                           >
-                            {cancelandoId === r.id ? 'Cancelando…' : 'Cancelar turno'}
+                            {cancelandoId === r.id ? 'Cancelando…' : 'Cancelar clase'}
                           </button>
                         )}
                       </div>
@@ -1536,12 +1529,12 @@ export default function MisReservas() {
         <div className='ma-modal-overlay' onClick={(e) => e.target === e.currentTarget && setConfirmCancelar(null)}>
           <div className='ma-modal'>
             <div className='ma-modal-header'>
-              <div className='ma-modal-title'>Cancelar turno</div>
+              <div className='ma-modal-title'>Cancelar clase</div>
               <button className='ma-modal-close' onClick={() => setConfirmCancelar(null)}>×</button>
             </div>
             <div className='ma-modal-body'>
               <p>
-                ¿Estás seguro que querés cancelar tu turno de{' '}
+                ¿Estás seguro que querés cancelar tu clase de{' '}
                 <strong>{ZONA_LABELS[confirmCancelar.zona] ?? confirmCancelar.zona}</strong> el{' '}
                 {fmtLargo(confirmCancelar.fecha)} a las {confirmCancelar.hora}?
               </p>
@@ -1568,8 +1561,7 @@ export default function MisReservas() {
         </div>
       )}
 
-   
-      {toastMsg && <div className='ma-toast'>{toastMsg}</div>}
+   {toastMsg && <div className='ma-toast' style={{ backgroundColor: '#7a0a2a', color: '#fff' }}>{toastMsg}</div>}
     </div>
   )
 }
