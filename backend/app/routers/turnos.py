@@ -435,7 +435,10 @@ def get_reservas_efectivo(db: Session = Depends(get_db)):
             elapsed_hours = 0
         fecha_clase = datetime.combine(cp.fecha, cp.hora)
         fecha_vencimiento = max(reserva.fecha_reserva + timedelta(hours=48), fecha_clase)
-        horas_restantes = max(0, int((fecha_vencimiento - now).total_seconds() // 3600))
+        if reserva.precio_pagado >= reserva.monto_total:
+          horas_restantes = 0
+        else:
+          horas_restantes = max(0, int((fecha_vencimiento - now).total_seconds() // 3600))
         payment_status = 'pago_completo'
 
         if reserva.estado == models.EstadoReserva.confirmada:
