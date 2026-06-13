@@ -878,7 +878,9 @@ export default function MisReservas() {
     setCancelandoId(reserva.id)
     try {
       const resp = await cancelarReserva(reserva.id)
-
+      const creditosKey = `creditos_${usuario.id}`
+      const creditosActuales = Number(localStorage.getItem(creditosKey)) || 0
+    localStorage.setItem(creditosKey, creditosActuales + 1)
       setReservas((prev) =>
         prev.map((x) =>
           x.id === reserva.id
