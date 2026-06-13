@@ -182,12 +182,7 @@ export default function PagosEfectivoTab() {
                         <span className={`badge ${status.css}`}>{status.label}</span>
                       </td>
                       <td>
-                        <div>
-                          <small>{new Date(reserva.fecha_vencimiento).toLocaleString('es-AR')}</small><br />
-                          <span className={`badge ${vencido ? 'badge-gray' : 'badge-gray'}`}>
-                            {`${reserva.horas_restantes}h`}
-                          </span>
-                        </div>
+                       <small>{new Date(reserva.fecha_vencimiento).toLocaleString('es-AR')}</small>
                       </td>
                       <td>
                         {(() => {
