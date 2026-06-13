@@ -705,3 +705,72 @@ def actualizar_asistencia(
         "estado": reserva.estado.value,
         "asistencia": _mapear_estado_asistencia(reserva.estado),
     }
+
+
+
+@router.post("/reservas/{reserva_id}/cancelar")
+def cancelar_reserva(reserva_id: int, db: Session = Depends(get_db)):
+    """
+    Cancela una reserva. Reglas:
+    - Siempre libera el cupo.
+    - Si cancela con más de 48hs de anticipación a la clase:
+        - Pago completo → se registra devolución de dinero
+        - Seña (precio_pagado < monto_total) → se devuelve la seña
+    - Si cancela con menos de 48hs:
+        - Seña → se pierde (sin devolución)
+        - Pago completo → devolución de dinero igual
+    """
+    reserva = db.query(models.Reserva).filter(models.Reserva.id == reserva_id).first()
+    if not reserva:
+        raise HTTPException(status_code=404, detail="Reserva no encontrada.")
+
+    if reserva.estado == models.EstadoReserva.cancelada:
+        raise HTTPException(status_code=400, detail="La reserva ya está cancelada.")
+
+    cp = db.query(models.ClaseProgramada).filter(
+        models.ClaseProgramada.id == reserva.clase_programada_id
+    ).first()
+
+    now = datetime.now()
+    fecha_clase = datetime.combine(cp.fecha, cp.hora)
+    horas_hasta_clase = (fecha_clase - now).total_seconds() / 3600
+    con_anticipacion = horas_hasta_clase >= 48
+
+    pago_completo = (
+        reserva.precio_pagado is not None
+        and reserva.monto_total is not None
+        and reserva.precio_pagado >= reserva.monto_total
+    )
+    tiene_sena = (
+        reserva.precio_pagado is not None
+        and reserva.monto_total is not None
+        and Decimal(str(reserva.precio_pagado)) > 0
+        and Decimal(str(reserva.precio_pagado)) < Decimal(str(reserva.monto_total))
+    )
+
+    # Determinar resultado de devolución
+    if pago_completo:
+        devolucion = float(reserva.precio_pagado)
+        tipo_devolucion = "dinero"
+    elif con_anticipacion and tiene_sena:
+        devolucion = float(reserva.precio_pagado)
+        tipo_devolucion = "dinero"
+    else:
+        # sin anticipación + seña, o sin pago → sin devolución
+        devolucion = 0.0
+        tipo_devolucion = "ninguna"
+
+    # Cancelar y liberar cupo
+    reserva.estado = models.EstadoReserva.cancelada
+    cp.cupo_disponible += 1
+
+    db.commit()
+
+    return {
+        "ok": True,
+        "reserva_id": reserva.id,
+        "devolucion": devolucion,
+        "tipo_devolucion": tipo_devolucion,
+        "con_anticipacion": con_anticipacion,
+        "horas_hasta_clase": round(horas_hasta_clase, 1),
+    }

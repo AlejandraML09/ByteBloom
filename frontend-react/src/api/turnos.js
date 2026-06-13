@@ -136,3 +136,8 @@ export async function setAsistencia(reservaId, estado, actorId) {
   })
   return data
 }
+
+export async function cancelarReserva(reservaId) {
+  const { data } = await client.post(`/turnos/reservas/${reservaId}/cancelar`)
+  return data
+}

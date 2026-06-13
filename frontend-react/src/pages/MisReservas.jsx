@@ -9,6 +9,7 @@ import {
   salirListaEspera,
   completarPagoReserva,
   registrarPagoSaldo,
+    cancelarReserva,
 } from '../api/turnos'
 import { getMisAbonos, renovarAbono, getSesionesAbono, modificarSesionAbono } from '../api/abonos'
 import client from '../api/client'
@@ -709,6 +710,8 @@ export default function MisReservas() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('todas')
   const [completandoId, setCompletandoId] = useState(null)
+  const [cancelandoId, setCancelandoId] = useState(null)
+  const [confirmCancelar, setConfirmCancelar] = useState(null)
 
   // Abonos state
   const [abonos, setAbonos] = useState([])
@@ -871,7 +874,39 @@ export default function MisReservas() {
     setPagoSaldoMetodo(null)
     setPagoSaldoError(null)
   }
+  async function handleCancelarReserva(reserva) {
+    setCancelandoId(reserva.id)
+    try {
+      const resp = await cancelarReserva(reserva.id)
 
+      setReservas((prev) =>
+        prev.map((x) =>
+          x.id === reserva.id
+            ? {
+                ...x,
+                estado: 'cancelada',
+                estado_pago:
+                  resp.tipo_devolucion === 'dinero' ? 'pago_pendiente' : x.estado_pago,
+              }
+            : x
+        )
+      )
+
+      let mensaje = 'Tu reserva fue cancelada.'
+      if (resp.tipo_devolucion === 'dinero') {
+        mensaje += ` Se procesará una devolución de ${fmt(resp.devolucion)}.`
+      } else if (resp.tipo_devolucion === 'ninguna') {
+        mensaje += ' No corresponde devolución por cancelar dentro de las 48hs.'
+      }
+
+      showAppToast(mensaje)
+    } catch (err) {
+      showAppToast(err?.response?.data?.detail || 'No se pudo cancelar la reserva.')
+    } finally {
+      setCancelandoId(null)
+      setConfirmCancelar(null)
+    }
+  }
   const loadTurnos = useCallback(async () => {
     if (!usuario) return
     try {
@@ -1321,6 +1356,16 @@ export default function MisReservas() {
                         {r.ya_resenada && (
                           <span className='mr-review-done'>★ Reseña enviada</span>
                         )}
+                        {proxima && r.estado !== 'cancelada' && r.id !== 999 && (
+                          <button
+                            className='mr-action-btn mr-action-btn--outline'
+                            style={{ fontSize: 12, padding: '6px 10px' }}
+                            onClick={() => setConfirmCancelar(r)}
+                            disabled={cancelandoId === r.id}
+                          >
+                            {cancelandoId === r.id ? 'Cancelando…' : 'Cancelar turno'}
+                          </button>
+                        )}
                       </div>
                       {pagoSaldoReserva?.id === r.id && (
                         <div className='mr-item-payment-panel'>
@@ -1485,7 +1530,43 @@ export default function MisReservas() {
           }}
         />
       )}
+          {confirmCancelar && (
+        <div className='ma-modal-overlay' onClick={(e) => e.target === e.currentTarget && setConfirmCancelar(null)}>
+          <div className='ma-modal'>
+            <div className='ma-modal-header'>
+              <div className='ma-modal-title'>Cancelar turno</div>
+              <button className='ma-modal-close' onClick={() => setConfirmCancelar(null)}>×</button>
+            </div>
+            <div className='ma-modal-body'>
+              <p>
+                ¿Estás seguro que querés cancelar tu turno de{' '}
+                <strong>{ZONA_LABELS[confirmCancelar.zona] ?? confirmCancelar.zona}</strong> el{' '}
+                {fmtLargo(confirmCancelar.fecha)} a las {confirmCancelar.hora}?
+              </p>
+              {confirmCancelar.precio_pagado > 0 && (
+                <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                  Si cancelás con más de 48hs de anticipación, se te devolverá lo abonado.
+                  Si cancelás con menos de 48hs y solo pagaste seña, perdés ese monto.
+                </p>
+              )}
+            </div>
+            <div className='ma-modal-footer'>
+              <button className='ma-modal-cancel' onClick={() => setConfirmCancelar(null)}>
+                Volver
+              </button>
+              <button
+                className='ma-modal-save'
+                onClick={() => handleCancelarReserva(confirmCancelar)}
+                disabled={cancelandoId === confirmCancelar.id}
+              >
+                {cancelandoId === confirmCancelar.id ? 'Cancelando…' : 'Sí, cancelar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
+   
       {toastMsg && <div className='ma-toast'>{toastMsg}</div>}
     </div>
   )
