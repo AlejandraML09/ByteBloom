@@ -43,6 +43,7 @@ export default function PagosEfectivoTab() {
             ? { 
                 ...item, 
                 estado_pago: 'pago_completo', 
+                precio_pagado: item.monto_total, 
                 estado: resp.estado_reserva || 'confirmada'
               }
             : item
@@ -173,19 +174,15 @@ export default function PagosEfectivoTab() {
                       <td>{reserva.zona}</td>
                       <td>
                         {reserva.precio_pagado != null && reserva.monto_total != null
-                          ? `${reserva.estado_pago === 'pago_pendiente' ? '0.00' : reserva.precio_pagado.toFixed(2)} / ${reserva.monto_total.toFixed(2)}`
+                          ? `${reserva.precio_pagado.toFixed(2)} / ${reserva.monto_total.toFixed(2)}`
+
                           : reserva.medio_pago}
                       </td>
                       <td>
                         <span className={`badge ${status.css}`}>{status.label}</span>
                       </td>
                       <td>
-                        <div>
-                          <small>{new Date(reserva.fecha_vencimiento).toLocaleString('es-AR')}</small><br />
-                          <span className={`badge ${vencido ? 'badge-gray' : 'badge-gray'}`}>
-                            {`${reserva.horas_restantes}h`}
-                          </span>
-                        </div>
+                       <small>{new Date(reserva.fecha_vencimiento).toLocaleString('es-AR')}</small>
                       </td>
                       <td>
                         {(() => {

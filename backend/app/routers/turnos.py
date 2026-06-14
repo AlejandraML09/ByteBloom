@@ -225,6 +225,7 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
         cobrado_pack = (monto_total_pack / 2).quantize(Decimal("0.01"))
         estado = models.EstadoReserva.pendiente
     elif (medio_pago.nombre == "Efectivo"):
+        cobrado_pack = Decimal("0")
         estado = models.EstadoReserva.pendiente
     else:
         estado = models.EstadoReserva.confirmada
@@ -330,7 +331,7 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
             elapsed_hours = 0
         
         fecha_clase = datetime.combine(cp.fecha, cp.hora)
-        fecha_vencimiento = min(r.fecha_reserva + timedelta(hours=48), fecha_clase)
+        fecha_vencimiento = max(r.fecha_reserva + timedelta(hours=48), fecha_clase)
         horas_restantes = max(0, int((fecha_vencimiento - now).total_seconds() // 3600))
 
         # determinar estado de pago a partir del monto efectivamente pagado
@@ -343,13 +344,13 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
         )
         if pago_cubierto:
             payment_status = 'pago_completo'
-        elif r.estado == models.EstadoReserva.cancelada and horas_restantes == 0 and r.precio_pagado < r.monto_total:
+        elif r.estado == models.EstadoReserva.cancelada  and r.precio_pagado < r.monto_total:
             payment_status = 'vencido'
         else:
             payment_status = 'pago_pendiente'
 
         # si la reserva está pendiente y venció, marcar como cancelada y vencida
-        if r.estado == models.EstadoReserva.pendiente and r.precio_pagado < r.monto_total and fecha_vencimiento and now > fecha_vencimiento:
+        if r.estado == models.EstadoReserva.pendiente and r.precio_pagado < r.monto_total and now > fecha_clase:
             r.estado = models.EstadoReserva.cancelada
             payment_status = 'vencido'
             dirty = True
@@ -434,18 +435,21 @@ def get_reservas_efectivo(db: Session = Depends(get_db)):
         if elapsed_hours < 0:
             elapsed_hours = 0
         fecha_clase = datetime.combine(cp.fecha, cp.hora)
-        fecha_vencimiento = min(reserva.fecha_reserva + timedelta(hours=48), fecha_clase)
-        horas_restantes = max(0, int((fecha_vencimiento - now).total_seconds() // 3600))
+        fecha_vencimiento = max(reserva.fecha_reserva + timedelta(hours=48), fecha_clase)
+        if reserva.precio_pagado >= reserva.monto_total:
+          horas_restantes = 0
+        else:
+          horas_restantes = max(0, int((fecha_vencimiento - now).total_seconds() // 3600))
         payment_status = 'pago_completo'
 
         if reserva.estado == models.EstadoReserva.confirmada:
             payment_status = 'pago_completo'
-        elif reserva.estado == models.EstadoReserva.cancelada and horas_restantes == 0 and reserva.precio_pagado < reserva.monto_total:
+        elif reserva.estado == models.EstadoReserva.cancelada  and reserva.precio_pagado < reserva.monto_total:
             payment_status = 'vencido'
         else:
             payment_status = 'pago_pendiente'
 
-        if reserva.estado == models.EstadoReserva.pendiente and reserva.precio_pagado < reserva.monto_total and now > fecha_vencimiento:
+        if reserva.estado == models.EstadoReserva.pendiente and reserva.precio_pagado < reserva.monto_total and now > fecha_clase:
             reserva.estado = models.EstadoReserva.cancelada
             payment_status = 'vencido'
             dirty = True
@@ -520,6 +524,7 @@ def confirmar_pago_efectivo(reserva_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Reserva no encontrada.")
     
     # Cambiar estado a confirmada
+    reserva.precio_pagado = reserva.monto_total  # ← agregar
     reserva.estado = models.EstadoReserva.confirmada
     db.commit()
     
@@ -700,4 +705,73 @@ def actualizar_asistencia(
         "reserva_id": reserva.id,
         "estado": reserva.estado.value,
         "asistencia": _mapear_estado_asistencia(reserva.estado),
+    }
+
+
+
+@router.post("/reservas/{reserva_id}/cancelar")
+def cancelar_reserva(reserva_id: int, db: Session = Depends(get_db)):
+    """
+    Cancela una reserva. Reglas:
+    - Siempre libera el cupo.
+    - Si cancela con más de 48hs de anticipación a la clase:
+        - Pago completo → se registra devolución de dinero
+        - Seña (precio_pagado < monto_total) → se devuelve la seña
+    - Si cancela con menos de 48hs:
+        - Seña → se pierde (sin devolución)
+        - Pago completo → devolución de dinero igual
+    """
+    reserva = db.query(models.Reserva).filter(models.Reserva.id == reserva_id).first()
+    if not reserva:
+        raise HTTPException(status_code=404, detail="Reserva no encontrada.")
+
+    if reserva.estado == models.EstadoReserva.cancelada:
+        raise HTTPException(status_code=400, detail="La reserva ya está cancelada.")
+
+    cp = db.query(models.ClaseProgramada).filter(
+        models.ClaseProgramada.id == reserva.clase_programada_id
+    ).first()
+
+    now = datetime.now()
+    fecha_clase = datetime.combine(cp.fecha, cp.hora)
+    horas_hasta_clase = (fecha_clase - now).total_seconds() / 3600
+    con_anticipacion = horas_hasta_clase >= 48
+
+    pago_completo = (
+        reserva.precio_pagado is not None
+        and reserva.monto_total is not None
+        and reserva.precio_pagado >= reserva.monto_total
+    )
+    tiene_sena = (
+        reserva.precio_pagado is not None
+        and reserva.monto_total is not None
+        and Decimal(str(reserva.precio_pagado)) > 0
+        and Decimal(str(reserva.precio_pagado)) < Decimal(str(reserva.monto_total))
+    )
+
+    # Determinar resultado de devolución
+    # Determinar resultado de devolución
+    if pago_completo:
+        devolucion = float(reserva.precio_pagado)
+        tipo_devolucion = "dinero"
+    elif tiene_sena:
+        devolucion = 0.0
+        tipo_devolucion = "ninguna"
+    else:
+        devolucion = 0.0
+        tipo_devolucion = "ninguna"
+
+    # Cancelar y liberar cupo
+    reserva.estado = models.EstadoReserva.cancelada
+    cp.cupo_disponible += 1
+
+    db.commit()
+
+    return {
+        "ok": True,
+        "reserva_id": reserva.id,
+        "devolucion": devolucion,
+        "tipo_devolucion": tipo_devolucion,
+        "con_anticipacion": con_anticipacion,
+        "horas_hasta_clase": round(horas_hasta_clase, 1),
     }

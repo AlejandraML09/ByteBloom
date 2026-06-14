@@ -9,6 +9,7 @@ import {
   salirListaEspera,
   completarPagoReserva,
   registrarPagoSaldo,
+    cancelarReserva,
 } from '../api/turnos'
 import { getMisAbonos, renovarAbono, getSesionesAbono, modificarSesionAbono } from '../api/abonos'
 import client from '../api/client'
@@ -709,6 +710,8 @@ export default function MisReservas() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('todas')
   const [completandoId, setCompletandoId] = useState(null)
+  const [cancelandoId, setCancelandoId] = useState(null)
+  const [confirmCancelar, setConfirmCancelar] = useState(null)
 
   // Abonos state
   const [abonos, setAbonos] = useState([])
@@ -871,7 +874,42 @@ export default function MisReservas() {
     setPagoSaldoMetodo(null)
     setPagoSaldoError(null)
   }
+  async function handleCancelarReserva(reserva) {
+    setCancelandoId(reserva.id)
+    try {
+      const resp = await cancelarReserva(reserva.id)
 
+      if (resp.tipo_devolucion === 'dinero') {
+  const creditosKey = `creditos_${usuario.id}`
+  const creditosActuales = Number(localStorage.getItem(creditosKey)) || 0
+  localStorage.setItem(creditosKey, creditosActuales + 1)
+}
+      setReservas((prev) =>
+        prev.map((x) =>
+          x.id === reserva.id
+            ? {
+                ...x,
+                estado: 'cancelada',
+                estado_pago:
+                  resp.tipo_devolucion === 'dinero' ? 'pago_pendiente' : x.estado_pago,
+              }
+            : x
+        )
+      )
+
+const msg = reserva.precio_pagado > 0 && reserva.precio_pagado < reserva.monto_total
+  ? 'Tu reserva fue cancelada. La seña no será devuelta.'
+  : resp.tipo_devolucion === 'dinero'
+    ? 'Tu reserva fue cancelada. Se acreditó 1 crédito a tu cuenta.'
+    : 'Tu reserva fue cancelada.'
+showAppToast(msg)
+    } catch (err) {
+      showAppToast(err?.response?.data?.detail || 'No se pudo cancelar la reserva.')
+    } finally {
+      setCancelandoId(null)
+      setConfirmCancelar(null)
+    }
+  }
   const loadTurnos = useCallback(async () => {
     if (!usuario) return
     try {
@@ -944,7 +982,7 @@ export default function MisReservas() {
   const sorted = useMemo(() => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    const visibles = reservas.filter((r) => r.estado !== 'cancelada')
+    const visibles = reservas.filter((r) => r.estado !== 'cancelada' || r.estado_pago === 'vencido' || r.clase_activa === false)
     const upcoming = visibles
       .filter((r) => new Date(r.fecha + 'T00:00:00') >= today)
       .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora.localeCompare(b.hora))
@@ -1321,6 +1359,17 @@ export default function MisReservas() {
                         {r.ya_resenada && (
                           <span className='mr-review-done'>★ Reseña enviada</span>
                         )}
+                        {proxima && r.estado !== 'cancelada' && r.id !== 999 &&
+  (new Date(r.fecha + 'T' + r.hora) - new Date()) / 36e5 >= 48 && (
+  <button
+    className='mr-action-btn mr-action-btn--outline'
+    style={{ fontSize: 12, padding: '6px 10px' }}
+    onClick={() => setConfirmCancelar(r)}
+    disabled={cancelandoId === r.id}
+  >
+    {cancelandoId === r.id ? 'Cancelando…' : 'Cancelar clase'}
+  </button>
+)}
                       </div>
                       {pagoSaldoReserva?.id === r.id && (
                         <div className='mr-item-payment-panel'>
@@ -1485,8 +1534,47 @@ export default function MisReservas() {
           }}
         />
       )}
+          {confirmCancelar && (
+        <div className='ma-modal-overlay' onClick={(e) => e.target === e.currentTarget && setConfirmCancelar(null)}>
+          <div className='ma-modal'>
+            <div className='ma-modal-header'>
+              <div className='ma-modal-title'>Cancelar clase</div>
+              <button className='ma-modal-close' onClick={() => setConfirmCancelar(null)}>×</button>
+            </div>
+            <div className='ma-modal-body'>
+              <p>
+                ¿Estás seguro que querés cancelar tu clase de{' '}
+                <strong>{ZONA_LABELS[confirmCancelar.zona] ?? confirmCancelar.zona}</strong> el{' '}
+                {fmtLargo(confirmCancelar.fecha)} a las {confirmCancelar.hora}?
+              </p>
+              {confirmCancelar.precio_pagado > 0 &&
+  confirmCancelar.precio_pagado < confirmCancelar.monto_total ? (
+  <p style={{ fontSize: 13, color: '#c0435a', fontWeight: 600, marginTop: 8 }}>
+    ⚠️ Pagaste una seña de {fmt(confirmCancelar.precio_pagado)}. Si cancelás, no será devuelta.
+  </p>
+) : confirmCancelar.precio_pagado > 0 ? (
+  <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+    Si cancelás con más de 48hs de anticipación, se te devolverá lo abonado con un crédito a favor.
+  </p>
+) : null}
+            </div>
+            <div className='ma-modal-footer'>
+              <button className='ma-modal-cancel' onClick={() => setConfirmCancelar(null)}>
+                Volver
+              </button>
+              <button
+                className='ma-modal-save'
+                onClick={() => handleCancelarReserva(confirmCancelar)}
+                disabled={cancelandoId === confirmCancelar.id}
+              >
+                {cancelandoId === confirmCancelar.id ? 'Cancelando…' : 'Sí, cancelar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {toastMsg && <div className='ma-toast'>{toastMsg}</div>}
+   {toastMsg && <div className='ma-toast' style={{ backgroundColor: '#7a0a2a', color: '#fff' }}>{toastMsg}</div>}
     </div>
   )
 }

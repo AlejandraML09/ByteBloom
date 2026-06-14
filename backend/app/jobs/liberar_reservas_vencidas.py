@@ -27,7 +27,7 @@ def liberar_reservas_vencidas() -> None:
             if reserva.fecha_reserva is None:
                 continue
             fecha_clase = datetime.combine(clase.fecha, clase.hora)
-            fecha_vencimiento = min(reserva.fecha_reserva + timedelta(hours=48), fecha_clase)
+            fecha_vencimiento = max(reserva.fecha_reserva + timedelta(hours=48), fecha_clase)
             if now > fecha_vencimiento:
                 reserva.estado = models.EstadoReserva.cancelada
                 clase.cupo_disponible += 1
