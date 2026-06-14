@@ -19,7 +19,7 @@ export default function LoginForm() {
           nombre: data.nombre,
           apellido: data.apellido,
           email: data.email,
-          role: data.role || 'usuario',
+          rol: data.rol || 'usuario',
         })
       )
       navigate('/dashboard') // o donde quieras redirigir

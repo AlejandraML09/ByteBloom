@@ -20,6 +20,7 @@ import { SlotGrid } from '../components/turnos/SlotGrid'
 import { PaymentSelector } from '../components/turnos/PaymentSelector'
 import { ReviewModal } from '../components/reviews/ReviewModal'
 import '../css/mis-reservas.css'
+import QrAbono from '../components/qr/QrAbono'
 
 function getUsuario() {
   const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
@@ -471,7 +472,7 @@ const RENOVAR_MEDIO_DB = {
 }
 
 // ── AbonoCard ───────────────────────────────────────────────────────────────
-function AbonoCard({ abono, onModificar, onRenovarDone }) {
+function AbonoCard({ abono, usuarioId, onModificar, onRenovarDone }) {
   const [expanded, setExpanded] = useState(false)
   const [renovando, setRenovando] = useState(null) // null | 'confirm' | 'loading'
   const [renovarMedio, setRenovarMedio] = useState(null)
@@ -622,6 +623,11 @@ function AbonoCard({ abono, onModificar, onRenovarDone }) {
             </>
           )}
         </div>
+      )}
+
+      {/* QR de asistencia — solo si el abono está activo */}
+      {abono.activo && (
+        <QrAbono abonoId={abono.id} usuarioId={usuarioId} />
       )}
     </div>
   )
@@ -1488,6 +1494,7 @@ showAppToast(msg)
                   <AbonoCard
                     key={a.id}
                     abono={a}
+                    usuarioId={usuario?.id}
                     onModificar={setModificarAbono}
                     onRenovarDone={(ok, err) => {
                       showAppToast(err || ok)

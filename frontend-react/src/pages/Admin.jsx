@@ -18,6 +18,7 @@ import '../css/admin.css'
 import SecretariosTab from '../components/admin/SecretariosTab'
 import { HorarioTab } from '../components/admin/HorarioTab'
 import PagosEfectivoTab from '../components/admin/PagosEfectivoTab'
+import EscanerQR from '../components/qr/EscanerQR'
 
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -48,6 +49,7 @@ const TABS = [
   { id: 'secretarios', label: 'Secretarios', roles: ['admin'] },
   { id: 'registrar-paciente', label: 'Registrar usuario', roles: ['secretario'] },
   { id: 'horarios', label: 'Modificar horario', roles: ['admin'] },
+  { id: 'escanear-qr', label: 'Escanear QR', roles: ['secretario'] },
 ]
 
 const TAB_HEADERS = {
@@ -63,6 +65,7 @@ const TAB_HEADERS = {
   secretarios: { title: 'Secretarios', desc: 'Gestioná los usuarios secretarios del sistema.' },
   'registrar-paciente': { title: 'Registrar usuario', desc: 'Registrá un nuevo usuario en el sistema.' },
   horarios:    { title: 'Modificar horario',        desc: 'Ajustá el horario de inicio de las clases.' },
+  'escanear-qr': { title: 'Escanear QR', desc: 'Registrá asistencia escaneando el QR del abono del paciente.' },
 }
 
 export default function Admin() {
@@ -492,6 +495,8 @@ export default function Admin() {
             onFilterChange={setFilterHorarioDate}
           />
         )}
+
+        {activeTab === 'escanear-qr' && <EscanerQR secretarioId={user?.id} />}
       </div>
 
       <div className={`admin-toast${toastVisible ? ' show' : ''}`}>{toastMsg}</div>
