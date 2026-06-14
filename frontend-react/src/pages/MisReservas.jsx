@@ -1359,16 +1359,17 @@ showAppToast(msg)
                         {r.ya_resenada && (
                           <span className='mr-review-done'>★ Reseña enviada</span>
                         )}
-                        {proxima && r.estado !== 'cancelada' && r.id !== 999 && (
-                          <button
-                            className='mr-action-btn mr-action-btn--outline'
-                            style={{ fontSize: 12, padding: '6px 10px' }}
-                            onClick={() => setConfirmCancelar(r)}
-                            disabled={cancelandoId === r.id}
-                          >
-                            {cancelandoId === r.id ? 'Cancelando…' : 'Cancelar clase'}
-                          </button>
-                        )}
+                        {proxima && r.estado !== 'cancelada' && r.id !== 999 &&
+  (new Date(r.fecha + 'T' + r.hora) - new Date()) / 36e5 >= 48 && (
+  <button
+    className='mr-action-btn mr-action-btn--outline'
+    style={{ fontSize: 12, padding: '6px 10px' }}
+    onClick={() => setConfirmCancelar(r)}
+    disabled={cancelandoId === r.id}
+  >
+    {cancelandoId === r.id ? 'Cancelando…' : 'Cancelar clase'}
+  </button>
+)}
                       </div>
                       {pagoSaldoReserva?.id === r.id && (
                         <div className='mr-item-payment-panel'>

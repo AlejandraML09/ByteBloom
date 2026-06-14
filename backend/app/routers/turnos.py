@@ -749,14 +749,14 @@ def cancelar_reserva(reserva_id: int, db: Session = Depends(get_db)):
     )
 
     # Determinar resultado de devolución
+    # Determinar resultado de devolución
     if pago_completo:
         devolucion = float(reserva.precio_pagado)
         tipo_devolucion = "dinero"
-    elif con_anticipacion and tiene_sena:
-        devolucion = float(reserva.precio_pagado)
-        tipo_devolucion = "dinero"
+    elif tiene_sena:
+        devolucion = 0.0
+        tipo_devolucion = "ninguna"
     else:
-        # sin anticipación + seña, o sin pago → sin devolución
         devolucion = 0.0
         tipo_devolucion = "ninguna"
 
