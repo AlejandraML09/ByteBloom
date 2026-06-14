@@ -878,9 +878,12 @@ export default function MisReservas() {
     setCancelandoId(reserva.id)
     try {
       const resp = await cancelarReserva(reserva.id)
-      const creditosKey = `creditos_${usuario.id}`
-      const creditosActuales = Number(localStorage.getItem(creditosKey)) || 0
-    localStorage.setItem(creditosKey, creditosActuales + 1)
+
+      if (resp.tipo_devolucion === 'dinero') {
+  const creditosKey = `creditos_${usuario.id}`
+  const creditosActuales = Number(localStorage.getItem(creditosKey)) || 0
+  localStorage.setItem(creditosKey, creditosActuales + 1)
+}
       setReservas((prev) =>
         prev.map((x) =>
           x.id === reserva.id
@@ -894,7 +897,12 @@ export default function MisReservas() {
         )
       )
 
-    showAppToast('Tu reserva fue cancelada. Se acreditó 1 crédito a tu cuenta.')
+const msg = reserva.precio_pagado > 0 && reserva.precio_pagado < reserva.monto_total
+  ? 'Tu reserva fue cancelada. La seña no será devuelta.'
+  : resp.tipo_devolucion === 'dinero'
+    ? 'Tu reserva fue cancelada. Se acreditó 1 crédito a tu cuenta.'
+    : 'Tu reserva fue cancelada.'
+showAppToast(msg)
     } catch (err) {
       showAppToast(err?.response?.data?.detail || 'No se pudo cancelar la reserva.')
     } finally {
@@ -1538,12 +1546,16 @@ export default function MisReservas() {
                 <strong>{ZONA_LABELS[confirmCancelar.zona] ?? confirmCancelar.zona}</strong> el{' '}
                 {fmtLargo(confirmCancelar.fecha)} a las {confirmCancelar.hora}?
               </p>
-              {confirmCancelar.precio_pagado > 0 && (
-                <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                  Si cancelás con más de 48hs de anticipación, se te devolverá lo abonado.
-                  Si cancelás con menos de 48hs y solo pagaste seña, perdés ese monto.
-                </p>
-              )}
+              {confirmCancelar.precio_pagado > 0 &&
+  confirmCancelar.precio_pagado < confirmCancelar.monto_total ? (
+  <p style={{ fontSize: 13, color: '#c0435a', fontWeight: 600, marginTop: 8 }}>
+    ⚠️ Pagaste una seña de {fmt(confirmCancelar.precio_pagado)}. Si cancelás, no será devuelta.
+  </p>
+) : confirmCancelar.precio_pagado > 0 ? (
+  <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+    Si cancelás con más de 48hs de anticipación, se te devolverá lo abonado.
+  </p>
+) : null}
             </div>
             <div className='ma-modal-footer'>
               <button className='ma-modal-cancel' onClick={() => setConfirmCancelar(null)}>
