@@ -1554,7 +1554,7 @@ showAppToast(msg)
   </p>
 ) : confirmCancelar.precio_pagado > 0 ? (
   <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-    Si cancelás con más de 48hs de anticipación, se te devolverá lo abonado.
+    Si cancelás con más de 48hs de anticipación, se te devolverá lo abonado con un crédito a favor.
   </p>
 ) : null}
             </div>
