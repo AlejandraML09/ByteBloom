@@ -14,6 +14,7 @@ import RestablecerContrasena from './pages/RestablecerContrasena'
 import MisDatos from './pages/MisDatos'
 import QuieroSerAbonado from './pages/QuieroSerAbonado'
 import MisCreditos from './pages/MisCreditos'
+import InscribirseNotificacion from './pages/InscribirseNotificacion'
 
 export default function App() {
   return (
@@ -34,6 +35,7 @@ export default function App() {
         <Route path='/mis-datos' element={<MisDatos />} />
         <Route path='/quiero-ser-abonado' element={<QuieroSerAbonado />} />
         <Route path='/mis-creditos' element={<MisCreditos />} />
+        <Route path='/turnos/inscribirse' element={<InscribirseNotificacion />} />
         <Route path='*' element={<Navigate to='/' replace />} />
       </Routes>
     </BrowserRouter>

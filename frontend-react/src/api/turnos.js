@@ -141,3 +141,11 @@ export async function cancelarReserva(reservaId) {
   const { data } = await client.post(`/turnos/reservas/${reservaId}/cancelar`)
   return data
 }
+
+export async function inscribirDesdeNotificacion(claseProgramadaId, usuarioId) {
+  const { data } = await client.post('/turnos/inscribir-notificacion', {
+    clase_programada_id: claseProgramadaId,
+    usuario_id: usuarioId,
+  })
+  return data
+}
