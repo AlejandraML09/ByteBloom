@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from app.database import SessionLocal
 from app import models
+from app.services.waitlist_notifications import notificar_lista_espera
 
 router = APIRouter(tags=["turnos"])
 
@@ -766,6 +767,11 @@ def cancelar_reserva(reserva_id: int, db: Session = Depends(get_db)):
 
     db.commit()
 
+    try:
+        notificar_lista_espera(cp.id, db)
+    except Exception:
+        pass
+
     return {
         "ok": True,
         "reserva_id": reserva.id,
@@ -774,3 +780,73 @@ def cancelar_reserva(reserva_id: int, db: Session = Depends(get_db)):
         "con_anticipacion": con_anticipacion,
         "horas_hasta_clase": round(horas_hasta_clase, 1),
     }
+
+
+class InscribirseNotificacionRequest(BaseModel):
+    clase_programada_id: int
+    usuario_id: int
+
+
+@router.post("/inscribir-notificacion")
+def inscribir_desde_notificacion(data: InscribirseNotificacionRequest, db: Session = Depends(get_db)):
+    cp = (
+        db.query(models.ClaseProgramada)
+        .filter(models.ClaseProgramada.id == data.clase_programada_id, models.ClaseProgramada.activo == True)
+        .first()
+    )
+    if not cp:
+        raise HTTPException(status_code=404, detail="Clase programada no encontrada.")
+    if cp.cupo_disponible <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="El cupo ya no se encuentra disponible. Podés inscribirte a la lista de espera nuevamente o elegir otro turno.",
+        )
+
+    # Evitar duplicados
+    existing = (
+        db.query(models.Reserva)
+        .filter(
+            models.Reserva.usuario_id == data.usuario_id,
+            models.Reserva.clase_programada_id == cp.id,
+            models.Reserva.estado != models.EstadoReserva.cancelada,
+        )
+        .first()
+    )
+    if existing:
+        raise HTTPException(status_code=400, detail="Ya tenés una reserva activa para este turno.")
+
+    zona = db.query(models.Zona).filter(models.Zona.id == cp.zona_id).first()
+    medio_pago = db.query(models.MedioPago).filter(models.MedioPago.nombre == "Efectivo").first()
+
+    from decimal import Decimal
+
+    monto_total = Decimal(zona.precio) if zona else Decimal("0")
+    precio_pagado = Decimal("0")
+
+    nueva = models.Reserva(
+        usuario_id=data.usuario_id,
+        clase_programada_id=cp.id,
+        medio_pago_id=medio_pago.id if medio_pago else None,
+        precio_pagado=precio_pagado,
+        monto_total=monto_total,
+        estado=models.EstadoReserva.pendiente,
+    )
+    db.add(nueva)
+    cp.cupo_disponible -= 1
+
+    le = (
+        db.query(models.ListaEspera)
+        .filter(
+            models.ListaEspera.usuario_id == data.usuario_id,
+            models.ListaEspera.clase_programada_id == cp.id,
+            models.ListaEspera.activo == True,
+        )
+        .first()
+    )
+    if le:
+        le.estado = models.EstadoListaEspera.confirmado
+
+    db.commit()
+    db.refresh(nueva)
+
+    return {"ok": True, "reserva_id": nueva.id}

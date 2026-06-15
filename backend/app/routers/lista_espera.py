@@ -53,6 +53,23 @@ def unirse_lista_espera(data: ListaEsperaRequest, db: Session = Depends(get_db))
             status_code=400, detail="Ya estás en la lista de espera para esta clase."
         )
 
+    # Evitar que un usuario se anote a la lista de espera si ya tiene
+    # una reserva activa para esa misma clase_programada.
+    reserva_existente = (
+        db.query(models.Reserva)
+        .filter(
+            models.Reserva.usuario_id == data.usuario_id,
+            models.Reserva.clase_programada_id == data.clase_programada_id,
+            models.Reserva.estado != models.EstadoReserva.cancelada,
+        )
+        .first()
+    )
+    if reserva_existente:
+        raise HTTPException(
+            status_code=400,
+            detail="Ya te encontrás inscripto en este turno. No podés anotarte a la lista de espera.",
+        )
+
     max_prioridad = (
         db.query(func.max(models.ListaEspera.prioridad))
         .filter(
