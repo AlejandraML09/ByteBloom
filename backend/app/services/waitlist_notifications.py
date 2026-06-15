@@ -98,3 +98,4 @@ def notificar_lista_espera(clase_programada_id: int, db=None) -> int:
     finally:
         if cerrar_db:
             db.close()
+
