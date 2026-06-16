@@ -1360,7 +1360,8 @@ showAppToast(msg)
                           <span className='mr-review-done'>★ Reseña enviada</span>
                         )}
                         {proxima && r.estado !== 'cancelada' && r.id !== 999 &&
-  (new Date(r.fecha + 'T' + r.hora) - new Date()) / 36e5 >= 48 && (
+  (new Date(r.fecha + 'T' + r.hora) - new Date()) / 36e5 >= 48 &&
+  !(r.medio_pago?.toLowerCase() === 'efectivo' && r.estado_pago === 'pago_pendiente') && (
   <button
     className='mr-action-btn mr-action-btn--outline'
     style={{ fontSize: 12, padding: '6px 10px' }}
