@@ -1,33 +1,7 @@
 """add qr_token to abonos
 
-Revision ID: f1a2b3c4d5e6
-Revises: e0f1a2b3c4d5
-Create Date: 2026-05-30 00:00:00.000000
-
-Agrega columna qr_token a la tabla abonos para identificación única por QR.
-"""
-
-from typing import Sequence, Union
-
-import sqlalchemy as sa
-from alembic import op
-
-revision: str = "b3c4d5e6f7a8"
-down_revision: Union[str, Sequence[str], None] = "a2b3c4d5e6f7"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
-
-
-def upgrade():
-    op.add_column(
-        "abonos",
-        sa.Column("qr_token", sa.String(64), nullable=True, unique=True),
-    )
-
-"""add qr_token to abonos
-
-Revision ID: f1a2b3c4d5e6
-Revises: e0f1a2b3c4d5
+Revision ID: b3c4d5e6f7a8
+Revises: a2b3c4d5e6f7
 Create Date: 2026-05-30 00:00:00.000000
 
 Agrega columna qr_token a la tabla abonos para identificación única por QR.
@@ -39,8 +13,8 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "f1a2b3c4d5e6"
-down_revision: Union[str, Sequence[str], None] = "e0f1a2b3c4d5"
+revision: str = "b3c4d5e6f7a8"
+down_revision: Union[str, Sequence[str], None] = "a2b3c4d5e6f7"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

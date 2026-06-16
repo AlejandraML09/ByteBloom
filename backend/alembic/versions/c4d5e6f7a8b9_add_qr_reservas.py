@@ -1,7 +1,7 @@
 """add qr_token to reservas
 
-Revision ID: g2b3c4d5e6f7
-Revises: f1a2b3c4d5e6
+Revision ID: c4d5e6f7a8b9
+Revises: b3c4d5e6f7a8
 Create Date: 2026-05-30 00:00:00.000000
 
 Agrega columna qr_token a la tabla reservas para reservas sueltas.
