@@ -342,9 +342,13 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
             and r.precio_pagado >= r.monto_total
         )
         if pago_cubierto:
-            payment_status = 'pago_completo'
-        elif r.estado == models.EstadoReserva.cancelada  and r.precio_pagado < r.monto_total:
+          payment_status = 'pago_completo'
+        elif r.estado == models.EstadoReserva.cancelada and r.precio_pagado < r.monto_total:
+          fecha_clase = datetime.combine(cp.fecha, cp.hora)
+          if now > fecha_clase and r.precio_pagado == 0:
             payment_status = 'vencido'
+          else:
+            payment_status = 'cancelado'
         else:
             payment_status = 'pago_pendiente'
 
@@ -442,11 +446,14 @@ def get_reservas_efectivo(db: Session = Depends(get_db)):
         payment_status = 'pago_completo'
 
         if reserva.estado == models.EstadoReserva.confirmada:
-            payment_status = 'pago_completo'
-        elif reserva.estado == models.EstadoReserva.cancelada  and reserva.precio_pagado < reserva.monto_total:
+          payment_status = 'pago_completo'
+        elif reserva.estado == models.EstadoReserva.cancelada and reserva.precio_pagado < reserva.monto_total:
+          if now > fecha_clase and reserva.precio_pagado == 0:
             payment_status = 'vencido'
+          else:
+            payment_status = 'cancelado'
         else:
-            payment_status = 'pago_pendiente'
+          payment_status = 'pago_pendiente'
 
         if reserva.estado == models.EstadoReserva.pendiente and reserva.precio_pagado < reserva.monto_total and now > fecha_clase:
             reserva.estado = models.EstadoReserva.cancelada
@@ -750,12 +757,9 @@ def cancelar_reserva(reserva_id: int, db: Session = Depends(get_db)):
 
     # Determinar resultado de devolución
     # Determinar resultado de devolución
-    if pago_completo:
-        devolucion = float(reserva.precio_pagado)
-        tipo_devolucion = "dinero"
-    elif tiene_sena:
-        devolucion = 0.0
-        tipo_devolucion = "ninguna"
+    if pago_completo and con_anticipacion:
+      devolucion = float(reserva.precio_pagado)
+      tipo_devolucion = "dinero"
     else:
         devolucion = 0.0
         tipo_devolucion = "ninguna"

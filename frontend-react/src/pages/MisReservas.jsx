@@ -878,8 +878,8 @@ export default function MisReservas() {
     setCancelandoId(reserva.id)
     try {
       const resp = await cancelarReserva(reserva.id)
-
-      if (resp.tipo_devolucion === 'dinero') {
+      const pagoRealizado = Number(reserva.precio_pagado) > 0
+      if (resp.tipo_devolucion === 'dinero' && pagoRealizado) {
   const creditosKey = `creditos_${usuario.id}`
   const creditosActuales = Number(localStorage.getItem(creditosKey)) || 0
   localStorage.setItem(creditosKey, creditosActuales + 1)
@@ -899,7 +899,7 @@ export default function MisReservas() {
 
 const msg = reserva.precio_pagado > 0 && reserva.precio_pagado < reserva.monto_total
   ? 'Tu reserva fue cancelada. La seña no será devuelta.'
-  : resp.tipo_devolucion === 'dinero'
+  : resp.tipo_devolucion === 'dinero'  && pagoRealizado
     ? 'Tu reserva fue cancelada. Se acreditó 1 crédito a tu cuenta.'
     : 'Tu reserva fue cancelada.'
 showAppToast(msg)
@@ -1359,9 +1359,7 @@ showAppToast(msg)
                         {r.ya_resenada && (
                           <span className='mr-review-done'>★ Reseña enviada</span>
                         )}
-                        {proxima && r.estado !== 'cancelada' && r.id !== 999 &&
-  (new Date(r.fecha + 'T' + r.hora) - new Date()) / 36e5 >= 48 &&
-  !(r.medio_pago?.toLowerCase() === 'efectivo' && r.estado_pago === 'pago_pendiente') && (
+                        {proxima && r.estado !== 'cancelada' && r.id !== 999 && (
   <button
     className='mr-action-btn mr-action-btn--outline'
     style={{ fontSize: 12, padding: '6px 10px' }}
