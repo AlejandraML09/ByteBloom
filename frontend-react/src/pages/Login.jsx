@@ -49,6 +49,14 @@ export default function Login() {
         }
       }
 
+      // Si existe un redirect guardado (por ejemplo enlace de lista de espera), redirigir allí
+      const post = sessionStorage.getItem('post_login_redirect')
+      if (post) {
+        sessionStorage.removeItem('post_login_redirect')
+        navigate(post)
+        return
+      }
+
       navigate(data.rol === 'admin' || data.rol === 'secretario' ? '/admin' : '/')
     } catch (err) {
       console.error('Error completo:', err)

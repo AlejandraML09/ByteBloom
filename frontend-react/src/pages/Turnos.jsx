@@ -182,45 +182,70 @@ export default function Turnos() {
   // Hardcodeado con Romina. Luego hay que mejorarlo
   const hasAusentePack = user?.email?.toLowerCase() === 'romina.ortega@test.com'
 
-  // ✅ SI NO HAY SESIÓN, MOSTRAR PANTALLA DE BIENVENIDA CON NAVBAR Y FOOTER
+  // Si no hay sesión: si vienen parámetros de notificación, guardarlos y redirigir al login
+  // para preservar la intención; si no hay parámetros, mostrar la pantalla de bienvenida.
+  const notifyParams = (() => {
+    try {
+      const p = new URLSearchParams(window.location.search)
+      return p.get('clase_id') || p.get('fecha') || p.get('hora')
+    } catch {
+      return null
+    }
+  })()
+
+  // Ejecutar redirect al login si viene desde un link de notificación
+  // (usamos useEffect para evitar llamar navigate en render)
+  useEffect(() => {
+    if (!user && notifyParams) {
+      const redirect = window.location.pathname + window.location.search
+      sessionStorage.setItem('post_login_redirect', redirect)
+      navigate('/login')
+    }
+  }, [user, notifyParams, navigate])
+
   if (!user) {
-    return (
-      <div
-        style={{
-          background: 'linear-gradient(135deg, var(--danger) 0%, var(--danger-dark) 100%)',
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        <Navbar />
-        <div className='welcome-container' style={{ background: 'none', flex: 1 }}>
-          <div className='welcome-content'>
-            <div className='welcome-header'>
-              <h1 style={{ color: 'var(--danger-muted)' }}>Bienvenido a Endereza2</h1>
-              <p style={{ color: 'var(--danger-muted)' }}>
-                Accedé a tu cuenta o crea una nueva para comenzar
-              </p>
-            </div>
+    // mostrar bienvenida solamente si no había intención de notificación
+    if (!notifyParams) {
+      return (
+        <div
+          style={{
+            background: 'linear-gradient(135deg, var(--danger) 0%, var(--danger-dark) 100%)',
+            minHeight: '100vh',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <Navbar />
+          <div className='welcome-container' style={{ background: 'none', flex: 1 }}>
+            <div className='welcome-content'>
+              <div className='welcome-header'>
+                <h1 style={{ color: 'var(--danger-muted)' }}>Bienvenido a Endereza2</h1>
+                <p style={{ color: 'var(--danger-muted)' }}>
+                  Accedé a tu cuenta o crea una nueva para comenzar
+                </p>
+              </div>
 
-            <div className='welcome-buttons'>
-              <button onClick={() => navigate('/login')} className='welcome-btn login'>
-                <span className='welcome-btn-icon'>🔐</span>
-                <h3 style={{ color: 'var(--danger-muted)' }}>Iniciar Sesión</h3>
-                <p style={{ color: 'var(--danger-muted)' }}>¿Ya tenés cuenta?</p>
-              </button>
+              <div className='welcome-buttons'>
+                <button onClick={() => navigate('/login')} className='welcome-btn login'>
+                  <span className='welcome-btn-icon'>🔐</span>
+                  <h3 style={{ color: 'var(--danger-muted)' }}>Iniciar Sesión</h3>
+                  <p style={{ color: 'var(--danger-muted)' }}>¿Ya tenés cuenta?</p>
+                </button>
 
-              <button onClick={() => navigate('/registro')} className='welcome-btn register'>
-                <span className='welcome-btn-icon'>✨</span>
-                <h3 style={{ color: 'var(--danger-muted)' }}>Registrarse</h3>
-                <p style={{ color: 'var(--danger-muted)' }}>Nuevos en Endereza2?</p>
-              </button>
+                <button onClick={() => navigate('/registro')} className='welcome-btn register'>
+                  <span className='welcome-btn-icon'>✨</span>
+                  <h3 style={{ color: 'var(--danger-muted)' }}>Registrarse</h3>
+                  <p style={{ color: 'var(--danger-muted)' }}>Nuevos en Endereza2?</p>
+                </button>
+              </div>
             </div>
           </div>
+          <Footer />
         </div>
-        <Footer />
-      </div>
-    )
+      )
+    }
+    // si notifyParams && no user, ya redirigimos en useEffect; render vacío
+    return null
   }
 
   // zona is the full zona object { id, nombre, precio, descripcion, activo }
@@ -365,6 +390,41 @@ export default function Turnos() {
       if (status === 'pending') showToast('⏳ Tu pago está pendiente de confirmación.')
     }
     run()
+  }, [])
+
+  // Detectar parámetros desde enlaces de notificación (lista de espera)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const claseId = params.get('clase_id')
+    const fecha = params.get('fecha')
+    const hora = params.get('hora')
+    const zonaId = params.get('zona_id')
+
+    if (!claseId || !fecha || !hora || !zonaId) return
+
+    ;(async () => {
+      try {
+        // Cargar zonas y seleccionar la correspondiente
+        const { data: zonas } = await client.get('/zonas')
+        const zonaObj = Array.isArray(zonas) ? zonas.find((z) => String(z.id) === String(zonaId)) : null
+        if (zonaObj) {
+          setZona(zonaObj)
+        } else if (Array.isArray(zonas) && zonas.length > 0) {
+          setZona(zonas[0])
+        }
+
+        // Forzar carga de disponibilidad del mes correspondiente
+        const targetDate = new Date(fecha + 'T00:00:00')
+        await fetchDisponibilidad(targetDate)
+
+        // Preseleccionar día y horario
+        setDiaDate(targetDate)
+        setSlot(hora)
+        // Scroll o foco estará a cargo del componente que muestra la selección
+      } catch (err) {
+        console.error('Error al procesar parámetros de notificación:', err)
+      }
+    })()
   }, [])
 
   // Returns all classes for a given day filtered by the selected zona
