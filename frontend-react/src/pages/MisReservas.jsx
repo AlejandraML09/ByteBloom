@@ -1136,7 +1136,7 @@ showAppToast(msg)
                   <CalendarIcon size={22} />
                 </div>
                 <div>
-                  <div className='mr-stat-number'>{reservas.length}</div>
+                 <div className='mr-stat-number'>{reservas.filter(r => r.estado !== 'cancelada').length}</div>
                   <div className='mr-stat-label'>Reservas totales</div>
                 </div>
               </div>
