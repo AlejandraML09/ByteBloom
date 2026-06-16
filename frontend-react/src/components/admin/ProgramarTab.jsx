@@ -4,7 +4,7 @@ import { ZONA_LABELS } from '../../constants/turnos'
 import { profesionales as PROFESIONALES } from '../../constants/profesionales'
 import { fmtDate, MESES_ES } from '../../utils/dates'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL 
 
 const DIAS_HEADER = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 

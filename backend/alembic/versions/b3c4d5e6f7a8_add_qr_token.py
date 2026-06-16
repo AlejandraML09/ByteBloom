@@ -1,7 +1,7 @@
 """add qr_token to abonos
 
 Revision ID: b3c4d5e6f7a8
-Revises: a2b3c4d5e6f7
+Revises: g1h2i3j4k8m9
 Create Date: 2026-05-30 00:00:00.000000
 
 Agrega columna qr_token a la tabla abonos para identificación única por QR.
@@ -14,7 +14,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "b3c4d5e6f7a8"
-down_revision: Union[str, Sequence[str], None] = "a2b3c4d5e6f7"
+down_revision: Union[str, Sequence[str], None] = "g1h2i3j4k8m9"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -36,7 +36,5 @@ def upgrade():
     op.alter_column("abonos", "qr_token", nullable=False)
 
 
-def downgrade():
-    op.drop_column("abonos", "qr_token")
 def downgrade():
     op.drop_column("abonos", "qr_token")

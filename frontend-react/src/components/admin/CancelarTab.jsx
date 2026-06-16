@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { ZONA_LABELS } from '../../constants/turnos'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL 
 
 export function CancelarTab({ onToast }) {
   const [zonas, setZonas] = useState([])

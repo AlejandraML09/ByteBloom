@@ -4,7 +4,7 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'  // ✅ CAMBIAR de { Footer } a Footer
 import '../css/miscreditos.css'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL 
 
 export default function MisCreditos() {
   const navigate = useNavigate()

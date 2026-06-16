@@ -2,7 +2,7 @@ import { zonasInfoMap } from '../../constants/turnos'
 import { useEffect, useState } from 'react'
 
 const fmt = (n) => `$${n.toLocaleString('es-AR')}`
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL 
 
 export function ZonaSelector({ selected, onSelect }) {
   const [zonas, setZonas] = useState([])

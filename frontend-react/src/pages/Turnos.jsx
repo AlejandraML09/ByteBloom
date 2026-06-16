@@ -24,7 +24,7 @@ import { getMisAbonos } from '../api/abonos'
 import DiscountModal from '../components/turnos/Discountmodal'
 import '../css/turnos.css'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL 
 const fmtPrecio = (n) => `$${Number(n).toLocaleString('es-AR')}`
 
 const PROMO_BENEFITS = [

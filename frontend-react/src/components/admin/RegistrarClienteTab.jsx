@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import '../../css/login.css'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL 
 
 export function RegistrarClienteTab({ onToast }) {
   const [form, setForm] = useState({

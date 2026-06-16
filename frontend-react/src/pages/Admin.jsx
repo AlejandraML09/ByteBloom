@@ -21,7 +21,7 @@ import PagosEfectivoTab from '../components/admin/PagosEfectivoTab'
 import EscanerQR from '../components/qr/EscanerQR'
 
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL 
 
 function buildTurnos() {
   return DIST.map((t, i) => ({ ...t, paciente: PACIENTES[t.pac], id: i }))
