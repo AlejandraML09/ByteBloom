@@ -16,6 +16,7 @@ from app.models import (
     EstadoReserva,
     EstadoListaEspera,
 )
+from app.routers.usuarios import enviar_mail, FRONTEND_URL
 
 router = APIRouter(prefix="/api", tags=["clases"])
 
@@ -345,6 +346,19 @@ def eliminar_clases_programadas_de_profesional(
     for entrada in lista_espera:
         entrada.activo = False
         entrada.estado = EstadoListaEspera.cancelado
+
+    # Enviar notificaciones usando la función reutilizable
+    try:
+        from app.services.cancellation_notifications import notificar_cancelacion_clase
+
+        for cp in clases:
+            try:
+                notificar_cancelacion_clase(cp.id, db)
+            except Exception:
+                # No impedir la operación por fallos de notificación
+                continue
+    except Exception:
+        pass
 
     db.commit()
 

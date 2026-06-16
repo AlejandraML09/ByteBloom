@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 from app.database import SessionLocal
 from app import models
+from app.services.waitlist_notifications import notificar_lista_espera
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,11 @@ def liberar_reservas_vencidas() -> None:
                 clase.cupo_disponible += 1
                 liberadas += 1
                 logger.info(f"Reserva {reserva.id} cancelada. Cupo devuelto a clase {reserva.clase_programada_id}.")
+                try:
+                    # Notificar a la lista de espera de la clase liberada
+                    notificar_lista_espera(reserva.clase_programada_id, db)
+                except Exception:
+                    logger.exception("Error notificando lista de espera")
         if liberadas > 0:
             db.commit()
             logger.info(f"Job completado: {liberadas} reserva(s) liberada(s).")
