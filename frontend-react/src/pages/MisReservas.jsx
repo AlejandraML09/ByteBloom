@@ -679,7 +679,6 @@ function ListaEsperaSection({ listaEspera, loading, onSalir }) {
             <div className='mr-item-meta'>
               <span>{ZONA_LABELS[entrada.zona_nombre] ?? entrada.zona_nombre}</span>
               <span className='mr-item-meta-dot' />
-              <span>Posición #{entrada.prioridad}</span>
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>

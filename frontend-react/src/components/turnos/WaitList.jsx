@@ -52,6 +52,18 @@ export function useWaitlist(showToast = () => {}) {
             `Fuiste dado de baja de la lista de espera para la clase de ${zonaNombre} el ${fechaDisplay} a las ${clase.hora}.`
           )
         } else {
+          // Validación preventiva: evitar anotarse si ya tenés una reserva activa
+          try {
+            const { data: misTurnos } = await import('../../api/turnos').then((m) => m.getMisTurnos(usuarioId))
+            const yaReservado = Array.isArray(misTurnos) && misTurnos.some((r) => r.clase_programada_id === clase.id && r.estado !== 'cancelada')
+            if (yaReservado) {
+              showToast('Ya te encontrás inscripto en este turno. No podés anotarte a la lista de espera.')
+              return
+            }
+          } catch (err) {
+            // si falla la verificación, confiar en la validación del backend
+          }
+
           await unirseListaEspera({ claseProgramadaId: clase.id, usuarioId })
           setWaitlistClaseIds((prev) => new Set([...prev, clase.id]))
           showToast(

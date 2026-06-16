@@ -5,6 +5,8 @@ from typing import Optional
 from datetime import date
 from app.database import SessionLocal
 from app import models
+from app.routers.usuarios import enviar_mail, FRONTEND_URL
+from app.services.cancellation_notifications import notificar_cancelacion_clase
 
 
 router = APIRouter(prefix="/api", tags=["servicios"])
@@ -202,22 +204,50 @@ def cancelar_clase(data: CancelarClaseRequest, db: Session = Depends(get_db)):
             status_code=400, detail="La clase ya se encuentra cancelada."
         )
 
-    reservas_canceladas = (
+    # Obtener reservas activas para notificar a los usuarios (preservar destinatarios antes del update)
+    reservas = (
         db.query(models.Reserva)
         .filter(
             models.Reserva.clase_programada_id == cp.id,
             models.Reserva.estado != models.EstadoReserva.cancelada,
         )
-        .update(
-            {"estado": models.EstadoReserva.cancelada},
-            synchronize_session=False,
-        )
+        .all()
     )
+    user_ids = [r.usuario_id for r in reservas]
+
+    # Marcar reservas como canceladas y la clase como inactiva
+    reservas_canceladas = 0
+    if reservas:
+        reservas_canceladas = (
+            db.query(models.Reserva)
+            .filter(
+                models.Reserva.clase_programada_id == cp.id,
+                models.Reserva.estado != models.EstadoReserva.cancelada,
+            )
+            .update({"estado": models.EstadoReserva.cancelada}, synchronize_session=False)
+        )
+
     cp.activo = False
     db.commit()
+
+    # Enviar notificaciones a los usuarios que tenían reserva en la clase cancelada
+    try:
+        notificar_cancelacion_clase(cp.id, db, user_ids=user_ids)
+    except Exception:
+        # No impedir la operación por fallos en notificaciones
+        pass
 
     return {
         "mensaje": "Clase cancelada exitosamente.",
         "clase_programada_id": cp.id,
         "reservas_canceladas": reservas_canceladas,
     }
+
+
+@router.post("/notificaciones/clase-cancelada")
+def notificar_clase_cancelada_endpoint(data: CancelarClaseRequest, db: Session = Depends(get_db)):
+    try:
+        enviados = notificar_cancelacion_clase(data.clase_programada_id, db)
+        return {"enviados": enviados}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

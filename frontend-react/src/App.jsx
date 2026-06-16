@@ -34,6 +34,7 @@ export default function App() {
         <Route path='/mis-datos' element={<MisDatos />} />
         <Route path='/quiero-ser-abonado' element={<QuieroSerAbonado />} />
         <Route path='/mis-creditos' element={<MisCreditos />} />
+        {/* route removed: InscribirseNotificacion is unused; email links point to /turnos with query params */}
         <Route path='*' element={<Navigate to='/' replace />} />
       </Routes>
     </BrowserRouter>
