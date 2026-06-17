@@ -33,7 +33,12 @@ export function ContactForm({ onSubmit, onError }) {
         'xE1dZGV6BTFUQMpsb'
       )
       onSubmit()
-      setNombre(''); setApellido(''); setEmail(''); setAsunto(''); setMensaje('')
+      onSubmit()
+      setAsunto('')
+      setMensaje('')
+      if (!usuario.nombre) setNombre('')
+      if (!usuario.apellido) setApellido('')
+      if (!usuario.email) setEmail('')
     } catch {
       onError()
     } finally {
