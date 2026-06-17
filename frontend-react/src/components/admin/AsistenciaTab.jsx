@@ -15,6 +15,7 @@ export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChan
   const [reservas, setReservas] = useState([])
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState(null)
+  const [busqueda, setBusqueda] = useState('')
 
   const cargar = useCallback(async () => {
     setLoading(true)
@@ -55,6 +56,16 @@ export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChan
     }
   }
 
+  const reservasFiltradas = reservas.filter((r) => {
+    if (!busqueda.trim()) return true
+    const q = busqueda.toLowerCase()
+    return (
+      (r.paciente || '').toLowerCase().includes(q) ||
+      (r.zona || '').toLowerCase().includes(q) ||
+      filterDate.includes(q)
+    )
+  })
+
   return (
     <div className='card'>
       <div className='card-header'>
@@ -73,6 +84,22 @@ export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChan
           </select>
         </div>
       </div>
+      <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--text-muted)' }}>
+        <input
+          type='text'
+          placeholder='Buscar por paciente o zona…'
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '0.65rem 1rem',
+            borderRadius: '6px',
+            border: '1px solid var(--text-muted)',
+            fontSize: '14px',
+            boxSizing: 'border-box',
+          }}
+        />
+      </div>
       <div style={{ overflowX: 'auto' }}>
         <table>
           <thead>
@@ -85,18 +112,18 @@ export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChan
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={3} style={{ textAlign: 'center', color: 'var(--gray-t)', padding: '2rem' }}>
+                <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
                   Cargando…
                 </td>
               </tr>
-            ) : reservas.length === 0 ? (
+            ) : reservasFiltradas.length === 0 ? (
               <tr>
-                <td colSpan={3} style={{ textAlign: 'center', color: 'var(--gray-t)', padding: '2rem' }}>
-                  Sin pacientes en este horario
+                <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
+                  {busqueda ? 'Sin resultados para esa búsqueda.' : 'Sin pacientes en este horario'}
                 </td>
               </tr>
             ) : (
-              reservas.map((r) => (
+              reservasFiltradas.map((r) => (
                 <tr key={r.reserva_id}>
                   <td>
                     <div className='patient-name'>
@@ -115,9 +142,7 @@ export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChan
                       onChange={(e) => handleChange(r.reserva_id, e.target.value)}
                     >
                       {ASIST_OPCIONES.map((o) => (
-                        <option key={o.value} value={o.value}>
-                          {o.label}
-                        </option>
+                        <option key={o.value} value={o.value}>{o.label}</option>
                       ))}
                     </select>
                   </td>

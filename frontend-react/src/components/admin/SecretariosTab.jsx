@@ -229,7 +229,7 @@ export default function SecretariosTab() {
       <div className='secretarios-list'>
         <h3>Secretarios Actuales</h3>
 
-        {/* <div className='search-bar'>
+        { <div className='search-bar'>
           <input
             type='text'
             placeholder='Buscar por nombre, apellido o email...'
@@ -237,7 +237,7 @@ export default function SecretariosTab() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className='search-input'
           />
-        </div> */}
+        </div>}
 
         {secretariosOrdenados.length === 0 ? (
           <p>
