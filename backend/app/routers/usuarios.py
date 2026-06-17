@@ -362,3 +362,21 @@ def registrar_cliente_secretario(data: RegistrarClienteRequest, db: Session = De
     )
 
     return {"id": nuevo.id, "email": nuevo.email}
+
+
+@router.get("/usuarios/{usuario_id}/creditos")
+def obtener_creditos(usuario_id: int, db: Session = Depends(get_db)):
+    user = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return {"creditos_favor": user.creditos_favor}
+
+
+@router.put("/usuarios/{usuario_id}/creditos")
+def actualizar_creditos(usuario_id: int, cantidad: int, db: Session = Depends(get_db)):
+    user = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    user.creditos_favor += cantidad
+    db.commit()
+    return {"creditos_favor": user.creditos_favor}
