@@ -137,7 +137,17 @@ export async function setAsistencia(reservaId, estado, actorId) {
   return data
 }
 
-export async function cancelarReserva(reservaId) {
-  const { data } = await client.post(`/turnos/reservas/${reservaId}/cancelar`)
+export async function cancelarReserva(reservaId, payload = {}) {
+  const { data } = await client.post(`/turnos/reservas/${reservaId}/cancelar`, payload)
+  return data
+}
+
+export async function getReembolsosPendientes() {
+  const { data } = await client.get('/turnos/reservas/reembolsos')
+  return data
+}
+
+export async function confirmarReembolso(reservaId) {
+  const { data } = await client.post(`/turnos/reservas/${reservaId}/confirmar-reembolso`)
   return data
 }

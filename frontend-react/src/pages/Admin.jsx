@@ -18,6 +18,7 @@ import '../css/admin.css'
 import SecretariosTab from '../components/admin/SecretariosTab'
 import { HorarioTab } from '../components/admin/HorarioTab'
 import PagosEfectivoTab from '../components/admin/PagosEfectivoTab'
+import ReembolsosTab from '../components/admin/ReembolsosTab'
 import EscanerQR from '../components/qr/EscanerQR'
 
 
@@ -49,6 +50,7 @@ const TABS = [
   { id: 'secretarios', label: 'Secretarios', roles: ['admin'] },
   { id: 'registrar-paciente', label: 'Registrar usuario', roles: ['secretario'] },
   { id: 'horarios', label: 'Modificar horario', roles: ['admin'] },
+  { id: 'reembolsos', label: 'Reembolsos', roles: ['admin', 'secretario'] },
   { id: 'escanear-qr', label: 'Escanear QR', roles: ['secretario'] },
 ]
 
@@ -65,6 +67,7 @@ const TAB_HEADERS = {
   secretarios: { title: 'Secretarios', desc: 'Gestioná los usuarios secretarios del sistema.' },
   'registrar-paciente': { title: 'Registrar usuario', desc: 'Registrá un nuevo usuario en el sistema.' },
   horarios:    { title: 'Modificar horario',        desc: 'Ajustá el horario de inicio de las clases.' },
+  reembolsos: { title: 'Reembolsos', desc: 'Gestioná los reembolsos en efectivo solicitados por clientes.' },
   'escanear-qr': { title: 'Escanear QR', desc: 'Registrá asistencia escaneando el QR del abono del paciente.' },
 }
 
@@ -495,6 +498,7 @@ export default function Admin() {
             onFilterChange={setFilterHorarioDate}
           />
         )}
+        {activeTab === 'reembolsos' && <ReembolsosTab />}
 
         {activeTab === 'escanear-qr' && <EscanerQR secretarioId={user?.id} />}
       </div>
