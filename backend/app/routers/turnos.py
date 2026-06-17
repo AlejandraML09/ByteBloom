@@ -835,6 +835,7 @@ def inscribir_desde_notificacion(data: InscribirseNotificacionRequest, db: Sessi
         precio_pagado=precio_pagado,
         monto_total=monto_total,
         estado=models.EstadoReserva.pendiente,
+        qr_token=str(uuid.uuid4()),
     )
     db.add(nueva)
     cp.cupo_disponible -= 1
