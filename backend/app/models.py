@@ -171,6 +171,8 @@ class Reserva(Base):
         nullable=False,
         default=EstadoReserva.pendiente,
     )
+    reembolso_solicitado = Column(Boolean, default=False, nullable=False, server_default='false')
+    reembolso_entregado  = Column(Boolean, default=False, nullable=False, server_default='false')
 
     @property
     def estado_pago(self) -> str:

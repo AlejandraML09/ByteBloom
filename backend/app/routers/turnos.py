@@ -6,6 +6,7 @@ from typing import Optional, Literal
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import or_
 from pydantic import BaseModel
 
 from app.database import SessionLocal
@@ -342,14 +343,16 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
             and r.monto_total is not None
             and r.precio_pagado >= r.monto_total
         )
-        if pago_cubierto:
-          payment_status = 'pago_completo'
+        if r.reembolso_solicitado:
+            payment_status = 'reembolso_entregado' if r.reembolso_entregado else 'reembolso_solicitado'
+        elif pago_cubierto:
+            payment_status = 'pago_completo'
         elif r.estado == models.EstadoReserva.cancelada and r.precio_pagado < r.monto_total:
-          fecha_clase = datetime.combine(cp.fecha, cp.hora)
-          if now > fecha_clase and r.precio_pagado == 0:
-            payment_status = 'vencido'
-          else:
-            payment_status = 'cancelado'
+            fecha_clase = datetime.combine(cp.fecha, cp.hora)
+            if now > fecha_clase and r.precio_pagado == 0:
+                payment_status = 'vencido'
+            else:
+                payment_status = 'cancelado'
         else:
             payment_status = 'pago_pendiente'
 
@@ -399,6 +402,8 @@ def get_mis_turnos(usuario_id: int, db: Session = Depends(get_db)):
                 "profesional_nombre": prof_nombres.get(cp.profesional_email),
                 "ya_resenada": ya_resenada,
                 "puede_resenar": puede_resenar,
+                "reembolso_solicitado": r.reembolso_solicitado,
+                "reembolso_entregado": r.reembolso_entregado,
             }
         )
 
@@ -716,22 +721,14 @@ def actualizar_asistencia(
 
 
 
+class CancelarReservaRequest(BaseModel):
+    tipo_reintegro: Optional[str] = None
+
 @router.post("/reservas/{reserva_id}/cancelar")
-def cancelar_reserva(reserva_id: int, db: Session = Depends(get_db)):
-    """
-    Cancela una reserva. Reglas:
-    - Siempre libera el cupo.
-    - Si cancela con más de 48hs de anticipación a la clase:
-        - Pago completo → se registra devolución de dinero
-        - Seña (precio_pagado < monto_total) → se devuelve la seña
-    - Si cancela con menos de 48hs:
-        - Seña → se pierde (sin devolución)
-        - Pago completo → devolución de dinero igual
-    """
+def cancelar_reserva(reserva_id: int, data: CancelarReservaRequest = None, db: Session = Depends(get_db)):
     reserva = db.query(models.Reserva).filter(models.Reserva.id == reserva_id).first()
     if not reserva:
         raise HTTPException(status_code=404, detail="Reserva no encontrada.")
-
     if reserva.estado == models.EstadoReserva.cancelada:
         raise HTTPException(status_code=400, detail="La reserva ya está cancelada.")
 
@@ -749,26 +746,20 @@ def cancelar_reserva(reserva_id: int, db: Session = Depends(get_db)):
         and reserva.monto_total is not None
         and reserva.precio_pagado >= reserva.monto_total
     )
-    tiene_sena = (
-        reserva.precio_pagado is not None
-        and reserva.monto_total is not None
-        and Decimal(str(reserva.precio_pagado)) > 0
-        and Decimal(str(reserva.precio_pagado)) < Decimal(str(reserva.monto_total))
-    )
 
-    # Determinar resultado de devolución
-    # Determinar resultado de devolución
     if pago_completo and con_anticipacion:
-      devolucion = float(reserva.precio_pagado)
-      tipo_devolucion = "dinero"
+        devolucion = float(reserva.precio_pagado)
+        tipo_devolucion = "dinero"
     else:
         devolucion = 0.0
         tipo_devolucion = "ninguna"
 
-    # Cancelar y liberar cupo
+    # Si pidió reembolso en efectivo, marcar el flag
+    if data and data.tipo_reintegro == "reembolso" and float(reserva.precio_pagado or 0) > 0:
+        reserva.reembolso_solicitado = True
+
     reserva.estado = models.EstadoReserva.cancelada
     cp.cupo_disponible += 1
-
     db.commit()
 
     try:
@@ -784,7 +775,6 @@ def cancelar_reserva(reserva_id: int, db: Session = Depends(get_db)):
         "con_anticipacion": con_anticipacion,
         "horas_hasta_clase": round(horas_hasta_clase, 1),
     }
-
 
 class InscribirseNotificacionRequest(BaseModel):
     clase_programada_id: int
@@ -854,3 +844,64 @@ def inscribir_desde_notificacion(data: InscribirseNotificacionRequest, db: Sessi
     db.refresh(nueva)
 
     return {"ok": True, "reserva_id": nueva.id}
+
+
+# En el router de turnos
+
+@router.get("/reservas/reembolsos")
+def get_reembolsos(db: Session = Depends(get_db)):
+    rows = (
+        db.query(
+            models.Reserva,
+            models.ClaseProgramada,
+            models.Zona,
+            models.Usuario,
+        )
+        .join(models.ClaseProgramada, models.Reserva.clase_programada_id == models.ClaseProgramada.id)
+        .join(models.Zona, models.ClaseProgramada.zona_id == models.Zona.id)
+        .join(models.Usuario, models.Reserva.usuario_id == models.Usuario.id)
+        .filter(
+            models.Reserva.estado == models.EstadoReserva.cancelada,
+            or_(
+                models.Reserva.reembolso_solicitado == True,
+                models.Reserva.reembolso_entregado == True,
+            )
+        )
+        .order_by(models.Reserva.fecha_reserva.desc())
+        .all()
+    )
+
+    # Deduplicar: una sola entrada por (usuario, clase)
+    vistos = set()
+    result = []
+    for r, cp, z, u in rows:
+        key = (u.id, cp.id)
+        if key in vistos:
+            continue
+        vistos.add(key)
+        result.append({
+            "id": r.id,
+            "cliente": f"{u.nombre} {u.apellido}".strip(),
+            "email": u.email,
+            "fecha": str(cp.fecha),
+            "hora": str(cp.hora)[:5],
+            "zona": z.nombre,
+            "precio_pagado": float(r.precio_pagado or 0),
+            "estado_pago": "reembolso_entregado" if r.reembolso_entregado else "reembolso_solicitado",
+        })
+
+    return result
+
+
+@router.post("/reservas/{reserva_id}/confirmar-reembolso")
+def confirmar_reembolso(reserva_id: int, db: Session = Depends(get_db)):
+    reserva = db.query(models.Reserva).filter(models.Reserva.id == reserva_id).first()
+    if not reserva:
+        raise HTTPException(status_code=404, detail="Reserva no encontrada.")
+    if not reserva.reembolso_solicitado:
+        raise HTTPException(status_code=400, detail="Esta reserva no tiene un reembolso pendiente.")
+    if reserva.reembolso_entregado:
+        raise HTTPException(status_code=400, detail="El reembolso ya fue entregado.")
+    reserva.reembolso_entregado = True
+    db.commit()
+    return {"ok": True}

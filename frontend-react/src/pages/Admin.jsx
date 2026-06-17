@@ -18,6 +18,7 @@ import '../css/admin.css'
 import SecretariosTab from '../components/admin/SecretariosTab'
 import { HorarioTab } from '../components/admin/HorarioTab'
 import PagosEfectivoTab from '../components/admin/PagosEfectivoTab'
+import ReembolsosTab from '../components/admin/ReembolsosTab'
 
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -48,6 +49,7 @@ const TABS = [
   { id: 'secretarios', label: 'Secretarios', roles: ['admin'] },
   { id: 'registrar-paciente', label: 'Registrar usuario', roles: ['secretario'] },
   { id: 'horarios', label: 'Modificar horario', roles: ['admin'] },
+  { id: 'reembolsos', label: 'Reembolsos', roles: ['admin', 'secretario'] },
 ]
 
 const TAB_HEADERS = {
@@ -63,6 +65,7 @@ const TAB_HEADERS = {
   secretarios: { title: 'Secretarios', desc: 'Gestioná los usuarios secretarios del sistema.' },
   'registrar-paciente': { title: 'Registrar usuario', desc: 'Registrá un nuevo usuario en el sistema.' },
   horarios:    { title: 'Modificar horario',        desc: 'Ajustá el horario de inicio de las clases.' },
+  reembolsos: { title: 'Reembolsos', desc: 'Gestioná los reembolsos en efectivo solicitados por clientes.' },
 }
 
 export default function Admin() {
@@ -492,6 +495,7 @@ export default function Admin() {
             onFilterChange={setFilterHorarioDate}
           />
         )}
+        {activeTab === 'reembolsos' && <ReembolsosTab />}
       </div>
 
       <div className={`admin-toast${toastVisible ? ' show' : ''}`}>{toastMsg}</div>
