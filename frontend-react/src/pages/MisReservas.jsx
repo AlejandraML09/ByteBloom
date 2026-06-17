@@ -50,6 +50,7 @@ const ESTADO_PAGO_CONFIG = {
   pago_pendiente: { label: 'Pendiente', css: 'pendiente' },
   pago_completo: { label: 'Pago completo', css: 'pagado' },
   vencido: { label: 'Vencido', css: 'vencido' },
+  reembolso_solicitado: { label: 'Reembolso solicitado', css: 'pendiente' },
 }
 
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
@@ -873,42 +874,130 @@ export default function MisReservas() {
     setPagoSaldoMetodo(null)
     setPagoSaldoError(null)
   }
-  async function handleCancelarReserva(reserva) {
-    setCancelandoId(reserva.id)
-    try {
-      const resp = await cancelarReserva(reserva.id)
-      const pagoRealizado = Number(reserva.precio_pagado) > 0
-      if (resp.tipo_devolucion === 'dinero' && pagoRealizado) {
-  const creditosKey = `creditos_${usuario.id}`
-  const creditosActuales = Number(localStorage.getItem(creditosKey)) || 0
-  localStorage.setItem(creditosKey, creditosActuales + 1)
-}
-      setReservas((prev) =>
-        prev.map((x) =>
-          x.id === reserva.id
-            ? {
-                ...x,
-                estado: 'cancelada',
-                estado_pago:
-                  resp.tipo_devolucion === 'dinero' ? 'pago_pendiente' : x.estado_pago,
-              }
-            : x
-        )
-      )
 
-const msg = reserva.precio_pagado > 0 && reserva.precio_pagado < reserva.monto_total
-  ? 'Tu reserva fue cancelada. La seña no será devuelta.'
-  : resp.tipo_devolucion === 'dinero'  && pagoRealizado
-    ? 'Tu reserva fue cancelada. Se acreditó 1 crédito a tu cuenta.'
-    : 'Tu reserva fue cancelada.'
-showAppToast(msg)
-    } catch (err) {
-      showAppToast(err?.response?.data?.detail || 'No se pudo cancelar la reserva.')
-    } finally {
-      setCancelandoId(null)
-      setConfirmCancelar(null)
-    }
+  async function solicitudReembolso(reserva) {
+  try {
+    await cancelarReserva(reserva.id, { tipo_reintegro: 'reembolso' })
+    setReservas((prev) =>
+      prev.map((x) =>
+        x.id === reserva.id
+          ? { ...x, estado: 'cancelada', estado_pago: 'reembolso_solicitado' }
+          : x
+      )
+    )
+    showAppToast('✓ Reembolso solicitado.')
+  } catch (err) {
+    showAppToast(err?.response?.data?.detail || 'No se pudo solicitar el reembolso.')
+  } finally {
+    setCancelandoId(null)
+    setConfirmCancelar(null)
   }
+}
+
+  async function handleCancelarReserva(reserva) {
+  setCancelandoId(reserva.id)
+
+  const esPagoEfectivo = reserva.medio_pago?.toLowerCase() === 'efectivo'
+  const pagoRealizado = Number(reserva.precio_pagado) > 0
+
+  if (esPagoEfectivo && pagoRealizado) {
+    // Mostrar modal de opciones de reintegro
+    const opcion = await new Promise((resolve) => {
+      setConfirmCancelar(null) // Cierra el modal de confirmación
+      setTimeout(() => {
+        const modal = document.createElement('div')
+        modal.style.cssText = `
+          position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+          background: rgba(0,0,0,0.5); display: flex; align-items: center;
+          justify-content: center; z-index: 1001;
+        `
+        modal.innerHTML = `
+          <div class="ma-modal" style="max-width: 420px; width: 90%; position: relative;">
+            <div class="ma-modal-header">
+              <div class="ma-modal-title">¿Cómo querés recibir el reintegro?</div>
+              <button id="reintegro-close-btn" class="ma-modal-close">×</button>
+            </div>
+            <div class="ma-modal-body">
+              <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 1.25rem;">
+                Se reintegrará <strong style="color: var(--text-main);">${fmt(reserva.precio_pagado)}</strong>
+              </p>
+              <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <button id="reintegro-credito-btn" class="ma-modal-save" style="width: 100%; text-align: left; padding: 0.9rem 1.1rem;">
+                  🎟️ Crédito a favor
+                  <span style="display: block; font-size: 12px; font-weight: 400; opacity: 0.85; margin-top: 2px;">
+                    Se acredita al instante y podés usarlo en tu próxima reserva
+                  </span>
+                </button>
+                <button id="reintegro-reembolso-btn" class="ma-modal-cancel" style="width: 100%; text-align: left; padding: 0.9rem 1.1rem;">
+                  💵 Solicitar reembolso en efectivo
+                  <span style="display: block; font-size: 12px; font-weight: 400; opacity: 0.85; margin-top: 2px;">
+                    Acercate al centro para la devolucion
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        `
+        document.body.appendChild(modal)
+
+        const cleanup = (result) => {
+          document.body.removeChild(modal)
+          resolve(result)
+        }
+
+        document.getElementById('reintegro-credito-btn').onclick = () => cleanup('credito')
+        document.getElementById('reintegro-reembolso-btn').onclick = () => cleanup('reembolso')
+        document.getElementById('reintegro-close-btn').onclick = () => cleanup(null)
+        modal.addEventListener('click', (e) => { if (e.target === modal) cleanup(null) })
+      }, 0)
+    })
+
+    if (opcion === null) {
+      setCancelandoId(null)
+      return
+    }
+
+    if (opcion === 'reembolso') {
+      await solicitudReembolso(reserva)
+      return
+    }
+    // Si eligió crédito, cae al flujo normal de abajo
+  }
+
+  // Flujo normal: crédito a favor (todos los medios de pago, o efectivo que eligió crédito)
+  try {
+    const resp = await cancelarReserva(reserva.id)
+    if (resp.tipo_devolucion === 'dinero' && pagoRealizado) {
+      const creditosKey = `creditos_${usuario.id}`
+      const creditosActuales = Number(localStorage.getItem(creditosKey)) || 0
+      localStorage.setItem(creditosKey, creditosActuales + 1)
+    }
+    setReservas((prev) =>
+      prev.map((x) =>
+        x.id === reserva.id
+          ? {
+              ...x,
+              estado: 'cancelada',
+              estado_pago: resp.tipo_devolucion === 'dinero' ? 'pago_pendiente' : x.estado_pago,
+            }
+          : x
+      )
+    )
+    const msg =
+      reserva.precio_pagado > 0 && reserva.precio_pagado < reserva.monto_total
+        ? 'Tu reserva fue cancelada. La seña no será devuelta.'
+        : resp.tipo_devolucion === 'dinero' && Number(reserva.precio_pagado) > 0
+          ? 'Tu reserva fue cancelada. Se acreditó 1 crédito a tu cuenta.'
+          : 'Tu reserva fue cancelada.'
+    showAppToast(msg)
+  } catch (err) {
+    showAppToast(err?.response?.data?.detail || 'No se pudo cancelar la reserva.')
+  } finally {
+    setCancelandoId(null)
+    setConfirmCancelar(null)
+  }
+}  
+
   const loadTurnos = useCallback(async () => {
     if (!usuario) return
     try {
@@ -981,7 +1070,8 @@ showAppToast(msg)
   const sorted = useMemo(() => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    const visibles = reservas.filter((r) => r.estado !== 'cancelada' || r.estado_pago === 'vencido' || r.clase_activa === false)
+    console.log(reservas.filter(r => r.estado === 'cancelada'))
+    const visibles = reservas.filter((r) => r.estado !== 'cancelada' || r.estado_pago === 'vencido' || r.clase_activa === false || r.estado_pago === 'reembolso_solicitado' || r.estado_pago === 'reembolso_entregado')
     const upcoming = visibles
       .filter((r) => new Date(r.fecha + 'T00:00:00') >= today)
       .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora.localeCompare(b.hora))
@@ -1335,6 +1425,18 @@ showAppToast(msg)
                           </>
                         ) : isVencido ? (
                           <span className='mr-item-badge mr-item-badge--vencido'>Pago vencido</span>
+                        ) : r.estado_pago === 'reembolso_solicitado' ? (
+                          <span className='mr-item-badge mr-item-badge--pendiente'>
+                            Reembolso solicitado
+                          </span>
+                        ) : r.estado_pago === 'reembolso_solicitado' ? (
+                          <span className='mr-item-badge mr-item-badge--pendiente'>
+                            Reembolso pendiente
+                          </span>
+                        ) : r.estado_pago === 'reembolso_entregado' ? (
+                          <span className='mr-item-badge mr-item-badge--asistio'>
+                            Reembolsado ✓
+                          </span>
                         ) : pagoCompleto ? (
                           <span className='mr-item-badge mr-item-badge--asistio'>
                             Pago completo
