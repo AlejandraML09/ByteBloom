@@ -21,6 +21,7 @@ import { PaymentSelector } from '../components/turnos/PaymentSelector'
 import { ReviewModal } from '../components/reviews/ReviewModal'
 import '../css/mis-reservas.css'
 import QrAbono from '../components/qr/QrAbono'
+import QrReserva from '../components/qr/QrReserva'
 
 function getUsuario() {
   const stored = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
@@ -1364,16 +1365,19 @@ showAppToast(msg)
                         {r.ya_resenada && (
                           <span className='mr-review-done'>★ Reseña enviada</span>
                         )}
+                        {proxima && r.estado !== 'cancelada' && r.id !== 999 && pagoCompleto && (
+                          <QrReserva reservaId={r.id} usuarioId={usuario.id} />
+                        )}
                         {proxima && r.estado !== 'cancelada' && r.id !== 999 && (
-  <button
-    className='mr-action-btn mr-action-btn--outline'
-    style={{ fontSize: 12, padding: '6px 10px' }}
-    onClick={() => setConfirmCancelar(r)}
-    disabled={cancelandoId === r.id}
-  >
-    {cancelandoId === r.id ? 'Cancelando…' : 'Cancelar clase'}
-  </button>
-)}
+                            <button
+                              className='mr-action-btn mr-action-btn--outline'
+                              style={{ fontSize: 12, padding: '6px 10px' }}
+                              onClick={() => setConfirmCancelar(r)}
+                              disabled={cancelandoId === r.id}
+                            >
+                              {cancelandoId === r.id ? 'Cancelando…' : 'Cancelar clase'}
+                            </button>
+                          )}
                       </div>
                       {pagoSaldoReserva?.id === r.id && (
                         <div className='mr-item-payment-panel'>
