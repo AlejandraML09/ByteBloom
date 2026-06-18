@@ -20,7 +20,9 @@ export default defineConfig({
       '/usuarios': { target: 'http://localhost:8000', changeOrigin: true },
       '/registro': { target: 'http://localhost:8000', changeOrigin: true },
       '/secretarios': { target: 'http://localhost:8000', changeOrigin: true },
+      '/secretario': { target: 'http://localhost:8000', changeOrigin: true },
       '/profesionales': { target: 'http://localhost:8000', changeOrigin: true },
+      '/reviews': { target: 'http://localhost:8000', changeOrigin: true },
       '/recuperar-password': { target: 'http://localhost:8000', changeOrigin: true },
       '/restablecer-password': { target: 'http://localhost:8000', changeOrigin: true },
     }
