@@ -906,8 +906,11 @@ export default function MisReservas() {
 
   const esPagoEfectivo = reserva.medio_pago?.toLowerCase() === 'efectivo'
   const pagoRealizado = Number(reserva.precio_pagado) > 0
+  const fechaClase = new Date(`${reserva.fecha}T${reserva.hora}`)
+  const horasHastaClase = (fechaClase - new Date()) / (1000 * 60 * 60)
+  const conAnticipacion = horasHastaClase >= 48
 
-  if (esPagoEfectivo && pagoRealizado) {
+  if (esPagoEfectivo && pagoRealizado && conAnticipacion) {
     // Mostrar modal de opciones de reintegro
     const opcion = await new Promise((resolve) => {
       setConfirmCancelar(null) // Cierra el modal de confirmación
