@@ -23,6 +23,7 @@ export default defineConfig({
       '/secretario': { target: 'http://localhost:8000', changeOrigin: true },
       '/profesionales': { target: 'http://localhost:8000', changeOrigin: true },
       '/reviews': { target: 'http://localhost:8000', changeOrigin: true },
+      '/zonas': { target: 'http://localhost:8000', changeOrigin: true },
       '/recuperar-password': { target: 'http://localhost:8000', changeOrigin: true },
       '/restablecer-password': { target: 'http://localhost:8000', changeOrigin: true },
     }
