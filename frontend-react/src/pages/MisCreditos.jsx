@@ -8,7 +8,7 @@ const API_URL = import.meta.env.VITE_API_URL
 
 export default function MisCreditos() {
   const navigate = useNavigate()
-  const [creditos, setCreditos] = useState(3) // ✅ HARDCODED POR AHORA
+  const [creditos, setCreditos] = useState(0) // ✅ HARDCODED POR AHORA
   const [loading, setLoading] = useState(true)
 
   const storedUser = localStorage.getItem('usuario') || localStorage.getItem('ks_user')
@@ -22,22 +22,16 @@ export default function MisCreditos() {
 
     // ✅ AQUÍ PUEDES AGREGAR LA LÓGICA REAL DESPUÉS
     const cargarCreditos = async () => {
-      try {
-        // const res = await fetch(`${API_URL}/api/usuarios/${user.id}/creditos`)
-        // const data = await res.json()
-        // setCreditos(data.creditos_disponibles)
-        
-        // Por ahora solo usamos el valor hardcodeado
-        const creditosGuardados =
-          Number(localStorage.getItem(`creditos_${user.id}`)) || 0
-
-        setCreditos(creditosGuardados)
-      } catch (err) {
-        console.error('Error:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
+  try {
+    const res = await fetch(`${API_URL}/usuarios/${user.id}/creditos`)
+    const data = await res.json()
+    setCreditos(data.creditos_favor)
+  } catch (err) {
+    console.error('Error:', err)
+  } finally {
+    setLoading(false)
+  }
+}
 
     cargarCreditos()
   }, [user, navigate])

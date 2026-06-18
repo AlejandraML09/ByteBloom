@@ -218,14 +218,14 @@ def cancelar_clase(data: CancelarClaseRequest, db: Session = Depends(get_db)):
     # Marcar reservas como canceladas y la clase como inactiva
     reservas_canceladas = 0
     if reservas:
-        reservas_canceladas = (
-            db.query(models.Reserva)
-            .filter(
-                models.Reserva.clase_programada_id == cp.id,
-                models.Reserva.estado != models.EstadoReserva.cancelada,
-            )
-            .update({"estado": models.EstadoReserva.cancelada}, synchronize_session=False)
-        )
+        for reserva in reservas:
+            medio = db.query(models.MedioPago).filter(models.MedioPago.id == reserva.medio_pago_id).first()
+            if medio and medio.nombre != "Efectivo" and reserva.precio_pagado >= reserva.monto_total:
+                usuario = db.query(models.Usuario).filter(models.Usuario.id == reserva.usuario_id).first()
+                if usuario:
+                    usuario.creditos_favor += 1
+            reserva.estado = models.EstadoReserva.cancelada
+            reservas_canceladas += 1
 
     cp.activo = False
     db.commit()

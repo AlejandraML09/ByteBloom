@@ -88,6 +88,7 @@ class Usuario(Base):
     )
     reset_token = Column(String(255), nullable=True)
     reset_token_expira = Column(DateTime(timezone=True), nullable=True)
+    creditos_favor = Column(Integer, nullable=False, default=0, server_default='0')
 
     def set_password(self, plain_password: str):
         self.password = bcrypt.hashpw(

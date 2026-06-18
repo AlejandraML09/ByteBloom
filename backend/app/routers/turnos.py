@@ -229,6 +229,12 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
     elif (medio_pago.nombre == "Efectivo"):
         cobrado_pack = Decimal("0")
         estado = models.EstadoReserva.pendiente
+    elif medio_pago.nombre == "Crédito a favor":
+        cobrado_pack = Decimal("0")
+        estado = models.EstadoReserva.confirmada
+        usuario = db.query(models.Usuario).filter(models.Usuario.id == data.usuario_id).first()
+        if usuario:
+            usuario.creditos_favor -= cantidad
     else:
         estado = models.EstadoReserva.confirmada
 
@@ -750,7 +756,12 @@ def cancelar_reserva(reserva_id: int, data: CancelarReservaRequest = None, db: S
 
     if pago_completo and con_anticipacion:
         devolucion = float(reserva.precio_pagado)
-        tipo_devolucion = "dinero"
+        tipo_devolucion = "credito"
+        # Solo sumar crédito si NO pidió reembolso en efectivo
+        if not (data and data.tipo_reintegro == "reembolso"):
+            usuario = db.query(models.Usuario).filter(models.Usuario.id == reserva.usuario_id).first()
+            if usuario:
+                usuario.creditos_favor += 1
     else:
         devolucion = 0.0
         tipo_devolucion = "ninguna"
@@ -907,3 +918,4 @@ def confirmar_reembolso(reserva_id: int, db: Session = Depends(get_db)):
     reserva.reembolso_entregado = True
     db.commit()
     return {"ok": True}
+
