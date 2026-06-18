@@ -1,7 +1,7 @@
 import mpLogo from '../../assets/MP_RGB_HANDSHAKE_color_horizontal.png'
 import cuentaDniLogo from '../../assets/cuenta_dni.png'
 import modoLogo from '../../assets/modo_logo.png'
-
+import { useState, useEffect } from 'react'
 const METHODS = [
   {
     id: 'mercadopago',
@@ -113,9 +113,15 @@ export function PaymentSelector({
 
   const usuario = storedUser ? JSON.parse(storedUser) : null
 
-  const creditosDisponibles =
-    Number(localStorage.getItem(`creditos_${usuario?.id}`)) || 0
+const [creditosDisponibles, setCreditosDisponibles] = useState(0)
 
+useEffect(() => {
+  if (!usuario?.id) return
+  fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/usuarios/${usuario.id}/creditos`)
+    .then(r => r.json())
+    .then(data => setCreditosDisponibles(data.creditos_favor || 0))
+    .catch(() => setCreditosDisponibles(0))
+}, [usuario?.id])
   return (
     <div className='card'>
       <div className='card-title'>
