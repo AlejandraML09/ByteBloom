@@ -938,7 +938,7 @@ export default function MisReservas() {
                   </span>
                 </button>
                 <button id="reintegro-reembolso-btn" class="ma-modal-cancel" style="width: 100%; text-align: left; padding: 0.9rem 1.1rem;">
-                  Solicitar reembolso en efectivo
+                  Solicitar reembolso
                   <span style="display: block; font-size: 12px; font-weight: 400; opacity: 0.85; margin-top: 2px;">
                     Acercate al centro para la devolucion
                   </span>
@@ -1671,11 +1671,11 @@ export default function MisReservas() {
               {confirmCancelar.precio_pagado > 0 &&
   confirmCancelar.precio_pagado < confirmCancelar.monto_total ? (
   <p style={{ fontSize: 13, color: '#c0435a', fontWeight: 600, marginTop: 8 }}>
-    ⚠️ Pagaste una seña de {fmt(confirmCancelar.precio_pagado)}. Si cancelás, no será devuelta.
+    Pagaste una seña de {fmt(confirmCancelar.precio_pagado)}. Si cancelás con mas de 48hs de anticipacion, será devuelta.
   </p>
 ) : confirmCancelar.precio_pagado > 0 ? (
   <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-    Si cancelás con más de 48hs de anticipación, se te devolverá lo abonado con un crédito a favor.
+    Si cancelás con más de 48hs de anticipación, se te devolverá lo abonado mediante el metodo seleccionado a continuación.
   </p>
 ) : null}
             </div>
