@@ -45,8 +45,8 @@ def upgrade():
 
         -- "Más de 48 horas" hasta la clase -> la semana siguiente
         v_fecha_mas48   DATE := CURRENT_DATE + INTERVAL '7 days';
-        -- "Menos de 48 horas" hasta la clase -> mañana
-        v_fecha_menos48 DATE := CURRENT_DATE + INTERVAL '1 day';
+        -- "Menos de 48 horas" hasta la clase -> hoy
+        v_fecha_menos48 DATE := CURRENT_DATE;
 
         v_password TEXT := '$2b$12$.l/4WTnBaCkxSxqayVq5ZOQcCOTMtzeu04xZouhj2mrEb6mN9hsWG';
 
