@@ -1,7 +1,7 @@
 """add qr_token to abonos
 
 Revision ID: b3c4d5e6f7a8
-Revises: b2c3d4e5f6a7
+Revises: 1c521675f48f
 Create Date: 2026-05-30 00:00:00.000000
 
 Agrega columna qr_token a la tabla abonos para identificación única por QR.
@@ -14,7 +14,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision: str = "b3c4d5e6f7a8"
-down_revision: Union[str, Sequence[str], None] = "b2c3d4e5f6a7"
+down_revision: Union[str, Sequence[str], None] = "1c521675f48f"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

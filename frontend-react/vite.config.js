@@ -1,7 +1,19 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
+const backend = (path) => ({
+  target: 'http://localhost:8000',
+  changeOrigin: true,
+  bypass(req) {
+    // Si es una navegación de browser (Accept incluye text/html),
+    // no proxear: dejar que Vite sirva el index.html del SPA.
+    if (req.headers.accept && req.headers.accept.includes('text/html')) {
+      return '/index.html'
+    }
+    // Si no, dejar que siga el proxy normal hacia el backend.
+  }
+})
+
 export default defineConfig({
   plugins: [react()],
   build: {
@@ -11,21 +23,21 @@ export default defineConfig({
   server: {
     allowedHosts: true,
     proxy: {
-      '/api': { target: 'http://localhost:8000', changeOrigin: true },
-      '/login': { target: 'http://localhost:8000', changeOrigin: true },
-      '/logout': { target: 'http://localhost:8000', changeOrigin: true },
-      '/turnos': { target: 'http://localhost:8000', changeOrigin: true },
-      '/abonos': { target: 'http://localhost:8000', changeOrigin: true },
-      '/qr': { target: 'http://localhost:8000', changeOrigin: true },
-      '/usuarios': { target: 'http://localhost:8000', changeOrigin: true },
-      '/registro': { target: 'http://localhost:8000', changeOrigin: true },
-      '/secretarios': { target: 'http://localhost:8000', changeOrigin: true },
-      '/secretario': { target: 'http://localhost:8000', changeOrigin: true },
-      '/profesionales': { target: 'http://localhost:8000', changeOrigin: true },
-      '/reviews': { target: 'http://localhost:8000', changeOrigin: true },
-      '/zonas': { target: 'http://localhost:8000', changeOrigin: true },
-      '/recuperar-password': { target: 'http://localhost:8000', changeOrigin: true },
-      '/restablecer-password': { target: 'http://localhost:8000', changeOrigin: true },
+      '/api': backend(),
+      '/login': backend(),
+      '/logout': backend(),
+      '/turnos': backend(),
+      '/abonos': backend(),
+      '/qr': backend(),
+      '/usuarios': backend(),
+      '/registro': backend(),
+      '/secretarios': backend(),
+      '/secretario': backend(),
+      '/profesionales': backend(),
+      '/reviews': backend(),
+      '/zonas': backend(),
+      '/recuperar-password': backend(),
+      '/restablecer-password': backend(),
     }
   }
 })

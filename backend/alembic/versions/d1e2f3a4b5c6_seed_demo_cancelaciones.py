@@ -110,7 +110,7 @@ def upgrade():
 
         -- ---------- CLASES CON LISTA DE ESPERA (cupo_inicial=2, cupo_disponible=0) ----------
         INSERT INTO clases_programadas (fecha, hora, cupo_disponible, cupo_inicial, zona_id, sala_id)
-        VALUES (v_fecha_mas48, v_hora1, 0, 2, 1, 1) RETURNING id INTO v_cl1;
+        VALUES (v_fecha_mas48, v_hora3, 0, 2, 1, 1) RETURNING id INTO v_cl1;
 
         INSERT INTO clases_programadas (fecha, hora, cupo_disponible, cupo_inicial, zona_id, sala_id)
         VALUES (v_fecha_mas48, v_hora1, 0, 2, 2, 2) RETURNING id INTO v_cl2;
@@ -119,7 +119,7 @@ def upgrade():
         VALUES (v_fecha_menos48, v_hora2, 0, 2, 3, 1) RETURNING id INTO v_cl3;
 
         INSERT INTO clases_programadas (fecha, hora, cupo_disponible, cupo_inicial, zona_id, sala_id)
-        VALUES (v_fecha_menos48, v_hora2, 0, 2, 1, 2) RETURNING id INTO v_cl4;
+        VALUES (v_fecha_menos48, v_hora1, 0, 2, 1, 2) RETURNING id INTO v_cl4;
 
         -- ---------- CLASES SIN LISTA DE ESPERA (cupo_inicial=10, cupo_disponible=8) ----------
         INSERT INTO clases_programadas (fecha, hora, cupo_disponible, cupo_inicial, zona_id, sala_id)
@@ -156,8 +156,6 @@ def upgrade():
         VALUES (v_user2, v_cl4, v_mp_otro, 2500.00, 5000.00, 'confirmada', 'qr-' || md5(random()::text));
 
         INSERT INTO reservas (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, estado, qr_token)
-        VALUES (v_user1, v_sl1, v_mp_efectivo, 5000.00, 5000.00, 'confirmada', 'qr-' || md5(random()::text));
-        INSERT INTO reservas (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, estado, qr_token)
         VALUES (v_user2, v_sl1, v_mp_efectivo, 2500.00, 5000.00, 'confirmada', 'qr-' || md5(random()::text));
 
         INSERT INTO reservas (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, estado, qr_token)
@@ -172,8 +170,6 @@ def upgrade():
 
         INSERT INTO reservas (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, estado, qr_token)
         VALUES (v_user1, v_sl4, v_mp_otro, 5000.00, 5000.00, 'confirmada', 'qr-' || md5(random()::text));
-        INSERT INTO reservas (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, estado, qr_token)
-        VALUES (v_user2, v_sl4, v_mp_otro, 2500.00, 5000.00, 'confirmada', 'qr-' || md5(random()::text));
 
         -- ---------- LISTA DE ESPERA (1 persona esperando en cada clase con cupo 0) ----------
         INSERT INTO lista_espera (usuario_id, clase_programada_id, prioridad) VALUES (v_user3, v_cl1, 1);
