@@ -4,7 +4,7 @@ import { escanearQrAbono, escanearQrReserva } from '../../api/qr'
 
 const esCelular = /iPhone|iPad|Android/i.test(navigator.userAgent)
 
-export default function EscanerQR({ secretarioId }) {
+export default function EscanerQR({ secretarioId, onSuccess }) {
   const [activo, setActivo] = useState(false)
   const [resultado, setResultado] = useState(null)
   const scannerRef = useRef(null)
@@ -31,6 +31,7 @@ export default function EscanerQR({ secretarioId }) {
             }
           }
           setResultado({ ok: true, mensaje: res.mensaje })
+          onSuccess?.()
         } catch (err) {
           setResultado({
             ok: false,
@@ -57,7 +58,7 @@ export default function EscanerQR({ secretarioId }) {
             setActivo(true)
           }}
         >
-          📷 Escanear QR de asistencia
+        Escanear QR de asistencia
         </button>
       )}
 
@@ -78,12 +79,6 @@ export default function EscanerQR({ secretarioId }) {
         >
           {resultado.ok ? '✅' : '❌'} {resultado.mensaje}
         </div>
-      )}
-
-      {!esCelular && (
-        <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-          Esta función solo está disponible desde un celular.
-        </p>
       )}
     </div>
   )
