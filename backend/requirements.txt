@@ -27,4 +27,5 @@ uvicorn==0.30.0
 watchfiles==1.1.1
 websockets==16.0
 bcrypt==4.1.1
+tzdata==2026.2
 
