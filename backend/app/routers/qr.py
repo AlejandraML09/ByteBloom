@@ -1,4 +1,5 @@
 from datetime import date, datetime, time
+from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -8,6 +9,8 @@ from app.database import SessionLocal
 from app.core.config_qr import QR_MINUTOS_ANTES, QR_MINUTOS_DESPUES
 
 router = APIRouter(prefix="/qr", tags=["qr"])
+
+TZ_ARG = ZoneInfo("America/Argentina/Buenos_Aires")
 
 
 # ── Configuración ─────────────────────────────────────────────────────────────
@@ -106,23 +109,27 @@ def escanear_qr(data: EscaneoRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="El abono está vencido.")
 
     # ── 4. Buscar clase próxima dentro de la ventana horaria ──────────────────
-    ahora = datetime.now()
+    ahora = datetime.now(TZ_ARG)
+    hoy = ahora.date()
+    hora_actual = ahora.time()
 
     clase = db.execute(
         text("""
             SELECT cp.id, cp.fecha, cp.hora
             FROM clases_programadas cp
             WHERE cp.zona_id = :zona_id
-              AND cp.activo  = true
-              AND cp.fecha   = CURRENT_DATE
-              AND cp.hora BETWEEN
-                    (CURRENT_TIME - :minutos_antes * INTERVAL '1 minute') AND
-                    (CURRENT_TIME + :minutos_despues * INTERVAL '1 minute')
+            AND cp.activo  = true
+            AND cp.fecha   = :hoy
+            AND CAST(:hora_actual AS TIME) BETWEEN
+                (cp.hora - :minutos_antes  * INTERVAL '1 minute') AND
+                (cp.hora + :minutos_despues * INTERVAL '1 minute')
             ORDER BY cp.hora
             LIMIT 1
         """),
         {
             "zona_id": abono.zona_id,
+            "hoy": hoy,
+            "hora_actual": hora_actual,
             "minutos_antes": QR_MINUTOS_ANTES,
             "minutos_despues": QR_MINUTOS_DESPUES,
         },
@@ -270,19 +277,25 @@ def escanear_qr_reserva(data: EscaneoRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="La reserva fue marcada como ausente.")
 
     # ── 4. Verificar ventana horaria ──────────────────────────────────────────
+    ahora = datetime.now(TZ_ARG)
+    hoy = ahora.date()
+    hora_actual = ahora.time()
+
     clase = db.execute(
         text("""
             SELECT cp.fecha, cp.hora
             FROM clases_programadas cp
             WHERE cp.id     = :clase_id
-              AND cp.activo = true
-              AND cp.fecha  = CURRENT_DATE
-              AND cp.hora BETWEEN
-                    (CURRENT_TIME - :minutos_antes  * INTERVAL '1 minute') AND
-                    (CURRENT_TIME + :minutos_despues * INTERVAL '1 minute')
+            AND cp.activo = true
+            AND cp.fecha  = :hoy
+            AND CAST(:hora_actual AS TIME) BETWEEN
+                (cp.hora - :minutos_antes  * INTERVAL '1 minute') AND
+                (cp.hora + :minutos_despues * INTERVAL '1 minute')
         """),
         {
             "clase_id": reserva.clase_programada_id,
+            "hoy": hoy,
+            "hora_actual": hora_actual,
             "minutos_antes": QR_MINUTOS_ANTES,
             "minutos_despues": QR_MINUTOS_DESPUES,
         },

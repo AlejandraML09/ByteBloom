@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 
@@ -18,6 +19,8 @@ from app import models
 
 
 logger = logging.getLogger(__name__)
+
+TZ_ARG = ZoneInfo("America/Argentina/Buenos_Aires")
 
 # Tiempo de gracia tras el horario de la clase antes de marcar 'ausente'.
 HORAS_GRACIA = 2
@@ -30,7 +33,7 @@ INTERVALO_SEGUNDOS = 30 * 60
 def marcar_ausencias_pendientes(db: Session) -> int:
     """Marca como 'ausente' las reservas cuya clase ya pasó hace más de
     HORAS_GRACIA y que siguen en estado pendiente/confirmada."""
-    ahora = datetime.now()
+    ahora = datetime.now(TZ_ARG).replace(tzinfo=None)
     limite = ahora - timedelta(hours=HORAS_GRACIA)
 
     candidatas = (
