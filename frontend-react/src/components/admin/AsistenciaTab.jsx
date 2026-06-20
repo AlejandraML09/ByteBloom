@@ -124,6 +124,15 @@ export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChan
     )
   })
 
+  function PatientCell({ name, zona, showZona = true }) {
+    return (
+      <div className='patient-name'>
+        <div className='patient-avatar'>{initials(name)}</div>
+        <span>{name}</span>
+      </div>
+    )
+  }
+
   return (
     <div className='card'>
       <div className='card-header'>
@@ -182,18 +191,28 @@ export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChan
               </tr>
             ) : reservasFiltradas.length === 0 ? (
               <tr>
-                <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
-                  {busqueda ? 'Sin resultados para esa búsqueda.' : 'Sin pacientes en este horario'}
+                <td colSpan={3}>
+                  <div className='empty-state'>
+                    <svg
+                      width='32'
+                      height='32'
+                      viewBox='0 0 24 24'
+                      fill='none'
+                      stroke='currentColor'
+                      strokeWidth='1.5'
+                    >
+                      <circle cx='12' cy='12' r='10' />
+                      <path d='M12 8v4M12 16h.01' />
+                    </svg>
+                    <p>No hay inscriptos en este horario.</p>
+                  </div>
                 </td>
               </tr>
             ) : (
               reservasFiltradas.map((r) => (
                 <tr key={r.reserva_id}>
                   <td>
-                    <div className='patient-name'>
-                      <div className='patient-avatar'>{initials(r.paciente)}</div>
-                      <span>{r.paciente}</span>
-                    </div>
+                    <PatientCell name={r.paciente} zona={r.zona} showZona={true} />
                   </td>
                   <td>
                     <span className='badge badge-purple'>{ZONA_LABEL[r.zona] ?? ZONAS[r.zona] ?? r.zona}</span>
@@ -223,8 +242,8 @@ export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChan
             <thead>
               <tr>
                 <th>Paciente</th>
-                <th>Zona</th>
-                <th>Asistencia</th>
+                {/* <th>Zona</th>
+                <th>Asistencia</th> */}
               </tr>
             </thead>
             <tbody>
@@ -238,18 +257,7 @@ export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChan
                 waitlist.map((w) => (
                   <tr key={w.id}>
                     <td>
-                      <div className='patient-name'>
-                        <div className='patient-avatar'>{initials(w.nombre)}</div>
-                        <span>{w.nombre}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <span className='badge badge-purple'>{ZONA_LABEL[w.zona] ?? ZONAS[w.zona] ?? w.zona}</span>
-                    </td>
-                    <td>
-                      <select className='asist-select' value='espera' disabled>
-                        <option value='espera'>En lista de espera</option>
-                      </select>
+                      <PatientCell name={w.nombre} showZona={false} />
                     </td>
                   </tr>
                 ))
