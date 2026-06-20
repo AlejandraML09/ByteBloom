@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
+from datetime import date as date_type
+import logging
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from pydantic import BaseModel
@@ -145,3 +147,51 @@ def get_mi_lista_espera(usuario_id: int, db: Session = Depends(get_db)):
         }
         for le, cp, z in rows
     ]
+
+
+@router.get("/lista-espera")
+def get_lista_espera_por_turno(fecha: str, hora: str, db: Session = Depends(get_db)):
+    """Devuelve las entradas de lista de espera para un turno (fecha + hora).
+    Útil para paneles administrativos que necesitan mostrar quién está
+    esperando para un horario determinado.
+    """
+    logger = logging.getLogger(__name__)
+    try:
+        try:
+            fecha_obj = date_type.fromisoformat(fecha)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Fecha inválida. Usá formato YYYY-MM-DD.")
+
+        rows = (
+            db.query(models.ListaEspera, models.ClaseProgramada, models.Usuario)
+            .join(
+                models.ClaseProgramada,
+                models.ListaEspera.clase_programada_id == models.ClaseProgramada.id,
+            )
+            .join(models.Usuario, models.ListaEspera.usuario_id == models.Usuario.id)
+            .filter(
+                models.ClaseProgramada.fecha == fecha_obj,
+                models.ClaseProgramada.hora == hora[:5],
+                models.ListaEspera.activo == True,
+                models.ListaEspera.estado == models.EstadoListaEspera.esperando,
+                models.ClaseProgramada.activo == True,
+            )
+            .order_by(models.ListaEspera.prioridad)
+            .all()
+        )
+
+        return [
+            {
+                "id": le.id,
+                "usuario_id": u.id,
+                "nombre": f"{u.nombre} {u.apellido}",
+                "fecha_inscripcion": le.fecha_inscripcion.isoformat() if le.fecha_inscripcion else None,
+                "prioridad": le.prioridad,
+            }
+            for le, cp, u in rows
+        ]
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Error al obtener lista de espera para %s %s: %s", fecha, hora, exc)
+        raise HTTPException(status_code=500, detail="Error interno al obtener la lista de espera.")

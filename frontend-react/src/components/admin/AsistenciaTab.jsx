@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { initials } from '../../utils/strings'
-import { HORARIOS, ZONAS } from '../../constants/admin'
-import { getAsistencia, setAsistencia } from '../../api/turnos'
+import { ZONAS } from '../../constants/admin'
+import { getAsistencia, setAsistencia, getDisponibilidad, getListaEspera } from '../../api/turnos'
 
 const ASIST_OPCIONES = [
   { value: 'pendiente', label: 'Pendiente' },
@@ -16,6 +16,8 @@ export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChan
   const [loading, setLoading] = useState(true)
   const [savingId, setSavingId] = useState(null)
   const [busqueda, setBusqueda] = useState('')
+  const [horariosDisponibles, setHorariosDisponibles] = useState([])
+  const [waitlist, setWaitlist] = useState([])
 
   const cargar = useCallback(async () => {
     setLoading(true)
@@ -32,6 +34,62 @@ export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChan
   useEffect(() => {
     cargar()
   }, [cargar])
+
+  // Cargar horarios disponibles (solo horarios con al menos 1 inscripción)
+  useEffect(() => {
+    if (!filterDate) return
+    const mes = filterDate.slice(0, 7)
+    let mounted = true
+    ;(async () => {
+      try {
+        const data = await getDisponibilidad(mes)
+        const filas = Array.isArray(data) ? data : []
+        const filasFecha = filas.filter((f) => f.fecha === filterDate)
+        const horas = Array.from(
+          new Set(
+            filasFecha
+              .filter((f) => {
+                const reservados = (f.cupo_maximo ?? 0) - (f.cupo_disponible ?? 0)
+                return reservados > 0
+              })
+              .map((f) => f.hora)
+          )
+        ).sort()
+        if (mounted) {
+          setHorariosDisponibles(horas)
+          // Si la hora seleccionada ya no está entre las disponibles, seleccionar la primera
+          if (horas.length > 0 && !horas.includes(filterHora)) {
+            onHoraChange(horas[0])
+          }
+        }
+      } catch {
+        if (mounted) setHorariosDisponibles([])
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [filterDate, filterHora, onHoraChange])
+
+  // Cargar lista de espera para el turno (fecha + hora)
+  useEffect(() => {
+    if (!filterDate || !filterHora) {
+      setWaitlist([])
+      return
+    }
+    let mounted = true
+    ;(async () => {
+      try {
+        const data = await getListaEspera({ fecha: filterDate, hora: filterHora })
+        if (mounted) setWaitlist(Array.isArray(data) ? data : [])
+      } catch {
+        if (mounted) setWaitlist([])
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [filterDate, filterHora])
 
   async function handleChange(reservaId, nuevoEstado) {
     const previo = reservas.find((r) => r.reserva_id === reservaId)?.asistencia
@@ -76,11 +134,17 @@ export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChan
         <div className='date-filter'>
           <input type='date' value={filterDate} onChange={(e) => onDateChange(e.target.value)} />
           <select value={filterHora} onChange={(e) => onHoraChange(e.target.value)}>
-            {HORARIOS.map((h) => (
-              <option key={h} value={h}>
-                {h}
+            {horariosDisponibles && horariosDisponibles.length > 0 ? (
+              horariosDisponibles.map((h) => (
+                <option key={h} value={h}>
+                  {h}
+                </option>
+              ))
+            ) : (
+              <option value="" disabled>
+                No hay horarios con inscriptos
               </option>
-            ))}
+            )}
           </select>
         </div>
       </div>
@@ -151,6 +215,48 @@ export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChan
             )}
           </tbody>
         </table>
+      </div>
+      <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--text-muted)' }}>
+        <h4 style={{ margin: '0 0 0.5rem 0' }}>Lista de espera</h4>
+        <div style={{ overflowX: 'auto' }}>
+          <table>
+            <thead>
+              <tr>
+                <th>Paciente</th>
+                <th>Zona</th>
+                <th>Asistencia</th>
+              </tr>
+            </thead>
+            <tbody>
+              {waitlist.length === 0 ? (
+                <tr>
+                  <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
+                    No hay inscriptos en la lista de espera.
+                  </td>
+                </tr>
+              ) : (
+                waitlist.map((w) => (
+                  <tr key={w.id}>
+                    <td>
+                      <div className='patient-name'>
+                        <div className='patient-avatar'>{initials(w.nombre)}</div>
+                        <span>{w.nombre}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className='badge badge-purple'>{ZONA_LABEL[w.zona] ?? ZONAS[w.zona] ?? w.zona}</span>
+                    </td>
+                    <td>
+                      <select className='asist-select' value='espera' disabled>
+                        <option value='espera'>En lista de espera</option>
+                      </select>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )
