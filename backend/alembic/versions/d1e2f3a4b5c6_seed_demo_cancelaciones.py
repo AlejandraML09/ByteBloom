@@ -36,7 +36,7 @@ def upgrade():
     DO $$
     DECLARE
         -- ---------- EDITAR ACÁ ----------
-        v_hora_base   TIME := '17:00:00';     -- primer horario (18:00 y 19:00 se calculan solos)
+        v_hora_base   TIME := '12:00:00';     -- primer horario (18:00 y 19:00 se calculan solos)
         -- ---------------------------------
 
         v_hora1 TIME := v_hora_base;
@@ -56,6 +56,7 @@ def upgrade():
         v_user1 BIGINT; -- Martina Sosa
         v_user2 BIGINT; -- Joaquín Acosta
         v_user3 BIGINT; -- Brenda Ramos
+        v_user4 BIGINT; -- Nicolás Conde Martinez (personal, no demo)
 
         -- Clases CON lista de espera (cupo_disponible = 0)
         v_cl1 BIGINT; -- Sala Norte,   hora1, zona Superior -> >48h, efectivo
@@ -84,8 +85,12 @@ def upgrade():
         INSERT INTO usuarios (nombre, apellido, dni, email, password, fecha_nacimiento, rol)
         VALUES ('Brenda', 'Ramos', 99000003, 'brenda.ramos@test.com', v_password, '1998-11-30', 'usuario')
         RETURNING id INTO v_user3;
-               
-        
+
+        -- ---------- USUARIO PERSONAL ----------
+        INSERT INTO usuarios (nombre, apellido, dni, email, password, fecha_nacimiento, rol)
+        VALUES ('Nicolás', 'Conde Martinez', 44130204, 'nicolasconde204@gmail.com', v_password, '2002-06-01', 'usuario')
+        RETURNING id INTO v_user4;
+
         ------------------------------
         DELETE FROM lista_espera
         WHERE clase_programada_id IN (
@@ -175,7 +180,7 @@ def upgrade():
         INSERT INTO lista_espera (usuario_id, clase_programada_id, prioridad) VALUES (v_user3, v_cl1, 1);
         INSERT INTO lista_espera (usuario_id, clase_programada_id, prioridad) VALUES (v_user2, v_cl2, 1);
         INSERT INTO lista_espera (usuario_id, clase_programada_id, prioridad) VALUES (v_user1, v_cl3, 1);
-        INSERT INTO lista_espera (usuario_id, clase_programada_id, prioridad) VALUES (v_user3, v_cl4, 1);
+        INSERT INTO lista_espera (usuario_id, clase_programada_id, prioridad) VALUES (v_user4, v_cl4, 1);
     END $$;
     """)
 

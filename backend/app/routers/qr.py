@@ -1,4 +1,4 @@
-from datetime import date, datetime, time
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -12,9 +12,15 @@ router = APIRouter(prefix="/qr", tags=["qr"])
 
 TZ_ARG = ZoneInfo("America/Argentina/Buenos_Aires")
 
+# Mensaje único para "no tenés clase ahora", usado tanto para QR de abono
+# como para QR de reserva suelta.
+MENSAJE_FUERA_DE_VENTANA = (
+    f"No tenés clase en este horario "
+    f"(ventana: {QR_MINUTOS_ANTES} min antes, {QR_MINUTOS_DESPUES} min después)."
+)
+
 
 # ── Configuración ─────────────────────────────────────────────────────────────
-
 # Modificar estos valores en app/core/config_qr.py
 # QR_MINUTOS_ANTES   = 60  → ventana antes del inicio de clase
 # QR_MINUTOS_DESPUES = 15  → ventana después del inicio de clase
@@ -37,7 +43,49 @@ class EscaneoRequest(BaseModel):
     secretario_id: int
 
 
-# ── Endpoints ─────────────────────────────────────────────────────────────────
+# ── Helpers compartidos ────────────────────────────────────────────────────────
+
+def _verificar_secretario(secretario_id: int, db: Session) -> None:
+    secretario = db.execute(
+        text("SELECT id, rol FROM usuarios WHERE id = :id"),
+        {"id": secretario_id},
+    ).fetchone()
+
+    if not secretario or secretario.rol != "secretario":
+        raise HTTPException(status_code=403, detail="Sin permisos para registrar asistencia.")
+
+
+def _dentro_de_ventana(hora_clase, hora_actual) -> bool:
+    """
+    True si hora_actual cae dentro de [hora_clase - QR_MINUTOS_ANTES, hora_clase + QR_MINUTOS_DESPUES].
+    Se calcula en Python (en vez de una query extra a Postgres) cuando ya tenemos
+    la hora de la clase disponible de una consulta anterior.
+    """
+    base = datetime.combine(date.today(), hora_clase)
+    inicio = (base - timedelta(minutes=QR_MINUTOS_ANTES)).time()
+    fin = (base + timedelta(minutes=QR_MINUTOS_DESPUES)).time()
+    return inicio <= hora_actual <= fin
+
+
+def _registrar_asistencia(reserva_id: int, nombre: str, apellido: str, fecha, hora, db: Session) -> dict:
+    db.execute(
+        text("""
+            UPDATE reservas
+            SET estado = 'asistio'::estado_reserva
+            WHERE id = :reserva_id
+        """),
+        {"reserva_id": reserva_id},
+    )
+    db.commit()
+
+    return {
+        "ok": True,
+        "mensaje": f"Asistencia registrada para {nombre} {apellido}.",
+        "clase": {"fecha": str(fecha), "hora": str(hora)[:5]},
+    }
+
+
+# ── Endpoints de obtención de QR (sin cambios de lógica) ──────────────────────
 
 @router.get("/abono/{abono_id}")
 def get_qr_abono(abono_id: int, usuario_id: int, db: Session = Depends(get_db)):
@@ -69,139 +117,6 @@ def get_qr_abono(abono_id: int, usuario_id: int, db: Session = Depends(get_db)):
     return {"qr_token": abono.qr_token}
 
 
-@router.post("/escanear")
-def escanear_qr(data: EscaneoRequest, db: Session = Depends(get_db)):
-    """
-    Registra la asistencia de un alumno escaneando el QR de su abono.
-    Validaciones: secretario, abono activo, clase próxima, reserva confirmada,
-    ventana horaria y que no haya asistido ya esta semana.
-    """
-
-    # ── 1. Verificar que quien escanea es secretario ──────────────────────────
-    secretario = db.execute(
-        text("SELECT id, rol FROM usuarios WHERE id = :id"),
-        {"id": data.secretario_id},
-    ).fetchone()
-
-    if not secretario or secretario.rol != "secretario":
-        raise HTTPException(status_code=403, detail="Sin permisos para registrar asistencia.")
-
-    # ── 2. Buscar el abono por qr_token ───────────────────────────────────────
-    abono = db.execute(
-        text("""
-            SELECT a.id, a.usuario_id, a.zona_id, a.estado, a.activo, a.fecha_fin,
-                   u.nombre, u.apellido
-            FROM abonos a
-            JOIN usuarios u ON u.id = a.usuario_id
-            WHERE a.qr_token = :token
-        """),
-        {"token": data.qr_token},
-    ).fetchone()
-
-    if not abono:
-        raise HTTPException(status_code=404, detail="QR inválido.")
-
-    # ── 3. Verificar que el abono está activo ─────────────────────────────────
-    if not abono.activo or abono.estado != "activo":
-        raise HTTPException(status_code=400, detail="El abono no está activo.")
-
-    if abono.fecha_fin and abono.fecha_fin < date.today():
-        raise HTTPException(status_code=400, detail="El abono está vencido.")
-
-    # ── 4. Buscar clase próxima dentro de la ventana horaria ──────────────────
-    ahora = datetime.now(TZ_ARG)
-    hoy = ahora.date()
-    hora_actual = ahora.time()
-
-    clase = db.execute(
-        text("""
-            SELECT cp.id, cp.fecha, cp.hora
-            FROM clases_programadas cp
-            WHERE cp.zona_id = :zona_id
-            AND cp.activo  = true
-            AND cp.fecha   = :hoy
-            AND CAST(:hora_actual AS TIME) BETWEEN
-                (cp.hora - :minutos_antes  * INTERVAL '1 minute') AND
-                (cp.hora + :minutos_despues * INTERVAL '1 minute')
-            ORDER BY cp.hora
-            LIMIT 1
-        """),
-        {
-            "zona_id": abono.zona_id,
-            "hoy": hoy,
-            "hora_actual": hora_actual,
-            "minutos_antes": QR_MINUTOS_ANTES,
-            "minutos_despues": QR_MINUTOS_DESPUES,
-        },
-    ).fetchone()
-
-    if not clase:
-        raise HTTPException(
-            status_code=400,
-            detail=f"No hay clase en los próximos {QR_MINUTOS_ANTES} minutos para este abono.",
-        )
-
-    # ── 5. Verificar reserva confirmada para esa clase ────────────────────────
-    reserva = db.execute(
-        text("""
-            SELECT r.id, r.estado
-            FROM reservas r
-            JOIN abono_reservas ar ON ar.reserva_id = r.id
-            WHERE ar.abono_id          = :abono_id
-              AND r.clase_programada_id = :clase_id
-              AND r.estado             = 'confirmada'::estado_reserva
-        """),
-        {"abono_id": abono.id, "clase_id": clase.id},
-    ).fetchone()
-
-    if not reserva:
-        raise HTTPException(
-            status_code=400,
-            detail="No hay una reserva confirmada para esta clase.",
-        )
-
-    # ── 6. Verificar que no asistió ya esta semana ────────────────────────────
-    asistio_semana = db.execute(
-        text("""
-            SELECT r.id
-            FROM reservas r
-            JOIN abono_reservas ar ON ar.reserva_id = r.id
-            JOIN clases_programadas cp ON cp.id = r.clase_programada_id
-            WHERE ar.abono_id  = :abono_id
-              AND r.estado     = 'asistio'::estado_reserva
-              AND EXTRACT(WEEK FROM cp.fecha)  = EXTRACT(WEEK FROM CURRENT_DATE)
-              AND EXTRACT(YEAR FROM cp.fecha)  = EXTRACT(YEAR FROM CURRENT_DATE)
-        """),
-        {"abono_id": abono.id},
-    ).fetchone()
-
-    if asistio_semana:
-        raise HTTPException(
-            status_code=400,
-            detail=f"{abono.nombre} {abono.apellido} ya registró asistencia esta semana.",
-        )
-
-    # ── 7. Registrar asistencia ───────────────────────────────────────────────
-    db.execute(
-        text("""
-            UPDATE reservas
-            SET estado = 'asistio'::estado_reserva
-            WHERE id = :reserva_id
-        """),
-        {"reserva_id": reserva.id},
-    )
-    db.commit()
-
-    return {
-        "ok": True,
-        "mensaje": f"Asistencia registrada para {abono.nombre} {abono.apellido}.",
-        "clase": {
-            "fecha": str(clase.fecha),
-            "hora": str(clase.hora)[:5],
-        },
-    }
-
-
 @router.get("/reserva/{reserva_id}")
 def get_qr_reserva(reserva_id: int, usuario_id: int, db: Session = Depends(get_db)):
     """
@@ -230,40 +145,105 @@ def get_qr_reserva(reserva_id: int, usuario_id: int, db: Session = Depends(get_d
     return {"qr_token": reserva.qr_token}
 
 
-@router.post("/escanear-reserva")
-def escanear_qr_reserva(data: EscaneoRequest, db: Session = Depends(get_db)):
-    """
-    Registra asistencia escaneando el QR de una reserva suelta.
-    Sin límite semanal, pero respeta la ventana horaria.
-    """
+# ── Endpoint único de escaneo ──────────────────────────────────────────────────
 
-    # ── 1. Verificar secretario ───────────────────────────────────────────────
-    secretario = db.execute(
-        text("SELECT id, rol FROM usuarios WHERE id = :id"),
-        {"id": data.secretario_id},
+@router.post("/escanear")
+def escanear_qr(data: EscaneoRequest, db: Session = Depends(get_db)):
+    """
+    Registra asistencia escaneando CUALQUIER QR (de abono o de reserva suelta).
+
+    Un solo endpoint para las dos historias de usuario: detecta de qué tipo
+    es el token consultando primero `abonos` y después `reservas`, y ambos
+    caminos terminan en el mismo chequeo de ventana horaria
+    (MENSAJE_FUERA_DE_VENTANA) y el mismo registro de asistencia
+    (_registrar_asistencia).
+    """
+    _verificar_secretario(data.secretario_id, db)
+
+    ahora = datetime.now(TZ_ARG)
+    hoy = ahora.date()
+    hora_actual = ahora.time()
+
+    # ── ¿El token es de un abono? ─────────────────────────────────────────────
+    abono = db.execute(
+        text("""
+            SELECT a.id, a.estado, a.activo, a.fecha_fin, u.nombre, u.apellido
+            FROM abonos a
+            JOIN usuarios u ON u.id = a.usuario_id
+            WHERE a.qr_token = :token
+        """),
+        {"token": data.qr_token},
     ).fetchone()
 
-    if not secretario or secretario.rol != "secretario":
-        raise HTTPException(status_code=403, detail="Sin permisos para registrar asistencia.")
+    if abono:
+        return _escanear_abono(abono, hoy, hora_actual, db)
 
-    # ── 2. Buscar la reserva por qr_token ─────────────────────────────────────
+    # ── ¿El token es de una reserva suelta? ───────────────────────────────────
     reserva = db.execute(
         text("""
-            SELECT r.id, r.estado, r.clase_programada_id,
-                   u.nombre, u.apellido,
-                   cp.fecha, cp.hora, cp.zona_id
+            SELECT r.id, r.estado, u.nombre, u.apellido,
+                   cp.fecha, cp.hora, cp.activo AS clase_activa
             FROM reservas r
-            JOIN usuarios u             ON u.id  = r.usuario_id
-            JOIN clases_programadas cp  ON cp.id = r.clase_programada_id
+            JOIN usuarios u            ON u.id  = r.usuario_id
+            JOIN clases_programadas cp ON cp.id = r.clase_programada_id
             WHERE r.qr_token = :token
         """),
         {"token": data.qr_token},
     ).fetchone()
 
-    if not reserva:
-        raise HTTPException(status_code=404, detail="QR inválido.")
+    if reserva:
+        return _escanear_reserva(reserva, hoy, hora_actual, db)
 
-    # ── 3. Verificar estado de la reserva ─────────────────────────────────────
+    raise HTTPException(status_code=404, detail="QR inválido.")
+
+
+def _escanear_abono(abono, hoy, hora_actual, db: Session) -> dict:
+    # ── Validar que el abono está activo ──────────────────────────────────────
+    if not abono.activo or abono.estado != "activo":
+        raise HTTPException(status_code=400, detail="El abono no está activo.")
+
+    if abono.fecha_fin and abono.fecha_fin < date.today():
+        raise HTTPException(status_code=400, detail="El abono está vencido.")
+
+    # ── Presente si HAY una reserva confirmada para este horario ──────────────
+    # (un solo query: reemplaza el viejo par "buscar clase en la zona" +
+    # "buscar reserva confirmada para esa clase")
+    reserva = db.execute(
+        text("""
+            SELECT r.id, r.estado, u.nombre, u.apellido, cp.fecha, cp.hora, cp.activo AS clase_activa
+            FROM reservas r
+            JOIN abono_reservas ar      ON ar.reserva_id = r.id
+            JOIN clases_programadas cp  ON cp.id = r.clase_programada_id
+            JOIN usuarios u            ON u.id = r.usuario_id
+            WHERE ar.abono_id = :abono_id
+              AND cp.activo   = true
+              AND cp.fecha    = :hoy
+              AND CAST(:hora_actual AS TIME) BETWEEN
+                  (cp.hora - :minutos_antes  * INTERVAL '1 minute') AND
+                  (cp.hora + :minutos_despues * INTERVAL '1 minute')
+            LIMIT 1
+        """),
+        {
+            "abono_id": abono.id,
+            "hoy": hoy,
+            "hora_actual": hora_actual,
+            "minutos_antes": QR_MINUTOS_ANTES,
+            "minutos_despues": QR_MINUTOS_DESPUES,
+        },
+    ).fetchone()
+
+    if not reserva:
+        raise HTTPException(status_code=400, detail=MENSAJE_FUERA_DE_VENTANA)
+
+    return _escanear_reserva(
+        reserva,
+        hoy,
+        hora_actual,
+        db,
+    )
+
+def _escanear_reserva(reserva, hoy, hora_actual, db: Session) -> dict:
+    # ── Validar estado de la reserva ──────────────────────────────────────────
     if reserva.estado == "asistio":
         raise HTTPException(
             status_code=400,
@@ -276,53 +256,13 @@ def escanear_qr_reserva(data: EscaneoRequest, db: Session = Depends(get_db)):
     if reserva.estado == "ausente":
         raise HTTPException(status_code=400, detail="La reserva fue marcada como ausente.")
 
-    # ── 4. Verificar ventana horaria ──────────────────────────────────────────
-    ahora = datetime.now(TZ_ARG)
-    hoy = ahora.date()
-    hora_actual = ahora.time()
+    # ── Validar ventana horaria sin query extra: ya tenemos fecha/hora
+    # de la clase desde el SELECT inicial en escanear_qr ──────────────────────
+    if (
+        not reserva.clase_activa
+        or reserva.fecha != hoy
+        or not _dentro_de_ventana(reserva.hora, hora_actual)
+    ):
+        raise HTTPException(status_code=400, detail=MENSAJE_FUERA_DE_VENTANA)
 
-    clase = db.execute(
-        text("""
-            SELECT cp.fecha, cp.hora
-            FROM clases_programadas cp
-            WHERE cp.id     = :clase_id
-            AND cp.activo = true
-            AND cp.fecha  = :hoy
-            AND CAST(:hora_actual AS TIME) BETWEEN
-                (cp.hora - :minutos_antes  * INTERVAL '1 minute') AND
-                (cp.hora + :minutos_despues * INTERVAL '1 minute')
-        """),
-        {
-            "clase_id": reserva.clase_programada_id,
-            "hoy": hoy,
-            "hora_actual": hora_actual,
-            "minutos_antes": QR_MINUTOS_ANTES,
-            "minutos_despues": QR_MINUTOS_DESPUES,
-        },
-    ).fetchone()
-
-    if not clase:
-        raise HTTPException(
-            status_code=400,
-            detail=f"La clase no está dentro de la ventana de escaneo ({QR_MINUTOS_ANTES} min antes, {QR_MINUTOS_DESPUES} min después).",
-        )
-
-    # ── 5. Registrar asistencia ───────────────────────────────────────────────
-    db.execute(
-        text("""
-            UPDATE reservas
-            SET estado = 'asistio'::estado_reserva
-            WHERE id = :reserva_id
-        """),
-        {"reserva_id": reserva.id},
-    )
-    db.commit()
-
-    return {
-        "ok": True,
-        "mensaje": f"Asistencia registrada para {reserva.nombre} {reserva.apellido}.",
-        "clase": {
-            "fecha": str(reserva.fecha),
-            "hora": str(reserva.hora)[:5],
-        },
-    }
+    return _registrar_asistencia(reserva.id, reserva.nombre, reserva.apellido, reserva.fecha, reserva.hora, db)
