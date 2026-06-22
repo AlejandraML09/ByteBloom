@@ -904,13 +904,12 @@ export default function MisReservas() {
   async function handleCancelarReserva(reserva) {
   setCancelandoId(reserva.id)
 
-  const esPagoEfectivo = reserva.medio_pago?.toLowerCase() === 'efectivo'
   const pagoRealizado = Number(reserva.precio_pagado) > 0
   const fechaClase = new Date(`${reserva.fecha}T${reserva.hora}`)
   const horasHastaClase = (fechaClase - new Date()) / (1000 * 60 * 60)
   const conAnticipacion = horasHastaClase >= 48
 
-  if (esPagoEfectivo && pagoRealizado && conAnticipacion) {
+  if (pagoRealizado && conAnticipacion) {
     // Mostrar modal de opciones de reintegro
     const opcion = await new Promise((resolve) => {
       setConfirmCancelar(null) // Cierra el modal de confirmación
@@ -933,13 +932,13 @@ export default function MisReservas() {
               </p>
               <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                 <button id="reintegro-credito-btn" class="ma-modal-save" style="width: 100%; text-align: left; padding: 0.9rem 1.1rem;">
-                  🎟️ Crédito a favor
+                  Crédito a favor
                   <span style="display: block; font-size: 12px; font-weight: 400; opacity: 0.85; margin-top: 2px;">
                     Se acredita al instante y podés usarlo en tu próxima reserva
                   </span>
                 </button>
                 <button id="reintegro-reembolso-btn" class="ma-modal-cancel" style="width: 100%; text-align: left; padding: 0.9rem 1.1rem;">
-                  💵 Solicitar reembolso en efectivo
+                  Solicitar reembolso
                   <span style="display: block; font-size: 12px; font-weight: 400; opacity: 0.85; margin-top: 2px;">
                     Acercate al centro para la devolucion
                   </span>
@@ -958,6 +957,14 @@ export default function MisReservas() {
         document.getElementById('reintegro-credito-btn').onclick = () => cleanup('credito')
         document.getElementById('reintegro-reembolso-btn').onclick = () => cleanup('reembolso')
         document.getElementById('reintegro-close-btn').onclick = () => cleanup(null)
+        document.getElementById('reintegro-reembolso-btn').onmouseover = (e) => {
+          e.currentTarget.style.color = 'var(--text-main)'
+          e.currentTarget.style.background = 'var(--border)'
+        }
+        document.getElementById('reintegro-reembolso-btn').onmouseout = (e) => {
+          e.currentTarget.style.color = ''
+          e.currentTarget.style.background = ''
+        }
         modal.addEventListener('click', (e) => { if (e.target === modal) cleanup(null) })
       }, 0)
     })
@@ -1664,11 +1671,11 @@ export default function MisReservas() {
               {confirmCancelar.precio_pagado > 0 &&
   confirmCancelar.precio_pagado < confirmCancelar.monto_total ? (
   <p style={{ fontSize: 13, color: '#c0435a', fontWeight: 600, marginTop: 8 }}>
-    ⚠️ Pagaste una seña de {fmt(confirmCancelar.precio_pagado)}. Si cancelás, no será devuelta.
+    Pagaste una seña de {fmt(confirmCancelar.precio_pagado)}. Si cancelás con mas de 48hs de anticipacion, será devuelta.
   </p>
 ) : confirmCancelar.precio_pagado > 0 ? (
   <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-    Si cancelás con más de 48hs de anticipación, se te devolverá lo abonado con un crédito a favor.
+    Si cancelás con más de 48hs de anticipación, se te devolverá lo abonado mediante el metodo seleccionado a continuación.
   </p>
 ) : null}
             </div>

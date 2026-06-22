@@ -114,6 +114,16 @@ export async function getMiListaEspera(usuarioId) {
 }
 
 /**
+ * Lista de espera para un turno (fecha + hora).
+ * @param {string} fecha - "YYYY-MM-DD"
+ * @param {string} hora - "HH:MM"
+ */
+export async function getListaEspera({ fecha, hora }) {
+  const { data } = await client.get('/turnos/lista-espera', { params: { fecha, hora } })
+  return data
+}
+
+/**
  * Reservas reales de un slot (fecha + hora) para tomar asistencia.
  * @param {string} fecha "YYYY-MM-DD"
  * @param {string} hora  "HH:MM"
