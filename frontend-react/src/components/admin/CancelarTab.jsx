@@ -299,6 +299,9 @@ export function CancelarTab({ onToast }) {
             <span>
               {resumen.inscriptos} inscripto{resumen.inscriptos === 1 ? '' : 's'}
             </span>
+            <div style={{ marginTop: 4, fontSize: '0.9rem', color: '#444' }}>
+              {resumen.lista_espera ?? 0} persona{resumen.lista_espera === 1 ? '' : 's'} en lista de espera
+            </div>
             {!resumen.activo && (
               <div style={{ marginTop: 4, color: '#c0435a', fontSize: '0.8rem' }}>
                 Esta clase ya se encuentra cancelada.
@@ -361,6 +364,26 @@ export function CancelarTab({ onToast }) {
                 : 'No hay usuarios inscriptos en esta clase.'}{' '}
               La acción no se puede deshacer.
             </p>
+
+            <div
+              style={{
+                marginTop: '1rem',
+                background: '#fafafa',
+                border: '1px solid #eee',
+                borderRadius: 8,
+                padding: '0.75rem 1rem',
+                color: '#444',
+              }}
+            >
+              <div>
+                <strong>{resumen.inscriptos}</strong>{' '}
+                persona{resumen.inscriptos === 1 ? '' : 's'} inscripta{resumen.inscriptos === 1 ? '' : 's'}
+              </div>
+              <div style={{ marginTop: 4 }}>
+                <strong>{resumen.lista_espera ?? 0}</strong>{' '}
+                persona{resumen.lista_espera === 1 ? '' : 's'} en lista de espera
+              </div>
+            </div>
 
             <div
               style={{

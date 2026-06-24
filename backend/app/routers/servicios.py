@@ -6,7 +6,10 @@ from datetime import date
 from app.database import SessionLocal
 from app import models
 from app.routers.usuarios import enviar_mail, FRONTEND_URL
-from app.services.cancellation_notifications import notificar_cancelacion_clase
+from app.services.cancellation_notifications import (
+    notificar_cancelacion_clase,
+    notificar_cancelacion_lista_espera,
+)
 
 
 router = APIRouter(prefix="/api", tags=["servicios"])
@@ -176,10 +179,26 @@ def buscar_clase_para_cancelar(
         .count()
     )
 
+    lista_espera = (
+        db.query(models.ListaEspera)
+        .filter(
+            models.ListaEspera.clase_programada_id == cp.id,
+            models.ListaEspera.activo == True,
+            models.ListaEspera.estado.in_(
+                [
+                    models.EstadoListaEspera.esperando,
+                    models.EstadoListaEspera.notificado,
+                ]
+            ),
+        )
+        .count()
+    )
+
     return {
         "id": cp.id,
         "activo": cp.activo,
         "inscriptos": inscriptos,
+        "lista_espera": lista_espera,
         "zona_id": cp.zona_id,
         "fecha": str(cp.fecha),
         "hora": str(cp.hora)[:5],
@@ -215,7 +234,23 @@ def cancelar_clase(data: CancelarClaseRequest, db: Session = Depends(get_db)):
     )
     user_ids = [r.usuario_id for r in reservas]
 
-    # Marcar reservas como canceladas y la clase como inactiva
+    lista_espera = (
+        db.query(models.ListaEspera)
+        .filter(
+            models.ListaEspera.clase_programada_id == cp.id,
+            models.ListaEspera.activo == True,
+            models.ListaEspera.estado.in_(
+                [
+                    models.EstadoListaEspera.esperando,
+                    models.EstadoListaEspera.notificado,
+                ]
+            ),
+        )
+        .all()
+    )
+    waitlist_user_ids = [le.usuario_id for le in lista_espera]
+
+    # Marcar reservas y lista de espera como canceladas, y la clase como inactiva
     reservas_canceladas = 0
     if reservas:
         for reserva in reservas:
@@ -227,14 +262,24 @@ def cancelar_clase(data: CancelarClaseRequest, db: Session = Depends(get_db)):
             reserva.estado = models.EstadoReserva.cancelada
             reservas_canceladas += 1
 
+    for entrada in lista_espera:
+        entrada.activo = False
+        entrada.estado = models.EstadoListaEspera.cancelado
+
     cp.activo = False
     db.commit()
 
-    # Enviar notificaciones a los usuarios que tenían reserva en la clase cancelada
+    # Enviar notificaciones a los usuarios de reservas activas y de lista de espera
     try:
         notificar_cancelacion_clase(cp.id, db, user_ids=user_ids)
     except Exception:
         # No impedir la operación por fallos en notificaciones
+        pass
+
+    try:
+        if waitlist_user_ids:
+            notificar_cancelacion_lista_espera(cp.id, db, user_ids=waitlist_user_ids)
+    except Exception:
         pass
 
     return {

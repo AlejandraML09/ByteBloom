@@ -237,15 +237,13 @@ export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChan
             </tbody>
           </table>
         </div>
-        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--text-muted)' }}>
+        {/* < div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--text-muted)' }}>
           <h4 style={{ margin: '0 0 0.5rem 0' }}>Lista de espera</h4>
           <div style={{ overflowX: 'auto' }}>
             <table>
               <thead>
                 <tr>
                   <th>Paciente</th>
-                  {/* <th>Zona</th>
-                  <th>Asistencia</th> */}
                 </tr>
               </thead>
               <tbody>
@@ -267,7 +265,7 @@ export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChan
               </tbody>
             </table>
           </div>
-        </div>
+        </div> */}
       </div>
     </>
   )
