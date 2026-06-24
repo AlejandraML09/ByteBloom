@@ -133,130 +133,103 @@ export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChan
   }
 
   return (
-    <div className='card'>
-      <div className='card-header'>
-        <div>
-          <h3>Tomar asistencia</h3>
-          <p>Definí la asistencia de cada paciente</p>
-        </div>
-        <div className='date-filter'>
-          <input type='date' value={filterDate} onChange={(e) => onDateChange(e.target.value)} />
-          <select value={filterHora} onChange={(e) => onHoraChange(e.target.value)}>
-            {horariosDisponibles && horariosDisponibles.length > 0 ? (
-              horariosDisponibles.map((h) => (
-                <option key={h} value={h}>
-                  {h}
+    <>
+      <EscanerQR secretarioId={actorId} onSuccess={cargar} />
+
+      <div className='card'>
+        <div className='card-header'>
+          <div>
+            <h3>Tomar asistencia</h3>
+            <p>Definí la asistencia de cada paciente</p>
+          </div>
+          <div className='date-filter'>
+            <input type='date' value={filterDate} onChange={(e) => onDateChange(e.target.value)} />
+            <select value={filterHora} onChange={(e) => onHoraChange(e.target.value)}>
+              {horariosDisponibles && horariosDisponibles.length > 0 ? (
+                horariosDisponibles.map((h) => (
+                  <option key={h} value={h}>
+                    {h}
+                  </option>
+                ))
+              ) : (
+                <option value="" disabled>
+                  No hay horarios con inscriptos
                 </option>
-              ))
-            ) : (
-              <option value="" disabled>
-                No hay horarios con inscriptos
-              </option>
-            )}
-          </select>
+              )}
+            </select>
+          </div>
         </div>
-      </div>
-      <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--text-muted)' }}>
-        <input
-          type='text'
-          placeholder='Buscar por paciente o zona…'
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '0.65rem 1rem',
-            borderRadius: '6px',
-            border: '1px solid var(--text-muted)',
-            fontSize: '14px',
-            boxSizing: 'border-box',
-          }}
-        />
-      </div>
-      <div style={{ overflowX: 'auto' }}>
-        <table>
-          <thead>
-            <tr>
-              <th>Paciente</th>
-              <th>Zona</th>
-              <th>Asistencia</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
-                  Cargando…
-                </td>
-              </tr>
-            ) : reservasFiltradas.length === 0 ? (
-              <tr>
-                <td colSpan={3}>
-                  <div className='empty-state'>
-                    <svg
-                      width='32'
-                      height='32'
-                      viewBox='0 0 24 24'
-                      fill='none'
-                      stroke='currentColor'
-                      strokeWidth='1.5'
-                    >
-                      <circle cx='12' cy='12' r='10' />
-                      <path d='M12 8v4M12 16h.01' />
-                    </svg>
-                    <p>No hay inscriptos en este horario.</p>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              reservasFiltradas.map((r) => (
-                <tr key={r.reserva_id}>
-                  <td>
-                    <PatientCell name={r.paciente} zona={r.zona} showZona={true} />
-                  </td>
-                  <td>
-                    <span className='badge badge-purple'>{ZONA_LABEL[r.zona] ?? ZONAS[r.zona] ?? r.zona}</span>
-                  </td>
-                  <td>
-                    <select
-                      className='asist-select'
-                      value={r.asistencia}
-                      disabled={savingId === r.reserva_id}
-                      onChange={(e) => handleChange(r.reserva_id, e.target.value)}
-                    >
-                      {ASIST_OPCIONES.map((o) => (
-                        <option key={o.value} value={o.value}>{o.label}</option>
-                      ))}
-                    </select>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-      <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--text-muted)' }}>
-        <h4 style={{ margin: '0 0 0.5rem 0' }}>Lista de espera</h4>
+        <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--text-muted)' }}>
+          <input
+            type='text'
+            placeholder='Buscar por paciente o zona…'
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.65rem 1rem',
+              borderRadius: '6px',
+              border: '1px solid var(--text-muted)',
+              fontSize: '14px',
+              boxSizing: 'border-box',
+            }}
+          />
+        </div>
         <div style={{ overflowX: 'auto' }}>
           <table>
             <thead>
               <tr>
                 <th>Paciente</th>
-                {/* <th>Zona</th>
-                <th>Asistencia</th> */}
+                <th>Zona</th>
+                <th>Asistencia</th>
               </tr>
             </thead>
             <tbody>
-              {waitlist.length === 0 ? (
+              {loading ? (
                 <tr>
                   <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
-                    No hay inscriptos en la lista de espera.
+                    Cargando…
+                  </td>
+                </tr>
+              ) : reservasFiltradas.length === 0 ? (
+                <tr>
+                  <td colSpan={3}>
+                    <div className='empty-state'>
+                      <svg
+                        width='32'
+                        height='32'
+                        viewBox='0 0 24 24'
+                        fill='none'
+                        stroke='currentColor'
+                        strokeWidth='1.5'
+                      >
+                        <circle cx='12' cy='12' r='10' />
+                        <path d='M12 8v4M12 16h.01' />
+                      </svg>
+                      <p>No hay inscriptos en este horario.</p>
+                    </div>
                   </td>
                 </tr>
               ) : (
-                waitlist.map((w) => (
-                  <tr key={w.id}>
+                reservasFiltradas.map((r) => (
+                  <tr key={r.reserva_id}>
                     <td>
-                      <PatientCell name={w.nombre} showZona={false} />
+                      <PatientCell name={r.paciente} zona={r.zona} showZona={true} />
+                    </td>
+                    <td>
+                      <span className='badge badge-purple'>{ZONA_LABEL[r.zona] ?? ZONAS[r.zona] ?? r.zona}</span>
+                    </td>
+                    <td>
+                      <select
+                        className='asist-select'
+                        value={r.asistencia}
+                        disabled={savingId === r.reserva_id}
+                        onChange={(e) => handleChange(r.reserva_id, e.target.value)}
+                      >
+                        {ASIST_OPCIONES.map((o) => (
+                          <option key={o.value} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
                     </td>
                   </tr>
                 ))
@@ -264,7 +237,38 @@ export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChan
             </tbody>
           </table>
         </div>
+        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--text-muted)' }}>
+          <h4 style={{ margin: '0 0 0.5rem 0' }}>Lista de espera</h4>
+          <div style={{ overflowX: 'auto' }}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Paciente</th>
+                  {/* <th>Zona</th>
+                  <th>Asistencia</th> */}
+                </tr>
+              </thead>
+              <tbody>
+                {waitlist.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem' }}>
+                      No hay inscriptos en la lista de espera.
+                    </td>
+                  </tr>
+                ) : (
+                  waitlist.map((w) => (
+                    <tr key={w.id}>
+                      <td>
+                        <PatientCell name={w.nombre} showZona={false} />
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   )
 }
