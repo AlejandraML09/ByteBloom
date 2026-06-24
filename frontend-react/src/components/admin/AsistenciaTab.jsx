@@ -18,6 +18,7 @@ export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChan
   const [busqueda, setBusqueda] = useState('')
   const [horariosDisponibles, setHorariosDisponibles] = useState([])
   const [waitlist, setWaitlist] = useState([])
+  const [orden, setOrden] = useState('az')
 
   const cargar = useCallback(async () => {
     setLoading(true)
@@ -114,14 +115,19 @@ export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChan
     }
   }
 
-  const reservasFiltradas = reservas.filter((r) => {
-    if (!busqueda.trim()) return true
-    const q = busqueda.toLowerCase()
-    return (
-      (r.paciente || '').toLowerCase().includes(q) ||
-      (r.zona || '').toLowerCase().includes(q) ||
-      filterDate.includes(q)
-    )
+  const reservasFiltradas = reservas
+    .filter((r) => {
+      if (!busqueda.trim()) return true
+      const q = busqueda.toLowerCase()
+      return (
+        (r.paciente || '').toLowerCase().includes(q) ||
+        (r.zona || '').toLowerCase().includes(q) ||
+        filterDate.includes(q)
+      )
+    })
+  .sort((a, b) => {
+    const cmp = (a.paciente || '').localeCompare(b.paciente || '', 'es')
+    return orden === 'az' ? cmp : -cmp
   })
 
   function PatientCell({ name, zona, showZona = true }) {
@@ -157,14 +163,14 @@ export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChan
           </select>
         </div>
       </div>
-      <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--text-muted)' }}>
+      <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--text-muted)', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
         <input
           type='text'
           placeholder='Buscar por paciente o zona…'
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           style={{
-            width: '100%',
+            flex: 1,
             padding: '0.65rem 1rem',
             borderRadius: '6px',
             border: '1px solid var(--text-muted)',
@@ -172,6 +178,21 @@ export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChan
             boxSizing: 'border-box',
           }}
         />
+        <select
+          value={orden}
+          onChange={(e) => setOrden(e.target.value)}
+          style={{
+            padding: '0.65rem 1rem',
+            borderRadius: '6px',
+            border: '1px solid var(--text-muted)',
+            fontSize: '14px',
+            fontFamily: "'DM Sans', sans-serif",
+            cursor: 'pointer',
+          }}
+        >
+          <option value='az'>Nombre (A-Z)</option>
+          <option value='za'>Nombre (Z-A)</option>
+        </select>
       </div>
       <div style={{ overflowX: 'auto' }}>
         <table>
