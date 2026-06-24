@@ -186,6 +186,7 @@ export function AsistenciaTab({ filterDate, filterHora, onDateChange, onHoraChan
             borderRadius: '6px',
             border: '1px solid var(--text-muted)',
             fontSize: '14px',
+            fontFamily: "'DM Sans', sans-serif",
             cursor: 'pointer',
           }}
         >
