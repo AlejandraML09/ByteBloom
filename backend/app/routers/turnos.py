@@ -230,7 +230,7 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
         cobrado_pack = Decimal("0")
         estado = models.EstadoReserva.pendiente
     elif medio_pago.nombre == "Crédito a favor":
-        cobrado_pack = Decimal("0")
+        cobrado_pack = monto_total_pack  # ← igual que pago completo
         estado = models.EstadoReserva.confirmada
         usuario = db.query(models.Usuario).filter(models.Usuario.id == data.usuario_id).first()
         if usuario:
