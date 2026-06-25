@@ -14,9 +14,9 @@ export const profesionales = [
     name: 'Dra. Marcela Ríos',
     email: 'marcela.rios@endereza2.com',
     image: marcelaImg,
-    title: 'Kinesióloga · Directora clínica',
+    title: 'Kinesióloga',
     tags: ['Tren superior', 'Neurológica'],
-    bio: 'Licenciada en Kinesiología (UNLP) con posgrado en Neurorehabilitación. Más de 14 años acompañando pacientes con lesiones complejas de hombro, cuello y sistema nervioso. Directora del centro desde 2018.',
+    bio: 'Licenciada en Kinesiología (UNLP) con posgrado en Neurorehabilitación. Más de 14 años acompañando pacientes con lesiones complejas de hombro, cuello y sistema nervioso.',
   },
   {
     initials: 'JP',

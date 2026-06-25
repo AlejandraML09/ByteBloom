@@ -904,12 +904,15 @@ export default function MisReservas() {
   async function handleCancelarReserva(reserva) {
   setCancelandoId(reserva.id)
 
-  const pagoRealizado = Number(reserva.precio_pagado) > 0
+  const pagado = Number(reserva.precio_pagado)
+  const total = Number(reserva.monto_total)
   const fechaClase = new Date(`${reserva.fecha}T${reserva.hora}`)
-  const horasHastaClase = (fechaClase - new Date()) / (1000 * 60 * 60)
-  const conAnticipacion = horasHastaClase >= 48
+  const conAnticipacion = (fechaClase - new Date()) / (1000 * 60 * 60) >= 48
 
-  if (pagoRealizado && conAnticipacion) {
+  const tieneSena = pagado > 0 && pagado < total
+  const pagoCompleto = pagado >= total && pagado > 0
+
+  if (conAnticipacion && pagoCompleto) {
     // Mostrar modal de opciones de reintegro
     const opcion = await new Promise((resolve) => {
       setConfirmCancelar(null) // Cierra el modal de confirmación
@@ -979,6 +982,10 @@ export default function MisReservas() {
       return
     }
     // Si eligió crédito, cae al flujo normal de abajo
+  }
+  else if (conAnticipacion && tieneSena){
+    await solicitudReembolso(reserva)
+    return
   }
 
   // Flujo normal: crédito a favor (todos los medios de pago, o efectivo que eligió crédito)
@@ -1171,7 +1178,14 @@ export default function MisReservas() {
                 <input
                   type='date'
                   value={filterDesde}
-                  onChange={(e) => setFilterDesde(e.target.value)}
+                  onChange={(e) => {
+                    const nuevaDesde = e.target.value
+                    if (filterHasta && nuevaDesde > filterHasta) {
+                      return
+                    }
+                    setFilterDesde(nuevaDesde)
+                  }}
+                  max={filterHasta || undefined}
                   style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--gray)' }}
                 />
               </div>
@@ -1273,7 +1287,14 @@ export default function MisReservas() {
                 <input
                   type='date'
                   value={filterDesde}
-                  onChange={(e) => setFilterDesde(e.target.value)}
+                  onChange={(e) => {
+                    const nuevaDesde = e.target.value
+                    if (filterHasta && nuevaDesde > filterHasta) {
+                      return
+                    }
+                    setFilterDesde(nuevaDesde)
+                  }}
+                  max={filterHasta || undefined}
                   style={{ padding: '0.6rem', borderRadius: '4px', border: '1px solid var(--gray)' }}
                 />
               </div>
