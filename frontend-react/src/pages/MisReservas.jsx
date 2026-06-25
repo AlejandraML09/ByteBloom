@@ -910,6 +910,14 @@ export default function MisReservas() {
   const conAnticipacion = horasHastaClase >= 48
 
   if (pagoRealizado && conAnticipacion) {
+
+    const esSoloSena = Number(reserva.precio_pagado) < Number(reserva.monto_total)
+
+  if (esSoloSena) {
+    // Pagó solo la seña + más de 48hs → reembolso directo sin preguntar
+    await solicitudReembolso(reserva)
+    return
+  }
     // Mostrar modal de opciones de reintegro
     const opcion = await new Promise((resolve) => {
       setConfirmCancelar(null) // Cierra el modal de confirmación
@@ -1671,7 +1679,7 @@ export default function MisReservas() {
               {confirmCancelar.precio_pagado > 0 &&
   confirmCancelar.precio_pagado < confirmCancelar.monto_total ? (
   <p style={{ fontSize: 13, color: '#c0435a', fontWeight: 600, marginTop: 8 }}>
-    Pagaste una seña de {fmt(confirmCancelar.precio_pagado)}. Si cancelás con mas de 48hs de anticipacion, será devuelta.
+      Pagaste una seña de {fmt(confirmCancelar.precio_pagado)}. Si cancelás con más de 48hs de anticipación, se registrará un reembolso automáticamente.
   </p>
 ) : confirmCancelar.precio_pagado > 0 ? (
   <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
