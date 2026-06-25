@@ -986,6 +986,27 @@ export default function MisReservas() {
       await solicitudReembolso(reserva)
       return
     }
+
+
+    // ✅ AGREGAR ESTO:
+    if (opcion === 'credito') {
+      try {
+        await cancelarReserva(reserva.id, { tipo_reintegro: 'credito' })
+        setReservas((prev) =>
+          prev.map((x) =>
+            x.id === reserva.id ? { ...x, estado: 'cancelada' } : x
+          )
+        )
+        showAppToast('✓ Se acreditó 1 crédito a tu cuenta.')
+      } catch (err) {
+        showAppToast(err?.response?.data?.detail || 'No se pudo cancelar la reserva.')
+      } finally {
+        setCancelandoId(null)
+        setConfirmCancelar(null)
+      }
+      return  // ← sin este return cae al flujo genérico de abajo
+    }
+
     // Si eligió crédito, cae al flujo normal de abajo
   }
 
@@ -996,6 +1017,7 @@ export default function MisReservas() {
       const creditosKey = `creditos_${usuario.id}`
       const creditosActuales = Number(localStorage.getItem(creditosKey)) || 0
       localStorage.setItem(creditosKey, creditosActuales + 1)
+      
     }
     setReservas((prev) =>
       prev.map((x) =>
@@ -1012,7 +1034,7 @@ export default function MisReservas() {
       reserva.precio_pagado > 0 && reserva.precio_pagado < reserva.monto_total
         ? 'Tu reserva fue cancelada. La seña no será devuelta.'
         : resp.tipo_devolucion === 'dinero' && Number(reserva.precio_pagado) > 0
-          ? 'Tu reserva fue cancelada. Se acreditó 1 crédito a tu cuenta.'
+          ? 'Se acreditó 1 crédito a tu cuenta.'
           : 'Tu reserva fue cancelada.'
     showAppToast(msg)
   } catch (err) {
