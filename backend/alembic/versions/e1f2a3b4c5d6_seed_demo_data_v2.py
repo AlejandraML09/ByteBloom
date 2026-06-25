@@ -217,7 +217,7 @@ def upgrade():
         INSERT INTO reservas (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, estado, qr_token)
         VALUES (v_user_leo, v_cl_e2, v_mp_otro, 5000.00, 5000.00, 'confirmada', 'qr-' || md5(random()::text));
         INSERT INTO reservas (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, estado, qr_token)
-        VALUES (v_user_leo, v_cl_e5, v_mp_efectivo, 2500.00, 5000.00, 'confirmada', 'qr-' || md5(random()::text));
+        VALUES (v_user_leo, v_cl_e5, v_mp_otro, 2500.00, 5000.00, 'confirmada', 'qr-' || md5(random()::text));
         INSERT INTO reservas (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, estado, qr_token)
         VALUES (v_user_leo, v_cl_e6, v_mp_otro, 2500.00, 5000.00, 'confirmada', 'qr-' || md5(random()::text));
 
@@ -226,7 +226,7 @@ def upgrade():
         INSERT INTO reservas (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, estado, qr_token)
         VALUES (v_user_leo, v_cl_e4, v_mp_otro, 5000.00, 5000.00, 'confirmada', 'qr-' || md5(random()::text));
         INSERT INTO reservas (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, estado, qr_token)
-        VALUES (v_user_leo, v_cl_e7, v_mp_efectivo, 2500.00, 5000.00, 'confirmada', 'qr-' || md5(random()::text));
+        VALUES (v_user_leo, v_cl_e7, v_mp_otro, 2500.00, 5000.00, 'confirmada', 'qr-' || md5(random()::text));
         INSERT INTO reservas (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, estado, qr_token)
         VALUES (v_user_leo, v_cl_e8, v_mp_otro, 2500.00, 5000.00, 'confirmada', 'qr-' || md5(random()::text));
 
@@ -289,16 +289,12 @@ def upgrade():
 
         -- ---------- ABONOS DE NICOLASCONDE204 (escenarios de escaneo QR) ----------
 
-        -- "El abono no está activo": activo=false, estado='vencido'
+        -- "El abono está vencido": activo=false, estado='vencido'
         -- (cualquier estado != 'activo' corta antes de mirar fecha_fin)
         INSERT INTO abonos (usuario_id, zona_id, fecha_inicio, fecha_fin, monto_mensual, dia_limite_pago, estado, activo, qr_token)
-        VALUES (v_user_nico, 1, '2026-01-01', NULL, 15000.00, 10, 'vencido', false, 'qr-' || md5(random()::text))
+        VALUES (v_user_nico, 1, '2026-05-01', '2026-05-31', 15000.00, 10, 'vencido', false, 'qr-' || md5(random()::text))
         RETURNING id INTO v_abono_no_activo;
-
-        -- "El abono está vencido": activo=true, estado='activo', fecha_fin en el pasado
-        INSERT INTO abonos (usuario_id, zona_id, fecha_inicio, fecha_fin, monto_mensual, dia_limite_pago, estado, activo, qr_token)
-        VALUES (v_user_nico, 2, '2026-01-01', '2026-06-01', 15000.00, 10, 'activo', true, 'qr-' || md5(random()::text))
-        RETURNING id INTO v_abono_vencido;
+        
     END $$;
     """)
 
