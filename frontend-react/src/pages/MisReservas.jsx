@@ -1683,7 +1683,7 @@ export default function MisReservas() {
   </p>
 ) : confirmCancelar.precio_pagado > 0 ? (
   <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-    Si cancelás con más de 48hs de anticipación, se te devolverá lo abonado mediante el metodo seleccionado a continuación.
+    Si cancelás con más de 48hs de anticipación, se te devolverá lo abonado mediante el metodo seleccionado.
   </p>
 ) : null}
             </div>
