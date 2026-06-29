@@ -21,7 +21,7 @@ from app import models
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 
-MAX_PALABRAS_COMENTARIO = 160
+MAX_CARACTERES_COMENTARIO = 160
 
 
 def get_db():
@@ -32,9 +32,8 @@ def get_db():
         db.close()
 
 
-def contar_palabras(texto: str) -> int:
-    return len(texto.split())
-
+def contar_caracteres(texto: str) -> int:
+    return len(texto)
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
 
@@ -60,9 +59,9 @@ class CrearResenaRequest(BaseModel):
         v = v.strip()
         if v == "":
             return None
-        if contar_palabras(v) > MAX_PALABRAS_COMENTARIO:
+        if contar_caracteres(v) > MAX_CARACTERES_COMENTARIO:
             raise ValueError(
-                f"El comentario no puede superar las {MAX_PALABRAS_COMENTARIO} palabras."
+                f"El comentario no puede superar los {MAX_CARACTERES_COMENTARIO} caracteres."
             )
         return v
 

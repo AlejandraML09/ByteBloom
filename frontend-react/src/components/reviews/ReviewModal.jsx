@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { crearResena, contarPalabras, MAX_PALABRAS_RESENA } from '../../api/reviews'
+import { crearResena, contarCaracteres, MAX_CARACTERES_RESENA } from '../../api/reviews'
 import { fmtLargo } from '../../utils/dates'
 import { ZONA_LABELS } from '../../constants/turnos'
 import { profesionales } from '../../constants/profesionales'
@@ -31,8 +31,8 @@ export function ReviewModal({ reserva, usuarioId, onClose, onSuccess }) {
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState(null)
 
-  const palabras = contarPalabras(comentario)
-  const excedido = palabras > MAX_PALABRAS_RESENA
+  const caracteres = contarCaracteres(comentario)
+  const excedido = caracteres > MAX_CARACTERES_RESENA
   const canSave = rating >= 1 && rating <= 5 && !excedido && !guardando
 
   async function handleGuardar() {
@@ -112,7 +112,7 @@ export function ReviewModal({ reserva, usuarioId, onClose, onSuccess }) {
             rows={4}
           />
           <div className={`rv-counter${excedido ? ' rv-counter--error' : ''}`}>
-            {palabras}/{MAX_PALABRAS_RESENA} palabras
+            {caracteres}/{MAX_CARACTERES_RESENA} caracteres
           </div>
 
           {error && <p className='ma-modal-error'>{error}</p>}
