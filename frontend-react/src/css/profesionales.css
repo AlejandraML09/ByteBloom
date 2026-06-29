@@ -249,6 +249,8 @@
   margin: 0 auto;
   padding: 1rem 0 3rem;
   text-align: center;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .rc-section .section-label,
@@ -258,9 +260,65 @@
 
 /* Viewport a todo el ancho con difuminado en los bordes */
 .rc-marquee {
+  position: relative;
   margin-top: 1.5rem;
   overflow: hidden;
   width: 100%;
+  padding: 0.5rem 0 0.75rem;
+}
+
+.rc-nav {
+  position: absolute;
+  inset: 0 0 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.75rem;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.rc-nav-btn {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.95rem;
+  height: 2.95rem;
+  border: 2px solid var(--primary-dark);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--primary-dark);
+  font-size: 1.45rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--primary-dark) 16%, transparent);
+  backdrop-filter: blur(6px);
+  position: relative;
+  z-index: 30;
+}
+
+.rc-nav-btn:hover {
+  background: var(--white);
+  transform: scale(1.03);
+}
+
+.rc-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.rc-track {
+  --rc-offset: 0px;
+  display: flex;
+  gap: 1.25rem;
+  width: max-content;
+  padding: 0.5rem 0.625rem;
+  transform: translateX(var(--rc-offset));
+  animation-name: rc-scroll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
   -webkit-mask-image: linear-gradient(
     to right,
     transparent,
@@ -271,27 +329,17 @@
   mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
 }
 
-.rc-track {
-  display: flex;
-  gap: 1.25rem;
-  width: max-content;
-  padding: 0.5rem 0.625rem;
-  animation-name: rc-scroll;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-}
-
 .rc-marquee:hover .rc-track {
   animation-play-state: paused;
 }
 
 @keyframes rc-scroll {
   from {
-    transform: translateX(0);
+    transform: translateX(var(--rc-offset));
   }
   to {
     /* -50% = exactamente una copia completa de la lista (loop sin cortes) */
-    transform: translateX(-50%);
+    transform: translateX(calc(var(--rc-offset) - 50%));
   }
 }
 
