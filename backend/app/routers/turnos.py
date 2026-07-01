@@ -196,11 +196,16 @@ def reservar(data: ReservaRequest, db: Session = Depends(get_db)):
                 detail=f"Sin cupos disponibles para {item.fecha} a las {item.hora}.",
             )
         if data.usuario_id is not None:
+            # Evitar que un mismo usuario reserve dos clases en la misma fecha+hora
+            # (independientemente de la zona). Buscamos cualquier reserva activa
+            # del usuario para esa fecha y hora.
             existing = (
                 db.query(models.Reserva)
+                .join(models.ClaseProgramada, models.Reserva.clase_programada_id == models.ClaseProgramada.id)
                 .filter(
                     models.Reserva.usuario_id == data.usuario_id,
-                    models.Reserva.clase_programada_id == cp.id,
+                    models.ClaseProgramada.fecha == fecha_obj,
+                    models.ClaseProgramada.hora == item.hora,
                     models.Reserva.estado != models.EstadoReserva.cancelada,
                 )
                 .first()

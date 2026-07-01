@@ -17,6 +17,10 @@ _MEDIO_PAGO_MAP = {
     "transferencia": "Transferencia",
     "mercado_pago": "Mercado Pago",
     "mercadopago": "Mercado Pago",
+    "mercado pago": "Mercado Pago",
+    "credito": "Mercado Pago",
+    "credito a favor": "Crédito a favor",
+    "crédito a favor": "Crédito a favor",
 }
 
 
@@ -163,7 +167,8 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
     if not zona:
         raise HTTPException(status_code=404, detail="Zona no encontrada.")
 
-    db_medio = _MEDIO_PAGO_MAP.get(data.medio_pago.lower(), data.medio_pago)
+    medio_pago_input = (data.medio_pago or "").strip()
+    db_medio = _MEDIO_PAGO_MAP.get(medio_pago_input.lower(), medio_pago_input)
     medio_pago = db.execute(
         text("SELECT id FROM medios_pago WHERE nombre = :nombre AND activo = true"),
         {"nombre": db_medio},
@@ -171,7 +176,10 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
     if not medio_pago:
         raise HTTPException(
             status_code=400,
-            detail=f"Medio de pago '{data.medio_pago}' no disponible.",
+            detail=(
+                f"Medio de pago '{data.medio_pago}' no disponible. "
+                f"Valor normalizado: '{db_medio}'."
+            ),
         )
 
     existing = db.execute(
@@ -179,7 +187,13 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
         {"uid": data.usuario_id, "zid": data.zona_id},
     ).fetchone()
     if existing:
-        raise HTTPException(status_code=400, detail="Ya tenés un abono activo para esta zona.")
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"No se puede crear el abono porque ya existe un abono activo para la zona {data.zona_id} "
+                f"(usuario_id={data.usuario_id})."
+            ),
+        )
 
     # Validar todos los slots antes de escribir nada
     clase_programadas = []
@@ -203,7 +217,10 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
         if cp.cupo_disponible <= 0:
             raise HTTPException(
                 status_code=400,
-                detail=f"Sin cupos para {item.fecha} a las {item.hora}.",
+                detail=(
+                    f"Sin cupos para {item.fecha} a las {item.hora}. "
+                    f"Clase_programada_id={cp.id}, cupo_disponible={cp.cupo_disponible}."
+                ),
             )
 
         dup_reserva = db.execute(
@@ -213,7 +230,10 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
         if dup_reserva:
             raise HTTPException(
                 status_code=400,
-                detail=f"Ya tenés una reserva para {item.fecha} a las {item.hora}.",
+                detail=(
+                    f"Ya tenés una reserva activa para {item.fecha} a las {item.hora}. "
+                    f"clase_programada_id={cp.id}, usuario_id={data.usuario_id}."
+                ),
             )
 
         clase_programadas.append(cp)
@@ -307,12 +327,13 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
     except IntegrityError as exc:
         db.rollback()
         constraint = None
+        exc_text = str(exc.orig or exc)
         if hasattr(exc.orig, 'diag'):
             constraint = getattr(exc.orig.diag, 'constraint_name', None)
 
-        if constraint in {'uq_usuario_zona', 'uq_abonos_usuario_zona_activo'}:
+        if constraint in {'uq_usuario_zona', 'uq_abonos_usuario_zona_activo'} or 'uq_abonos_usuario_zona_activo' in exc_text:
             detail = 'Ya tenés un abono activo para esta zona.'
-        elif constraint == 'uq_usuario_clase':
+        elif constraint == 'uq_usuario_clase' or 'uq_usuario_clase_activa' in exc_text or 'uq_usuario_clase' in exc_text:
             detail = 'Ya tenés una reserva para uno de los horarios seleccionados.'
         else:
             detail = 'No se pudo crear el abono. Podría haber una reserva duplicada o un abono previo para esa zona.'
