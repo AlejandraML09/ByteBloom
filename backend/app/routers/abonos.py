@@ -1,3 +1,4 @@
+import uuid
 from datetime import date as date_type
 from typing import List
 
@@ -244,12 +245,13 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
 
     try:
         today = date_type.today()
+        abono_qr_token = str(uuid.uuid4())
 
         abono_row = db.execute(
             text("""
                 INSERT INTO abonos
                     (usuario_id, zona_id, fecha_inicio, monto_mensual, dia_limite_pago, estado, activo, qr_token)
-                VALUES (:uid, :zid, :fi, :mm, 10, 'activo', true, gen_random_uuid()::text)
+                VALUES (:uid, :zid, :fi, :mm, 10, 'activo', true, :qr_token)
                 RETURNING id
             """),
             {
@@ -257,6 +259,7 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
                 "zid": data.zona_id,
                 "fi": today,
                 "mm": monto_mensual,
+                "qr_token": abono_qr_token,
             },
         ).fetchone()
         abono_id = abono_row.id
@@ -264,11 +267,12 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
         if (db_medio == "Efectivo"):
             estado = "pendiente"
         for cp in clase_programadas:
+            qr_token = str(uuid.uuid4())
             reserva_row = db.execute(
                 text("""
                     INSERT INTO reservas
-                        (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, pack_id, estado)
-                    VALUES (:uid, :cpid, :mpid, :precio, :monto_total, :pack_id, :estado)
+                        (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, pack_id, estado, qr_token)
+                    VALUES (:uid, :cpid, :mpid, :precio, :monto_total, :pack_id, :estado, :qr_token)
                     RETURNING id
                 """),
                 {
@@ -279,6 +283,7 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
                     "monto_total": float(zona.precio),
                     "pack_id": None,
                     "estado": estado,
+                    "qr_token": qr_token,
                 },
             ).fetchone()
 
