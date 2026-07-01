@@ -531,11 +531,12 @@ def renovar_abono(
 
     try:
         for cp_id in nuevas:
+            qr_token = str(uuid.uuid4())
             reserva_row = db.execute(
                 text("""
                     INSERT INTO reservas
-                        (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total)
-                    VALUES (:uid, :cpid, :mpid, :precio, :monto_total)
+                        (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, qr_token)
+                    VALUES (:uid, :cpid, :mpid, :precio, :monto_total, :qr_token)
                     ON CONFLICT DO NOTHING
                     RETURNING id
                 """),
@@ -545,6 +546,7 @@ def renovar_abono(
                     "mpid": mp_id,
                     "precio": float(zona.precio),
                     "monto_total": float(zona.precio),
+                    "qr_token": qr_token,
                 },
             ).fetchone()
 
@@ -719,11 +721,12 @@ def modificar_sesion_abono(
             {"id": old_r.clase_programada_id},
         )
         # Crear nueva reserva heredando estado, medio de pago y montos de la original
+        qr_token = str(uuid.uuid4())
         result = db.execute(
         text("""
             INSERT INTO reservas
-                (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, pack_id, estado)
-            VALUES (:uid, :cpid, :mpid, :precio, :monto_total, :pack_id, CAST(:estado AS estado_reserva))
+                (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, pack_id, estado, qr_token)
+            VALUES (:uid, :cpid, :mpid, :precio, :monto_total, :pack_id, CAST(:estado AS estado_reserva), :qr_token)
             RETURNING id
         """),
         {
@@ -734,6 +737,7 @@ def modificar_sesion_abono(
             "monto_total": float(old_r.monto_total),
             "pack_id": old_r.pack_id,
             "estado": old_r.estado,
+            "qr_token": qr_token,
         },
         )
         nueva_reserva = result.fetchone()
