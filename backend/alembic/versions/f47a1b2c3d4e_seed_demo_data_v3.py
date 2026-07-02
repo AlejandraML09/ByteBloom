@@ -175,7 +175,7 @@ def upgrade():
 
         -- ---------- BUSCAR CLASES REALES DEL DÍA C (necesita 2) ----------
         SELECT id INTO v_cl_e9  FROM clases_programadas WHERE fecha = v_fecha_diaC ORDER BY hora LIMIT 1 OFFSET 0;
-        SELECT id INTO v_cl_e10 FROM clases_programadas WHERE fecha = v_fecha_diaC ORDER BY hora LIMIT 1 OFFSET 1;
+        SELECT id INTO v_cl_e10 FROM clases_programadas WHERE fecha = v_fecha_diaC + INTERVAL '1 day' ORDER BY hora LIMIT 1 OFFSET 1;
 
         -- ---------- BUSCAR CLASES REALES DE DOLO (1 por día) ----------
         SELECT id INTO v_cl_dolo_ayer FROM clases_programadas WHERE fecha = v_fecha_dolo_ayer ORDER BY hora LIMIT 1 OFFSET 0;
