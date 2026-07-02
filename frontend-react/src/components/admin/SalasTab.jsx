@@ -27,13 +27,13 @@ const [descripcionesGuardadas, setDescripcionesGuardadas] = useState({})
 
   
   async function guardarCupo(s) {
-  const cupoNum = parseInt(cuposInput[s.id], 10)
+   const cupoNum = parseInt(cuposInput[s.id] ?? s.cupo, 10)
   const res = await fetch(`${API_URL}/api/salas/${s.id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       nombre: s.nombre,
-      descripcion: `Sala equipada para ${cupoNum} personas máximo`,
+      descripcion: `Sala equipada para ${cupoNum} personas`,
       cupo: cupoNum,
       activo: s.activo,
     }),
@@ -45,7 +45,7 @@ const [descripcionesGuardadas, setDescripcionesGuardadas] = useState({})
   }
   setDescripcionesGuardadas(prev => ({
     ...prev,
-    [s.id]: `Sala equipada para ${cupoNum} personas máximo`
+    [s.id]: `Sala equipada para ${cupoNum} personas`
   }))
   onToast?.('Sala actualizada.')
   await cargar()
@@ -88,7 +88,7 @@ const [descripcionesGuardadas, setDescripcionesGuardadas] = useState({})
     <tr key={s.id} style={{ borderBottom: '1px solid var(--border)', opacity: s.activo ? 1 : 0.55 }}>
       <td style={{ padding: '0.5rem', fontWeight: 600 }}>{s.nombre}</td>
       <td style={{ padding: '0.5rem', color: 'var(--text-muted)' }}>
-{descripcionesGuardadas[s.id] ?? `Sala equipada para ${s.cupo} personas máximo`}
+{descripcionesGuardadas[s.id] ?? `Sala equipada para ${s.cupo} personas`}
 </td>
       <td style={{ padding: '0.5rem' }}>
         <input
