@@ -247,8 +247,8 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
             reserva_row = db.execute(
                 text("""
                     INSERT INTO reservas
-                        (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, pack_id, estado)
-                    VALUES (:uid, :cpid, :mpid, :precio, :monto_total, :pack_id, :estado)
+                        (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, pack_id, estado, qr_token)
+                    VALUES (:uid, :cpid, :mpid, :precio, :monto_total, :pack_id, :estado, gen_random_uuid()::text)
                     RETURNING id
                 """),
                 {
@@ -508,8 +508,8 @@ def renovar_abono(
             reserva_row = db.execute(
                 text("""
                     INSERT INTO reservas
-                        (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total)
-                    VALUES (:uid, :cpid, :mpid, :precio, :monto_total)
+                        (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, qr_token)
+                    VALUES (:uid, :cpid, :mpid, :precio, :monto_total, gen_random_uuid()::text)
                     ON CONFLICT DO NOTHING
                     RETURNING id
                 """),
@@ -696,8 +696,8 @@ def modificar_sesion_abono(
         result = db.execute(
         text("""
             INSERT INTO reservas
-                (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, pack_id, estado)
-            VALUES (:uid, :cpid, :mpid, :precio, :monto_total, :pack_id, CAST(:estado AS estado_reserva))
+                (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, pack_id, estado, qr_token)
+            VALUES (:uid, :cpid, :mpid, :precio, :monto_total, :pack_id, CAST(:estado AS estado_reserva), gen_random_uuid()::text)
             RETURNING id
         """),
         {
