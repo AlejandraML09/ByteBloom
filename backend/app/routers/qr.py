@@ -200,7 +200,7 @@ def escanear_qr(data: EscaneoRequest, db: Session = Depends(get_db)):
 def _escanear_abono(abono, hoy, hora_actual, db: Session) -> dict:
     # ── Validar que el abono está activo ──────────────────────────────────────
     if not abono.activo or abono.estado != "activo":
-        raise HTTPException(status_code=400, detail="El abono no está activo.")
+        raise HTTPException(status_code=400, detail="El abono está vencido.")
 
     if abono.fecha_fin and abono.fecha_fin < date.today():
         raise HTTPException(status_code=400, detail="El abono está vencido.")
@@ -251,10 +251,13 @@ def _escanear_reserva(reserva, hoy, hora_actual, db: Session) -> dict:
         )
 
     if reserva.estado == "cancelada":
-        raise HTTPException(status_code=400, detail="La reserva está cancelada.")
+        raise HTTPException(status_code=400, detail="El QR pertenece a una reserva cancelada.")
 
     if reserva.estado == "ausente":
-        raise HTTPException(status_code=400, detail="La reserva fue marcada como ausente.")
+        raise HTTPException(
+            status_code=400, 
+            detail=f"{reserva.nombre} {reserva.apellido} tuvo ausente en esta clase."
+        )
 
     # ── Validar ventana horaria sin query extra: ya tenemos fecha/hora
     # de la clase desde el SELECT inicial en escanear_qr ──────────────────────

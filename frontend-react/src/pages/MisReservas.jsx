@@ -629,7 +629,9 @@ function AbonoCard({ abono, usuarioId, onModificar, onRenovarDone }) {
 
       {/* QR de asistencia — solo si el abono está activo */}
       {abono.activo && (
-        <QrAbono abonoId={abono.id} usuarioId={usuarioId} />
+        <div className='ma-card-qr'>
+          <QrAbono abonoId={abono.id} usuarioId={usuarioId} />
+        </div>
       )}
     </div>
   )
