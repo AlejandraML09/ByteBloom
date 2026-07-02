@@ -260,6 +260,7 @@ export default function Turnos() {
   const [clasesDelMes, setClasesDelMes] = useState({})
   // Set of clase_programada_id values the logged-in user has already booked (non-cancelled)
   const [bookedClaseIds, setBookedClaseIds] = useState(new Set())
+  const [reservedSlots, setReservedSlots] = useState(new Set())
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
   const { msg, visible, showToast } = useToast()
@@ -280,11 +281,12 @@ export default function Turnos() {
     if (!usuario?.id) return
     try {
       const reservas = await getMisTurnos(usuario.id)
-      setBookedClaseIds(
-        new Set(reservas.filter((r) => r.estado !== 'cancelada').map((r) => r.clase_programada_id))
-      )
+      const active = (Array.isArray(reservas) ? reservas.filter((r) => r.estado !== 'cancelada') : [])
+      setBookedClaseIds(new Set(active.map((r) => r.clase_programada_id)))
+      setReservedSlots(new Set(active.map((r) => `${r.fecha}|${r.hora}`)))
     } catch {
       // silently ignore — booking checks will still protect server-side
+      setReservedSlots(new Set())
     }
   }, [])
 
@@ -746,7 +748,7 @@ export default function Turnos() {
                 selectedSlot={slot}
                 onSlotSelect={setSlot}
                 clases={clasesDelDia}
-                bookedClaseIds={bookedClaseIds}
+                bookedClaseIds={new Set([...(bookedClaseIds || []), ...( (clasesDelDia||[]).filter((c) => reservedSlots.has(`${c.fecha}|${c.hora}`)).map((c) => c.id) )])}
                 waitlistClaseIds={waitlistClaseIds}
                 onWaitlistToggle={handleWaitlistToggle}
                 shifts={shifts}

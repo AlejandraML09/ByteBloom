@@ -1,13 +1,12 @@
 import client from './client'
 
-export const MAX_PALABRAS_RESENA = 160
+export const MAX_CARACTERES_RESENA = 160
 
-/** Cuenta palabras de un texto (igual criterio que el backend). */
-export function contarPalabras(texto) {
+/** Cuenta caracteres de un texto (igual criterio que el backend). */
+export function contarCaracteres(texto) {
   if (!texto) return 0
-  return texto.trim().split(/\s+/).filter(Boolean).length
+  return texto.length
 }
-
 /**
  * Crea una reseña para una reserva ya asistida.
  * @param {{ usuarioId: number, reservaId: number, rating: number, comentario?: string }} payload
