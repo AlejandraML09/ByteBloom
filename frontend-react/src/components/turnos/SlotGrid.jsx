@@ -62,7 +62,19 @@ export function SlotGrid({
             s.slot === clase.hora &&
             new Date(s.diaDate).toDateString() === new Date(selectedDay).toDateString()
         )
-        const disabled = isFull || isBooked || alreadySelected
+
+        // Disable if slot has already started (now >= slot start)
+        let hasStarted = false
+        try {
+          const [h, m] = clase.hora.split(':').map(Number)
+          const slotDate = new Date(selectedDay)
+          slotDate.setHours(h, m, 0, 0)
+          hasStarted = new Date() >= slotDate
+        } catch (e) {
+          hasStarted = false
+        }
+
+        const disabled = isFull || isBooked || alreadySelected || hasStarted
         const taken = clase.cupo_maximo - clase.cupo_disponible
         const dots = Math.min(clase.cupo_maximo, MAX_DOTS)
         const takenDots = Math.round((taken / clase.cupo_maximo) * dots)
@@ -70,7 +82,7 @@ export function SlotGrid({
         return (
           <div key={clase.id} className='slot-item'>
             <button
-              className={`slot-btn${isFull ? ' full' : ''}${isBooked ? ' booked' : ''}${isSelected ? ' selected' : ''}${inWaitlist ? ' in-waitlist' : ''}${alreadySelected ? ' already-selected' : ''}`}
+              className={`slot-btn${isFull ? ' full' : ''}${isBooked ? ' booked' : ''}${isSelected ? ' selected' : ''}${inWaitlist ? ' in-waitlist' : ''}${alreadySelected ? ' already-selected' : ''}${hasStarted ? ' past' : ''}`}
               disabled={disabled}
               onClick={() => onSlotSelect(clase.hora)}
             >

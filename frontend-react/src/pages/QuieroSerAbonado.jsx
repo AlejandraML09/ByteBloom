@@ -7,7 +7,7 @@ import { ZonaSelector } from '../components/turnos/ZonaSelector'
 import { MonthCalendar } from '../components/turnos/MonthCalendar'
 import { SlotGrid } from '../components/turnos/SlotGrid'
 import { PaymentSelector } from '../components/turnos/PaymentSelector'
-import { getDisponibilidad } from '../api/turnos'
+import { getDisponibilidad, getMisTurnos } from '../api/turnos'
 import { getMisAbonos } from '../api/abonos'
 import client from '../api/client'
 import { fmtDate, fmtDiaLargo, nextHour, getISOWeekKey, MESES_ES } from '../utils/dates'
@@ -24,8 +24,16 @@ const MEDIO_PAGO_DB = {
   cuentadni: 'Efectivo',
   modo: 'Transferencia',
   mercadopago: 'Mercado Pago',
+  mercado_pago: 'Mercado Pago',
   debito: 'Mercado Pago',
   credito: 'Mercado Pago',
+  credito_favor: 'Crédito a favor',
+  'Crédito a favor': 'Crédito a favor',
+}
+
+function resolveMedioPagoValue(medioPago) {
+  if (!medioPago) return medioPago
+  return MEDIO_PAGO_DB[medioPago] ?? MEDIO_PAGO_DB[medioPago?.toLowerCase?.()] ?? medioPago
 }
 
 function toMes(date) {
@@ -167,6 +175,7 @@ export default function QuieroSerAbonado() {
   const [clasesDelMes, setClasesDelMes] = useState({})
   const [activeAbonoZonaIds, setActiveAbonoZonaIds] = useState(new Set())
   const [blockedZonaName, setBlockedZonaName] = useState(null)
+  const [reservedSlots, setReservedSlots] = useState(new Set())
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -205,6 +214,20 @@ export default function QuieroSerAbonado() {
       .catch(() => {
         setActiveAbonoZonaIds(new Set())
       })
+  }, [usuario?.id])
+
+  useEffect(() => {
+    if (!usuario?.id) return
+    getMisTurnos(usuario.id)
+      .then((res) => {
+        const slots = new Set(
+          (Array.isArray(res) ? res.filter((r) => r.estado !== 'cancelada') : []).map(
+            (r) => `${r.fecha}|${r.hora}`
+          )
+        )
+        setReservedSlots(slots)
+      })
+      .catch(() => setReservedSlots(new Set()))
   }, [usuario?.id])
 
   useEffect(() => {
@@ -291,7 +314,22 @@ export default function QuieroSerAbonado() {
       return []
     const mes = toMes(date)
     const all = clasesDelMes[mes] ?? []
-    return all.filter((c) => c.fecha === fmtDate(date) && c.zona_id === zona.id)
+    const fechaStr = fmtDate(date)
+    const now = new Date()
+
+    return all.filter((c) => {
+      if (c.fecha !== fechaStr || c.zona_id !== zona.id) {
+        return false
+      }
+
+      // crear fecha/hora exacta del turno
+      const [hours, minutes] = c.hora.split(':').map(Number)
+      const turnoDate = new Date(date)
+      turnoDate.setHours(hours, minutes, 0, 0)
+
+      // ocultar turnos ya pasados
+      return turnoDate > now
+    })
   }
 
   const clasesDelDia = useMemo(() => {
@@ -304,7 +342,14 @@ export default function QuieroSerAbonado() {
     () => new Set(shifts.map((s) => getISOWeekKey(s.diaDate))),
     [shifts]
   )
-  const bookedDays = useMemo(() => new Set(shifts.map((s) => fmtDate(s.diaDate))), [shifts])
+  const bookedDays = useMemo(() => {
+    const days = new Set(shifts.map((s) => fmtDate(s.diaDate)))
+    for (const slot of reservedSlots) {
+      const fecha = String(slot).split('|')[0]
+      days.add(fecha)
+    }
+    return days
+  }, [shifts, reservedSlots])
 
   function handleZonaSelect(zonaObj) {
     if (activeAbonoZonaIds.has(zonaObj.id)) {
@@ -549,7 +594,7 @@ export default function QuieroSerAbonado() {
                   selectedSlot={slot}
                   onSlotSelect={setSlot}
                   clases={clasesDelDia}
-                  bookedClaseIds={new Set()}
+                  bookedClaseIds={new Set((clasesDelDia || []).filter((c) => reservedSlots.has(`${c.fecha}|${c.hora}`)).map((c) => c.id))}
                 />
               {canAddMore && (
                 <button className='btn-add-shift' onClick={addShift}>

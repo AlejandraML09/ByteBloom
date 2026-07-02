@@ -24,7 +24,7 @@ export default function QrReserva({ reservaId, usuarioId }) {
         style={{ fontSize: 12, padding: '6px 10px' }}
         onClick={() => setVisible((v) => !v)}
       >
-        {visible ? 'Ocultar QR' : 'Ver QR'}
+        {visible ? 'Ocultar QR' : 'Mostrar QR'}
       </button>
 
       {visible && token && (

@@ -1,3 +1,4 @@
+import uuid
 from datetime import date as date_type
 from typing import List
 
@@ -17,6 +18,10 @@ _MEDIO_PAGO_MAP = {
     "transferencia": "Transferencia",
     "mercado_pago": "Mercado Pago",
     "mercadopago": "Mercado Pago",
+    "mercado pago": "Mercado Pago",
+    "credito": "Mercado Pago",
+    "credito a favor": "Crédito a favor",
+    "crédito a favor": "Crédito a favor",
 }
 
 
@@ -163,7 +168,8 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
     if not zona:
         raise HTTPException(status_code=404, detail="Zona no encontrada.")
 
-    db_medio = _MEDIO_PAGO_MAP.get(data.medio_pago.lower(), data.medio_pago)
+    medio_pago_input = (data.medio_pago or "").strip()
+    db_medio = _MEDIO_PAGO_MAP.get(medio_pago_input.lower(), medio_pago_input)
     medio_pago = db.execute(
         text("SELECT id FROM medios_pago WHERE nombre = :nombre AND activo = true"),
         {"nombre": db_medio},
@@ -171,7 +177,10 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
     if not medio_pago:
         raise HTTPException(
             status_code=400,
-            detail=f"Medio de pago '{data.medio_pago}' no disponible.",
+            detail=(
+                f"Medio de pago '{data.medio_pago}' no disponible. "
+                f"Valor normalizado: '{db_medio}'."
+            ),
         )
 
     existing = db.execute(
@@ -179,7 +188,13 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
         {"uid": data.usuario_id, "zid": data.zona_id},
     ).fetchone()
     if existing:
-        raise HTTPException(status_code=400, detail="Ya tenés un abono activo para esta zona.")
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"No se puede crear el abono porque ya existe un abono activo para la zona {data.zona_id} "
+                f"(usuario_id={data.usuario_id})."
+            ),
+        )
 
     # Validar todos los slots antes de escribir nada
     clase_programadas = []
@@ -203,7 +218,10 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
         if cp.cupo_disponible <= 0:
             raise HTTPException(
                 status_code=400,
-                detail=f"Sin cupos para {item.fecha} a las {item.hora}.",
+                detail=(
+                    f"Sin cupos para {item.fecha} a las {item.hora}. "
+                    f"Clase_programada_id={cp.id}, cupo_disponible={cp.cupo_disponible}."
+                ),
             )
 
         dup_reserva = db.execute(
@@ -213,7 +231,10 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
         if dup_reserva:
             raise HTTPException(
                 status_code=400,
-                detail=f"Ya tenés una reserva para {item.fecha} a las {item.hora}.",
+                detail=(
+                    f"Ya tenés una reserva activa para {item.fecha} a las {item.hora}. "
+                    f"clase_programada_id={cp.id}, usuario_id={data.usuario_id}."
+                ),
             )
 
         clase_programadas.append(cp)
@@ -224,12 +245,13 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
 
     try:
         today = date_type.today()
+        abono_qr_token = str(uuid.uuid4())
 
         abono_row = db.execute(
             text("""
                 INSERT INTO abonos
                     (usuario_id, zona_id, fecha_inicio, monto_mensual, dia_limite_pago, estado, activo, qr_token)
-                VALUES (:uid, :zid, :fi, :mm, 10, 'activo', true, gen_random_uuid()::text)
+                VALUES (:uid, :zid, :fi, :mm, 10, 'activo', true, :qr_token)
                 RETURNING id
             """),
             {
@@ -237,6 +259,7 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
                 "zid": data.zona_id,
                 "fi": today,
                 "mm": monto_mensual,
+                "qr_token": abono_qr_token,
             },
         ).fetchone()
         abono_id = abono_row.id
@@ -244,11 +267,12 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
         if (db_medio == "Efectivo"):
             estado = "pendiente"
         for cp in clase_programadas:
+            qr_token = str(uuid.uuid4())
             reserva_row = db.execute(
                 text("""
                     INSERT INTO reservas
-                        (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, pack_id, estado)
-                    VALUES (:uid, :cpid, :mpid, :precio, :monto_total, :pack_id, :estado)
+                        (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, pack_id, estado, qr_token)
+                    VALUES (:uid, :cpid, :mpid, :precio, :monto_total, :pack_id, :estado, gen_random_uuid()::text)
                     RETURNING id
                 """),
                 {
@@ -259,6 +283,7 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
                     "monto_total": float(zona.precio),
                     "pack_id": None,
                     "estado": estado,
+                    "qr_token": qr_token,
                 },
             ).fetchone()
 
@@ -307,12 +332,13 @@ def solicitar_abono(data: SolicitudAbonoRequest, db: Session = Depends(get_db)):
     except IntegrityError as exc:
         db.rollback()
         constraint = None
+        exc_text = str(exc.orig or exc)
         if hasattr(exc.orig, 'diag'):
             constraint = getattr(exc.orig.diag, 'constraint_name', None)
 
-        if constraint in {'uq_usuario_zona', 'uq_abonos_usuario_zona_activo'}:
+        if constraint in {'uq_usuario_zona', 'uq_abonos_usuario_zona_activo'} or 'uq_abonos_usuario_zona_activo' in exc_text:
             detail = 'Ya tenés un abono activo para esta zona.'
-        elif constraint == 'uq_usuario_clase':
+        elif constraint == 'uq_usuario_clase' or 'uq_usuario_clase_activa' in exc_text or 'uq_usuario_clase' in exc_text:
             detail = 'Ya tenés una reserva para uno de los horarios seleccionados.'
         else:
             detail = 'No se pudo crear el abono. Podría haber una reserva duplicada o un abono previo para esa zona.'
@@ -505,11 +531,12 @@ def renovar_abono(
 
     try:
         for cp_id in nuevas:
+            qr_token = str(uuid.uuid4())
             reserva_row = db.execute(
                 text("""
                     INSERT INTO reservas
-                        (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total)
-                    VALUES (:uid, :cpid, :mpid, :precio, :monto_total)
+                        (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, qr_token)
+                    VALUES (:uid, :cpid, :mpid, :precio, :monto_total, gen_random_uuid()::text)
                     ON CONFLICT DO NOTHING
                     RETURNING id
                 """),
@@ -519,6 +546,7 @@ def renovar_abono(
                     "mpid": mp_id,
                     "precio": float(zona.precio),
                     "monto_total": float(zona.precio),
+                    "qr_token": qr_token,
                 },
             ).fetchone()
 
@@ -693,11 +721,12 @@ def modificar_sesion_abono(
             {"id": old_r.clase_programada_id},
         )
         # Crear nueva reserva heredando estado, medio de pago y montos de la original
+        qr_token = str(uuid.uuid4())
         result = db.execute(
         text("""
             INSERT INTO reservas
-                (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, pack_id, estado)
-            VALUES (:uid, :cpid, :mpid, :precio, :monto_total, :pack_id, CAST(:estado AS estado_reserva))
+                (usuario_id, clase_programada_id, medio_pago_id, precio_pagado, monto_total, pack_id, estado, qr_token)
+            VALUES (:uid, :cpid, :mpid, :precio, :monto_total, :pack_id, CAST(:estado AS estado_reserva), gen_random_uuid()::text)
             RETURNING id
         """),
         {
@@ -708,6 +737,7 @@ def modificar_sesion_abono(
             "monto_total": float(old_r.monto_total),
             "pack_id": old_r.pack_id,
             "estado": old_r.estado,
+            "qr_token": qr_token,
         },
         )
         nueva_reserva = result.fetchone()

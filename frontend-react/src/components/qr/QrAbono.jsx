@@ -19,20 +19,20 @@ export default function QrAbono({ abonoId, usuarioId }) {
   if (error) return <p style={{ color: 'red', fontSize: 13 }}>{error}</p>
 
   return (
-    <div style={{ marginTop: '1rem' }}>
-      <button
-        className='ma-action-btn ma-action-btn--outline'
-        onClick={() => setVisible((v) => !v)}
-      >
-        {visible ? 'Ocultar QR' : 'Mostrar QR de asistencia'}
-      </button>
+    <div>
+      <div className='qr-abono-btn-row'>
+        <button
+          className='ma-action-btn ma-action-btn--outline'
+          onClick={() => setVisible((v) => !v)}
+        >
+          {visible ? 'Ocultar QR' : 'Mostrar QR'}
+        </button>
+      </div>
 
       {visible && token && (
-        <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+        <div className='qr-abono-panel'>
           <QRCodeSVG value={token} size={180} />
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center' }}>
-            Mostrá este QR al secretario para registrar tu asistencia.
-          </p>
+          <p>Mostrá este QR al secretario para registrar tu asistencia.</p>
         </div>
       )}
     </div>
